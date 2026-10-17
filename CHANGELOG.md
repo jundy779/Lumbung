@@ -1,5 +1,8 @@
 # Changelog
 
+## v28.1 — 17 Okt 2026
+- Sopir tidak lagi bolak-balik di tempat saat jalannya terhalang truk yang diam: setelah menunggu sebentar ia boleh lewat lebih dekat ke truk yang berhenti, dan memutar lewat ujung depan/belakang truk bila badan truk menghalangi langsung.
+
 ## v28 — 17 Okt 2026
 - **Pusat peringatan yang bisa ditindaklanjuti**: truk tertahan, truk menunggu stok, gudang hampir penuh/kosong, stok menipis, baterai forklift rendah, dan cuaca ekstrem — masing-masing dengan tombol aksi yang langsung memengaruhi operasi, selesai otomatis, dan tercatat di riwayat.
 - Lencana jumlah peringatan di ikon lonceng; lonceng kini juga tampil di ponsel.

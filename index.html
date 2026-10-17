@@ -1041,16 +1041,38 @@ function crewZones(site,t,x,z){ let ids=null; const add=o=>(ids||(ids=[])).push(
   return ids; }
 const bodyHit=(o,x,z)=>(o.cw||[]).some(c=>Math.hypot(c.x-x,c.z-z)<c.r+0.55);
 const bodyGap=(o,x,z)=>{ let m=Infinity; for(const c of (o.cw||[])) m=Math.min(m,Math.hypot(c.x-x,c.z-z)-c.r); return m; };
-function crewDanger(site,t,x0,z0,x1,z1){
-  for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked') continue; const d1=bodyGap(o,x1,z1); if(d1>=(o.v>0.05?0.95:0.6)) continue; if(d1<bodyGap(o,x0,z0)-1e-4) return true; }
+/* truk benar-benar diam (tidak akan bergerak selama ada orang di jalurnya) */
+const truckStill=o=>o.v<0.05&&(o.stuck||0)>1.0;
+function crewDanger(site,t,x0,z0,x1,z1,patient){
+  for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked') continue; const d1=bodyGap(o,x1,z1);
+    const clear=o.v>0.05?0.95:(patient&&truckStill(o)?0.25:0.6); if(d1>=clear) continue; if(d1<bodyGap(o,x0,z0)-1e-4) return true; }
   const nxt=crewZones(site,t,x1,z1); if(!nxt) return false; const cur=crewZones(site,t,x0,z0)||[];
-  return nxt.some(o=>!cur.includes(o)); }
+  return nxt.some(o=>!cur.includes(o)&&!(patient&&truckStill(o))); }
+/* badan truk menghalangi langsung → buat jalan memutar lewat ujung depan/belakang truk */
+function crewDetour(site,t,d,gx,gz){
+  let best=null, bg=0.45;
+  for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked'||o.v>0.05) continue;
+    for(let k=1;k<=6;k++){ const px=d.x+(gx-d.x)*k/6, pz=d.z+(gz-d.z)*k/6, g=bodyGap(o,px,pz); if(g<bg){ bg=g; best=o; } } }
+  if(!best) return null;
+  const o=best, fx=Math.sin(o.heading), fz=Math.cos(o.heading), rx=Math.cos(o.heading), rz=-Math.sin(o.heading);
+  const loc=(x,z)=>({lx:(x-o.pos.x)*rx+(z-o.pos.z)*rz, lz:(x-o.pos.x)*fx+(z-o.pos.z)*fz}), W=loc(d.x,d.z), G=loc(gx,gz);
+  const sW=W.lx>=0?1:-1, sG=G.lx>=0?1:-1, SIDE=2.0, END=4.7;
+  const toW=(lx,lz)=>({x:o.pos.x+rx*lx+fx*lz, z:o.pos.z+rz*lx+fz*lz});
+  const plan=e=>sW===sG?[toW(sW*SIDE,e)]:[toW(sW*SIDE,e),toW(sG*SIDE,e)];
+  const len=pts=>{ let L=0, px=d.x, pz=d.z; for(const p of pts){ L+=Math.hypot(p.x-px,p.z-pz); px=p.x; pz=p.z; } return L+Math.hypot(gx-px,gz-pz); };
+  /* titik memutar tidak boleh masuk platform dock atau badan jalan */
+  const okPt=p=>!(p.z<site.zE+0.4&&p.x>site.xs0-0.5&&p.x<site.xs1+0.5)&&!(site.Zr!=null&&p.z>site.Zr-2.4);
+  const opts=[plan(END),plan(-END)].filter(pts=>pts.every(okPt));
+  if(!opts.length) return null;
+  return opts.sort((a,b)=>len(a)-len(b))[0]; }
 function crewWalk(site,t,d,dt){
   if(!d.route||!d.route.length){ d.v=0; return true; }
   const g=d.route[0], dx=g.x-d.x, dz=g.z-d.z, L=Math.hypot(dx,dz);
   if(L<0.05){ d.route.shift(); if(!d.route.length){ d.v=0; return true; } return false; }
   const step=Math.min(L,CREW_SPEED*dt), nx=d.x+dx/L*step, nz=d.z+dz/L*step;
-  if(d.safe&&crewDanger(site,t,d.x,d.z,nx,nz)){ d.v=0; d.blockT=(d.blockT||0)+dt;
+  if(d.detourCd>0) d.detourCd-=dt;
+  if(d.safe&&crewDanger(site,t,d.x,d.z,nx,nz,(d.blockT||0)>1.5)){ d.v=0; d.blockT=(d.blockT||0)+dt;
+    if(d.blockT>2.5&&!(d.detourCd>0)){ const pts=crewDetour(site,t,d,g.x,g.z); d.detourCd=5; if(pts){ d.route.unshift(...pts); d.blockT=1.6; return false; } }
     /* tertahan dekat badan truk → menyingkir menjauh sampai jarak aman */
     { let near=null, gap=0.95; for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked') continue; const gg=bodyGap(o,d.x,d.z); if(gg<gap&&(o.v>0.05||d.blockT>0.8)){ gap=gg; near=o; } }
       if(near){ let cx=0,cz=0,best=Infinity; for(const c of near.cw){ const q=Math.hypot(c.x-d.x,c.z-d.z)-c.r; if(q<best){ best=q; cx=c.x; cz=c.z; } }
@@ -1058,7 +1080,8 @@ function crewWalk(site,t,d,dt){
         if(!site.trucks.some(o=>o!==t&&o!==near&&o.solid&&bodyGap(o,rx,rz)<0.5)){ d.x=rx; d.z=rz; d.v=CREW_SPEED*0.8; d.h+=angDiff(d.h,Math.atan2(ax,az))*Math.min(1,dt*8); } }
       else d.h+=angDiff(d.h,Math.atan2(dx,dz))*Math.min(1,dt*6); }
     return false; }
-  d.blockT=0; d.x=nx; d.z=nz; d.v=CREW_SPEED; d.h+=angDiff(d.h,Math.atan2(dx,dz))*Math.min(1,dt*10); return false; }
+  d.blockT=Math.max(0,(d.blockT||0)-dt*0.6); /* menyusut perlahan: bolak-balik tetap terhitung tertahan */
+  d.x=nx; d.z=nz; d.v=CREW_SPEED; d.h+=angDiff(d.h,Math.atan2(dx,dz))*Math.min(1,dt*10); return false; }
 /* buka/tutup pintu belakang */
 function driverStep(t,dt,goal){
   const d=crewOf(t);
