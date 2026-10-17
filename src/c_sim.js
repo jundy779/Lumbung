@@ -84,7 +84,9 @@ function moveStep(e,dt,block){
 }
 
 
-function logEvent(site,text,color='#2E5BFF',ent){ Store.emit({siteId:site.id,siteIdx:site.idx,text,color,t:nowWIB(),ref:ent&&ent.id}); }
+/* waktu kejadian mengikuti jam simulasi (sama dengan jam asli di mode Real-time) */
+function simNow(){ const d=nowWIB(), h=(Store.clock&&Store.clock.hour!=null)?Store.clock.hour:d.getHours()+d.getMinutes()/60; d.setHours(Math.floor(h),Math.floor((h%1)*60),0,0); return d; }
+function logEvent(site,text,color='#2E5BFF',ent){ Store.emit({siteId:site.id,siteIdx:site.idx,text,color,t:simNow(),ref:ent&&ent.id}); }
 
 
 /* ---------- persimpangan: klaim zona + antrean (give-way) ---------- */
@@ -183,6 +185,7 @@ function expectedOcc(site){ let e=site.slots.filter(s=>s.occupied).length;
 function planMode(site){ const cap=site.slots.length, e=expectedOcc(site), want=3+Math.floor(Math.random()*4);
   const canU=Math.min(want,cap-e), canL=Math.min(want,e);
   if(canU<2&&canL<2) return null;
+  if(site.bias&&site.bias.t>0){ if(site.bias.mode==='load'&&canL>=2) return {mode:'load',total:Math.min(canL,5)}; if(site.bias.mode==='unload'&&canU>=2) return {mode:'unload',total:Math.min(canU,5)}; }
   if(canL>=2&&e>cap*0.45&&typeof freeStore==='function'&&freeStore()&&Math.random()<0.6) return {mode:'load',total:Math.min(canL,4)};
   const pref = site.profile==='dc' ? (e>cap*0.3?'load':'unload') : (e<=cap/2 ? 'unload':'load');
   if(pref==='unload'&&canU>=2) return {mode:'unload',total:canU};
@@ -377,7 +380,7 @@ function truckStep(site,t,dt){
       if(moveStep(t,dt,lookAheadTruck(t,site))){ t.state='close'; }
       break;
     case 'close':
-      if(driverStep(t,dt,0)){ const bay=t.bay; bay.truck=null; if(t.mode==='load') site.outToday++;
+      if(driverStep(t,dt,0)){ const bay=t.bay; bay.truck=null; if(t.mode==='load') site.outToday++; else applyRestock(site);
         if(t.shipment) t.shipment.status=t.mode==='load'?'in_transit':'completed';
         hidden(t,'lastBay',bay);
         const st=t.dest?Store.get('stores',t.dest):null, P=st?storeTripPath(site,t,st):null;
@@ -476,7 +479,7 @@ function findJob(site,f){
   return null;
 }
 function decide(site,f,onExit){
-  if(f.battery<25){ f.task='Menuju stasiun pengisian'; travel(f,site.rest[f.restIdx],onExit); f.q.push({t:'do',fn:()=>{f.charging=true;f.task='Mengisi daya';logEvent(site,`${f.short} baterai rendah, mulai mengisi daya`,'#B76E00',f);}}); return; }
+  if(f.battery<25||f.forceCharge){ f.task='Menuju stasiun pengisian'; travel(f,site.rest[f.restIdx],onExit); f.q.push({t:'do',fn:()=>{f.charging=true;f.forceCharge=false;f.task='Mengisi daya';logEvent(site,`${f.short} baterai rendah, mulai mengisi daya`,'#B76E00',f);}}); return; }
   const job=findJob(site,f);
   if(job){ startJob(site,f,job,onExit); return; }
   const r=site.rest[f.restIdx];
@@ -613,6 +616,7 @@ function shiftTick(site,dt){
 }
 /* ---------- site tick ---------- */
 function simSite(site,dt){
+  if(site.bias){ site.bias.t-=dt; if(site.bias.t<=0) site.bias=null; }
   refreshCircles(site.trucks); refreshTruckWorld(site); refreshCircles(site.forks); refreshCircles(site.people);
   for(const t of site.trucks) if(t.state!=='parked') truckStep(site,t,dt);
   for(const f of site.forks) forkStep(site,f,dt);
@@ -691,7 +695,8 @@ function initCityWalkers(){
       city.people.push(personRecord(null,R,'Warga',{plan:'loop',route,ri,y:0.08,start:{x:a.x+dx*t+dz/l*0.45,z:a.z+dz*t-dx/l*0.45,h:Math.atan2(dx,dz)},
         look:{vest:pick([0xFFFFFF,0x2E5BFF,0x9AA4C2,0xE0573B,0x17A090,0xF2B53A],R),hat:pick([0x2A2622,0x3B2A20,0x1B1B1B],R),civ:true}})); } }
 }
-function simCity(dt){ stepTraffic(dt); refreshCircles(city.people); for(const p of city.people) personStep(city,p,dt); }
+function simCity(dt){
+  alertsTick(dt); stepTraffic(dt); refreshCircles(city.people); for(const p of city.people) personStep(city,p,dt); }
 
 /* ---------- cuaca (data, seperti feed stasiun cuaca) ---------- */
 const WEATHER={
@@ -752,6 +757,51 @@ const toWorld=(pts,s)=>pts.map(p=>({x:p.x+s.ox,z:p.z+s.oz}));
 function stores(){ return Store.all('stores'); }
 function storeEntry(st){ return {x:st.gx*PX-PX/2,z:st.gz*PZ+PZ/2}; }
 function freeStore(){ const c=stores().filter(st=>!st.bays[0].truckId); return c.length?pick(c):null; }
+/* ---------- pusat peringatan: kondisi operasional + aksi yang bisa dijalankan ---------- */
+const ALERTS=new Map(), ALERT_LOG=[]; let alertAcc=0, alertSeq=0;
+function applyRestock(site){ for(const i of site.inv) if(i.restock){ i.qty+=i.restock; logEvent(site,`Restock ${i.name} tiba (+${i.restock.toLocaleString('id-ID')} unit)`,'#178A55'); i.restock=0; } }
+function upAlert(id,o){ let a=ALERTS.get(id); if(!a){ a={id,seq:++alertSeq,t:simNow(),state:'open',fresh:true}; ALERTS.set(id,a); } Object.assign(a,o); a.live=true; return a; }
+function closeAlert(a,how){ ALERTS.delete(a.id); ALERT_LOG.unshift({id:a.id,sev:a.sev,title:a.title,siteId:a.siteId,how,doneLabel:a.doneLabel,t:simNow()}); if(ALERT_LOG.length>25) ALERT_LOG.pop(); }
+const lookAct=(id,label)=>({id:'look',label,focus:id});
+function alertsTick(dt){ alertAcc+=dt; if(alertAcc<1.2) return; alertAcc=0;
+  for(const a of ALERTS.values()) a.live=false;
+  const prev=id=>ALERTS.get(id);
+  for(const t of Store.tables.trucks.values()){ const site=t.site; if(!site||!t.solid) continue;
+    const sid='stuck:'+t.id, stuck=!['docked','parked','away','store_docked'].includes(t.state)&&(t.stuck>60||(prev(sid)&&t.stuck>5));
+    if(stuck){ const acts=[lookAct(t.id,'Lihat truk')]; const o=destOptions(t); if(o&&o.enroute){ const alt=o.list.find(x=>!x.busy&&!x.cur); if(alt) acts.unshift({id:'reroute',label:`Alihkan ke ${alt.name}`,primary:true,run:()=>setTruckDest(t,alt.id)==='ok'?`${t.id} dialihkan ke ${alt.name}`:'Gagal mengalihkan'}); }
+      upAlert(sid,{sev:'crit',kind:'truck',title:`${t.id} tertahan ${Math.round(t.stuck)} detik`,detail:`${site.name} · menunggu jalur kosong`,siteId:site.id,ref:t.id,actions:acts}); }
+    const vid='starve:'+t.id;
+    if(t.state==='docked'&&t.mode==='load'&&(t.starve>10||(prev(vid)&&t.starve>0))){ const acts=[lookAct(t.id,'Lihat truk')];
+      if(t.done+t.pending>=1) acts.unshift({id:'go',label:`Berangkatkan (${t.done+t.pending} palet)`,primary:true,run:()=>{ t.total=t.done+t.pending; t.starve=0; if(t.shipment) t.shipment.total=t.total; logEvent(site,`${t.id} diberangkatkan dengan muatan parsial (${t.total} palet)`,'#2E5BFF',t); return `${t.id} diberangkatkan dengan ${t.total} palet`; }});
+      upAlert(vid,{sev:'warn',kind:'truck',title:`${t.id} menunggu stok untuk dimuat`,detail:`${t.done}/${t.total} palet · ${t.bay?t.bay.label+' · ':''}${site.name}`,siteId:site.id,ref:t.id,actions:acts}); } }
+  for(const s of SITES_SIM()){ const occ=s.slots.filter(x=>x.occupied).length/Math.max(1,s.slots.length);
+    const fid='full:'+s.id, eid='empty:'+s.id;
+    if(occ>=0.9||(prev(fid)&&occ>0.7)){ const a=upAlert(fid,{sev:'warn',kind:'site',title:`${s.name} hampir penuh`,detail:`Area staging ${Math.round(occ*100)}% terisi`,siteId:s.id,ref:s.id,
+        actions:[{id:'bias',label:'Prioritaskan muat 10 mnt',primary:true,run:()=>{ s.bias={mode:'load',t:600}; logEvent(s,`Prioritas truk muat diaktifkan 10 menit`,'#2E5BFF'); return 'Truk muat diprioritaskan 10 menit'; }},lookAct(s.id,'Lihat gudang')]});
+      if(s.bias&&s.bias.mode==='load'&&a.state==='open'){ a.state='done'; a.doneLabel='Prioritas muat aktif'; } }
+    if(occ<=0.1||(prev(eid)&&occ<0.3)){ const a=upAlert(eid,{sev:'warn',kind:'site',title:`${s.name} hampir kosong`,detail:`Area staging ${Math.round(occ*100)}% terisi`,siteId:s.id,ref:s.id,
+        actions:[{id:'bias',label:'Prioritaskan bongkar 10 mnt',primary:true,run:()=>{ s.bias={mode:'unload',t:600}; logEvent(s,`Prioritas truk bongkar diaktifkan 10 menit`,'#2E5BFF'); return 'Truk bongkar diprioritaskan 10 menit'; }},lookAct(s.id,'Lihat gudang')]});
+      if(s.bias&&s.bias.mode==='unload'&&a.state==='open'){ a.state='done'; a.doneLabel='Prioritas bongkar aktif'; } }
+    for(const i of s.inv){ const iid='stock:'+s.id+':'+i.name; if(i.qty>=STOCK_LOW) continue;
+      const a=upAlert(iid,{sev:'warn',kind:'stock',title:`Stok ${i.name} menipis`,detail:`${i.qty.toLocaleString('id-ID')} unit tersisa · ${s.name}`,siteId:s.id,ref:s.id,
+        actions:[{id:'po',label:'Pesan restock',primary:true,run:()=>{ i.restock=600; logEvent(s,`Restock ${i.name} dipesan (600 unit) · tiba bersama truk bongkar berikutnya`,'#2E5BFF'); return `Restock ${i.name} dipesan`; }},lookAct(s.id,'Lihat gudang')]});
+      if(i.restock&&a.state==='open'){ a.state='done'; a.doneLabel='Restock dipesan · menunggu truk bongkar'; } }
+    for(const f of s.forks){ const bid='bat:'+f.id; const low=!f.charging&&(f.battery<26||(prev(bid)&&f.battery<30))&&!f.task.startsWith('Menuju stasiun');
+      if(low){ const a=upAlert(bid,{sev:'warn',kind:'fork',title:`Baterai ${f.short} ${Math.round(f.battery)}%`,detail:`${f.task} · ${s.name}`,siteId:s.id,ref:f.id,
+          actions:[{id:'charge',label:'Isi daya sekarang',primary:true,run:()=>{ f.forceCharge=true; return `${f.short} akan ke stasiun setelah tugas ini`; }},lookAct(f.id,'Lihat forklift')]});
+        if(f.forceCharge&&a.state==='open'){ a.state='done'; a.doneLabel='Menuju pengisian setelah tugas ini'; } } } }
+  const c=Store.weather&&Store.weather.condition, WXL={storm:'Badai petir',fog:'Kabut tebal',sandstorm:'Badai pasir'};
+  if(WXL[c]) upAlert('wx',{sev:'info',kind:'wx',title:`Cuaca: ${WXL[c]}`,detail:`Kecepatan truk ${Math.round(WX.speed*100)}% · forklift ${Math.round(WX.fork*100)}%`,siteId:null,ref:null,
+      actions:[{id:'clear',label:'Kembalikan cerah',primary:true,run:()=>{ setWeather('clear'); return 'Cuaca dikembalikan cerah'; }}]});
+  for(const a of [...ALERTS.values()]) if(!a.live) closeAlert(a,a.state==='done'?'resolved':'auto');
+}
+function runAlert(id,actId){ const a=ALERTS.get(id); if(!a) return {msg:'Peringatan sudah selesai'};
+  if(actId==='ack'){ a.state='done'; a.doneLabel='Ditandai sudah ditangani'; return {msg:'Ditandai sudah ditangani'}; }
+  const act=a.actions.find(x=>x.id===actId); if(!act) return {msg:'Aksi tidak tersedia'};
+  if(act.focus) return {focus:act.focus};
+  const msg=act.run(); a.state='done'; a.doneLabel=a.doneLabel||act.label; a.doneLabel=act.label; return {msg}; }
+const openAlerts=()=>[...ALERTS.values()].filter(a=>a.state==='open').sort((a,b)=>(a.sev==='crit'?0:a.sev==='warn'?1:2)-(b.sev==='crit'?0:b.sev==='warn'?1:2)||b.seq-a.seq);
+const SITES_SIM=()=>Store.all('sites');
 /* ---------- pengarahan manual: pengguna memilih tujuan truk ---------- */
 const DEST_BEFORE=['docked','pull','close'];
 function destOptions(t){ const site=t.site; if(!site) return null;

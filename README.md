@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v26** · oleh PT Fusionify Digital Group
+**Lumbung v28** · oleh PT Fusionify Digital Group
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -58,6 +58,20 @@ Grid jalan kota dengan lampu lalu lintas, zebra cross, dan garis stop di lajur k
 
 ### 🎬 Sinematik & Tampilan Bersih
 Mode sinematik memilih shot terbaik secara otomatis. Tampilan Bersih menyembunyikan rambu dan lalu lintas kota agar fokus ke operasional gudang.
+
+### 🚨 Peringatan yang Bisa Ditindaklanjuti
+Pusat peringatan memantau operasi terus-menerus dan setiap peringatan punya **tombol aksi yang langsung mengubah jalannya operasi**:
+
+| Peringatan | Aksi |
+|---|---|
+| Truk tertahan > 60 detik | Lihat truk · alihkan ke toko lain |
+| Truk menunggu stok untuk dimuat | Berangkatkan dengan muatan yang ada |
+| Gudang hampir penuh / hampir kosong | Prioritaskan truk muat / bongkar 10 menit |
+| Stok barang menipis | Pesan restock (tiba bersama truk bongkar berikutnya) |
+| Baterai forklift rendah | Kirim ke stasiun pengisian |
+| Cuaca ekstrem | Kembalikan cuaca cerah |
+
+Peringatan selesai otomatis saat kondisinya pulih, dan semuanya tercatat di riwayat.
 
 ### 📊 Panel & KPI
 Kartu KPI dengan grafik tren mini, panel detail per objek, pelacakan pengiriman, notifikasi toast, tooltip saat hover, mode gelap, dan tata letak responsif dari ponsel sampai layar lebar.
@@ -206,6 +220,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 | Info cepat | Arahkan kursor ke objek |
 | Cari | Tekan `/` lalu ketik ID truk, forklift, palet, atau lokasi |
 | Arahkan truk | Pilih truk yang sedang dimuat atau menuju toko → kartu **Arahkan pengiriman** |
+| Peringatan | Klik ikon lonceng → tab **Peringatan** → pilih aksi |
 | Waktu & cuaca | Klik chip cuaca di bar atas |
 | Tampilan Bersih | Tombol ✦ di kontrol peta |
 | Mode sinematik | Tombol kamera di kontrol peta |

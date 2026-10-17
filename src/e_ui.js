@@ -243,7 +243,8 @@ function renderKPIs(){
   $('#siteId').textContent=s.id; $('#siteName').textContent=s.name;
   $('#siteSub').textContent=`${Math.round(n.stock/s.capacity*100)}% penuh · ${n.docked}/${s.bays.length} di dock`;
   $('#clock').textContent=hhmm(Store.clock.hour);
-  $('#bellDot').style.display=Store.unread?'':'none';
+  { const na=openAlerts().length, d=$('#bellDot'); d.textContent=na?String(na):''; d.classList.toggle('cnt',na>0); d.style.display=(na||Store.unread)?'':'none'; }
+  if(!$('#notif').hidden) renderNotif();
   const w=Store.weather, bad=['rain','storm','fog','sandstorm'].includes(w.condition); $('#wxIcon').textContent=w.icon; $('#wxText').textContent=`${w.label} · ${w.tempC}°C`;
   $('#wxBtn').classList.toggle('storm',bad); $('#stormBtn').setAttribute('aria-pressed',bad);
   const live=Store.clock.mode==='live'; $('#liveLbl').textContent=live?'Live':TIME_MODES[Store.clock.mode].label; $('#livePill').classList.toggle('sim',!live);
@@ -354,10 +355,25 @@ $('#siteBtn').onclick=e=>{ e.stopPropagation(); const m=$('#siteMenu'), open=m.h
   m.hidden=false; $('#siteBtn').setAttribute('aria-expanded','true'); };
 $('#siteMenu').onclick=e=>{const b=e.target.closest('[data-site]'); if(!b) return; closeMenus(); switchSite(+b.dataset.site);};
 $('#siteNext').onclick=e=>{ e.stopPropagation(); closeMenus(); switchSite((active+1)%SITES().length); };
-$('#bell').onclick=e=>{ e.stopPropagation(); const n=$('#notif'), open=n.hidden; closeMenus(); if(!open) return; Store.unread=0; const ev=Store.events;
-  n.innerHTML=`<h4>Notifikasi <small>${ev.length} terbaru</small></h4>`+(ev.length?ev.slice(0,14).map((v,i)=>`<button data-ev="${i}"><i class="ni" style="background:${v.color}"></i><span><b>${v.text}</b><small>${v.siteId} · ${hm(v.t)}</small></span></button>`).join(''):'<div class="empty">Belum ada aktivitas.</div>');
+let notifTab='alerts';
+const SEVL={crit:'Kritis',warn:'Peringatan',info:'Info'}, SEVI={crit:'⛔',warn:'⚠️',info:'ℹ️'};
+function renderNotif(){ const n=$('#notif'), open=openAlerts(), handling=[...ALERTS.values()].filter(a=>a.state==='done'), ev=Store.events;
+  const card=a=>`<div class="al ${a.sev}"><div class="alh"><span class="ali">${SEVI[a.sev]}</span><div><b>${a.title}</b><small>${a.detail}${a.siteId?'':''} · sejak ${hm(a.t)}</small></div></div>
+    <div class="ala">${a.actions.map(x=>`<button class="ab${x.primary?' pri':''}" data-alert="${a.id}" data-act="${x.id}">${x.label}</button>`).join('')}<button class="ab ghost" data-alert="${a.id}" data-act="ack" title="Tandai sudah ditangani">✓</button></div></div>`;
+  const tabs=`<div class="ntabs"><button data-tab="alerts" class="${notifTab==='alerts'?'on':''}">Peringatan${open.length?` <em>${open.length}</em>`:''}</button><button data-tab="events" class="${notifTab==='events'?'on':''}">Aktivitas</button></div>`;
+  let body='';
+  if(notifTab==='alerts'){
+    body=open.length?open.map(card).join(''):'<div class="empty ok">✓ Semua aman — tidak ada peringatan aktif.</div>';
+    if(handling.length) body+=`<h5>Sedang ditindaklanjuti</h5>`+handling.map(a=>`<div class="alx"><span>${SEVI[a.sev]}</span><div><b>${a.title}</b><small>${a.doneLabel||'Ditindaklanjuti'}</small></div></div>`).join('');
+    if(ALERT_LOG.length) body+=`<h5>Riwayat</h5>`+ALERT_LOG.slice(0,6).map(a=>`<div class="alx done"><span>✓</span><div><b>${a.title}</b><small>${a.how==='auto'?'Selesai otomatis':'Selesai · '+(a.doneLabel||'ditangani')} · ${hm(a.t)}</small></div></div>`).join('');
+  } else body=ev.length?ev.slice(0,14).map((v,i)=>`<button data-ev="${i}"><i class="ni" style="background:${v.color}"></i><span><b>${v.text}</b><small>${v.siteId} · ${hm(v.t)}</small></span></button>`).join(''):'<div class="empty">Belum ada aktivitas.</div>';
+  const st=n.scrollTop; n.innerHTML=tabs+body; n.scrollTop=st; }
+$('#bell').onclick=e=>{ e.stopPropagation(); const n=$('#notif'), open=n.hidden; closeMenus(); if(!open) return; Store.unread=0;
+  notifTab=openAlerts().length?'alerts':notifTab; renderNotif();
   n.hidden=false; $('#bell').setAttribute('aria-expanded','true'); renderKPIs(); };
-$('#notif').onclick=e=>{const b=e.target.closest('[data-ev]'); if(!b) return; const v=Store.events[+b.dataset.ev]; closeMenus(); const r=v.ref&&Store.find(v.ref); if(r) select(r,true); else switchSite(v.siteIdx);};
+$('#notif').onclick=e=>{ e.stopPropagation(); const tb=e.target.closest('[data-tab]'); if(tb){ notifTab=tb.dataset.tab; renderNotif(); return; }
+  const ab=e.target.closest('[data-alert]'); if(ab){ const r=runAlert(ab.dataset.alert,ab.dataset.act); if(r.focus){ const ent=Store.find(r.focus); closeMenus(); if(ent){ if(ent.kind==='site') switchSite(ent.idx); else select(ent,true); } return; } if(r.msg) showToast(r.msg,'#16A34A'); renderNotif(); renderKPIs(); return; }
+  const b=e.target.closest('[data-ev]'); if(!b) return; const v=Store.events[+b.dataset.ev]; closeMenus(); const r=v.ref&&Store.find(v.ref); if(r) select(r,true); else switchSite(v.siteIdx);};
 document.addEventListener('click',e=>{ if(!e.target.closest('.search,#siteBtn,#siteMenu,#siteNext,#bell,#notif')) closeMenus(); });
 const q=$('#q'), res=$('#results'); let hits=[], hi=0;
 function searchIndex(){
@@ -447,6 +463,8 @@ canvas.addEventListener('pointermove',ev=>{ if(ptrs.size||cine.on||ev.pointerTyp
   if(info){ tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
   else { tipEl.classList.remove('show'); canvas.style.cursor=''; } });
 canvas.addEventListener('pointerleave',()=>{ tipEl.classList.remove('show'); canvas.style.cursor=''; });
+/* ---- toast untuk peringatan kritis baru ---- */
+setInterval(()=>{ for(const a of ALERTS.values()) if(a.fresh){ a.fresh=false; if(a.sev==='crit') showToast(`${a.title} — buka Peringatan untuk menindaklanjuti`,'#DC2626',a.ref); } },1000);
 /* ---- toast untuk kejadian penting di site yang sedang dilihat ---- */
 let toastT=0;
 function showToast(text,color='#2E5BFF',ref=null,when=new Date()){ const box=$('#toasts'); while(box.children.length>=3) box.firstChild.remove();
