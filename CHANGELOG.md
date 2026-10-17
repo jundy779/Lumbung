@@ -1,5 +1,9 @@
 # Changelog
 
+## v28.3 — 17 Okt 2026
+- Kartu pelacakan tidak lagi menimpa panel gudang di jendela sempit/pendek (misalnya jendela artifact atau zoom browser besar).
+- Area sangat pendek (tinggi < 620 px) otomatis memakai UI sedikit lebih kecil.
+
 ## v28.2 — 17 Okt 2026
 - UI bawaan lebih ringkas: skala otomatis kini hanya membesar bila layar lebar **dan** tinggi, sehingga peta 3D lebih lega di layar 1080p.
 - Pilihan **Ukuran tampilan** (Ringkas / Otomatis / Besar) di menu Waktu & Cuaca, tersimpan di browser.
