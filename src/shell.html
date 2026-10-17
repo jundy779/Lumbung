@@ -61,12 +61,12 @@ svg{display:block}
 #scene{position:fixed;inset:0;display:block;touch-action:none;cursor:grab}
 #scene.dragging{cursor:grabbing}
 #scene.hover{cursor:pointer}
-#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
 .tag{position:absolute;transform:translate(-50%,-100%);background:var(--blue);color:#fff;font-size:10.5px;font-weight:700;
   padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 8px rgba(46,91,255,.35);letter-spacing:.01em}
 .tag.dim{background:var(--panel);color:var(--ink-2);box-shadow:var(--shadow)}
 
-#ui{position:fixed;inset:0;pointer-events:none;
+#ui{position:fixed;inset:0;pointer-events:none;z-index:3;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 #ui>*{pointer-events:auto}
 
