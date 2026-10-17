@@ -1,5 +1,10 @@
 # Changelog
 
+## v28.2 — 17 Okt 2026
+- UI bawaan lebih ringkas: skala otomatis kini hanya membesar bila layar lebar **dan** tinggi, sehingga peta 3D lebih lega di layar 1080p.
+- Pilihan **Ukuran tampilan** (Ringkas / Otomatis / Besar) di menu Waktu & Cuaca, tersimpan di browser.
+- Kontrol peta di ponsel tidak lagi menimpa deretan KPI.
+
 ## v28.1 — 17 Okt 2026
 - Sopir tidak lagi bolak-balik di tempat saat jalannya terhalang truk yang diam: setelah menunggu sebentar ia boleh lewat lebih dekat ke truk yang berhenti, dan memutar lewat ujung depan/belakang truk bila badan truk menghalangi langsung.
 

@@ -222,7 +222,7 @@ svg{display:block}
   .kpi{min-width:136px;flex:0 0 auto;padding:8px 12px 8px 8px}.kpi b{font-size:17px}.kpi:nth-child(3){display:flex}
   .kpi small,.kpi em{white-space:nowrap}
   .kpis{padding-right:18px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
-  .mapctl{right:10px;top:calc(env(safe-area-inset-top,0px) + 138px)}
+  .mapctl{right:10px;top:calc(env(safe-area-inset-top,0px) + 166px)}
   .detail{left:8px;right:8px;width:auto;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);max-height:52%;display:none}
   body.has-sel .detail{display:block}
   .track{display:none}
@@ -334,9 +334,14 @@ body.cine #labels{opacity:0}
 body.lowp .tilt,body.cine .tilt.b{display:none}
 @media (prefers-reduced-transparency:reduce){ .tilt{display:none} }
 /* skala UI di layar lebar */
-@media (min-width:1640px){ #ui{zoom:1.1} }
-@media (min-width:1820px){ #ui{zoom:1.2} }
-@media (min-width:2300px){ #ui{zoom:1.35} }
+/* skala otomatis: hanya membesar bila layar lebar DAN tinggi, agar peta 3D tetap lega */
+@media (min-width:1640px) and (min-height:940px){ #ui{zoom:1.06} }
+@media (min-width:1820px) and (min-height:1020px){ #ui{zoom:1.12} }
+@media (min-width:2300px) and (min-height:1260px){ #ui{zoom:1.28} }
+/* pilihan pengguna: Ringkas / Besar menimpa skala otomatis */
+body.ui-s #ui{zoom:.88} body.ui-l #ui{zoom:1.15}
+@media (min-width:2300px) and (min-height:1260px){ body.ui-s #ui{zoom:1.05} body.ui-l #ui{zoom:1.4} }
+@media (max-width:820px){ body.ui-s #ui,body.ui-l #ui{zoom:1} }
 
 .env .cleanrow{display:flex;align-items:center;gap:10px;background:var(--panel-2);border-radius:10px;padding:10px 12px;margin-bottom:14px;width:100%;text-align:left}
 .env .cleanrow span{flex:1;min-width:0}.env .cleanrow b{display:block;font-size:13px;color:var(--ink)}.env .cleanrow small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:1px}

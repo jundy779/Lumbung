@@ -264,7 +264,8 @@ const hhmm=h=>{ const H=Math.floor(h)%24, M=Math.floor((h-Math.floor(h))*60); re
 const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3?'Senja':'Malam';
 function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
-  $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+  $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
+    <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
     <h4>Waktu</h4><div class="seg">${Object.entries(TIME_MODES).map(([k,m])=>`<button data-time="${k}" aria-pressed="${c.mode===k}">${k==='live'?'● ':''}${m.label.replace(' (WIB)','')}</button>`).join('')}</div>
     <h4>Cuaca</h4><div class="wxg">${WX_ORDER.map(k=>`<button data-wx="${k}" aria-pressed="${w.condition===k}"><b>${WEATHER[k].icon}</b>${WEATHER[k].label}</button>`).join('')}</div>
     <div class="imp"><p><b>Dampak operasi:</b> ${w.impact} · ${trafficInfo().note}${WX.flash?' · lampu lalu lintas berkedip kuning':''}${WX.night?' · shift malam':''}</p>
@@ -274,6 +275,10 @@ function renderEnvMenu(){
       <li style="grid-column:1/-1">Tepat waktu<b${(w.ontime+trafficOntime())<0?' class="neg"':''}>${(()=>{const v=Math.round((w.ontime+trafficOntime())*10)/10; return (v>0?'+':v<0?'−':'±')+Math.abs(v).toLocaleString('id-ID');})()}%</b></li></ul></div>`;
 }
 const cleanPrev={time:null,wx:null};
+/* ukuran tampilan UI: Ringkas / Otomatis / Besar (disimpan di browser) */
+let UISCALE='auto'; try{ UISCALE=localStorage.getItem('lumbung.uiScale')||'auto'; }catch(_){}
+function setUiScale(k){ UISCALE=k; document.body.classList.toggle('ui-s',k==='s'); document.body.classList.toggle('ui-l',k==='l'); try{ localStorage.setItem('lumbung.uiScale',k); }catch(_){} }
+setUiScale(UISCALE);
 function setClean(on,init){
   if(on===CLEAN&&!init) return;
   if(on){ cleanPrev.time=Store.clock.mode; cleanPrev.wx=Store.weather.condition; setTimeMode('siang'); setWeather('clear',true); }
@@ -287,6 +292,7 @@ function toggleEnv(e){ e&&e.stopPropagation(); const m=$('#envMenu'); m.hidden=!
 $('#wxBtn').onclick=toggleEnv; $('#stormBtn').onclick=toggleEnv;
 $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.clean){ setClean(!CLEAN); renderEnvMenu(); return; }
+  if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
   if(b.dataset.time) setTimeMode(b.dataset.time); if(b.dataset.wx) setWeather(b.dataset.wx); renderEnvMenu(); refreshUI(true); });
 document.addEventListener('click',e=>{ if(!e.target.closest('#envMenu,#wxBtn,#stormBtn')){ $('#envMenu').hidden=true; $('#wxBtn').setAttribute('aria-expanded','false'); } });
 /* ---------- tampilan Tabel: antarmuka lain untuk data yang sama ---------- */

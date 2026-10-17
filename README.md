@@ -223,6 +223,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 | Peringatan | Klik ikon lonceng → tab **Peringatan** → pilih aksi |
 | Waktu & cuaca | Klik chip cuaca di bar atas |
 | Tampilan Bersih | Tombol ✦ di kontrol peta |
+| Ukuran tampilan | Menu Waktu & Cuaca → **Ringkas / Otomatis / Besar** |
 | Mode sinematik | Tombol kamera di kontrol peta |
 | Tabel data | Tombol **Tabel** di bar atas |
 
