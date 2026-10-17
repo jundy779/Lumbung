@@ -138,17 +138,20 @@ function truckJunctionBlock(site,t){
 /* ---------- truk: deteksi tabrakan di koordinat dunia (lintas site) ---------- */
 const _ownW=[];
 function refreshTruckWorld(site){ for(const t of site.trucks){ if(!t.solid) continue; t.cwW=t.cwW||[]; circlesAt(t,t.pos.x+site.ox,t.pos.z+site.oz,t.heading,t.cwW); } }
+const FOLLOW_GAP=2.2, TIGHT_STATES=['reverse','pull','store_reverse','store_pull'];
 function lookAheadTruck(t,site){
   if(!t.path) return Infinity;
-  const D=Math.min(t.path.len-t.s,Math.max(2.4,t.v*t.v/(2*t.dec)+2.2)); if(D<=0) return Infinity;
+  /* jarak aman antre: truk berhenti ±2,2 m di belakang kendaraan lain (kecuali manuver presisi di dock) */
+  const G=(t.rev||TIGHT_STATES.includes(t.state))?0:FOLLOW_GAP;
+  const D=Math.min(t.path.len-t.s,Math.max(2.4,t.v*t.v/(2*t.dec)+2.2)+G); if(D<=0) return Infinity;
   const wx=t.pos.x+site.ox, wz=t.pos.z+site.oz, own0=t.cwW||[], near=[];
   for(const o of Store.tables.trucks.values()){ if(o===t||!o.solid||!o.cwW) continue; const os=o.site;
     if(Math.hypot(o.pos.x+os.ox-wx,o.pos.z+os.oz-wz)>D+9) continue; if(own0.length&&overlapC(own0,o.cwW,0)) continue; near.push(o); }
-  for(const o of site.trucks){ const c=o.crew; if(o===t||!c||!c.on) continue; const px=c.x+site.ox, pz=c.z+site.oz; if(Math.hypot(px-wx,pz-wz)>D+6) continue; near.push({cwW:[{x:px,z:pz,r:0.45}]}); }
+  for(const o of site.trucks){ const c=o.crew; if(o===t||!c||!c.on) continue; const px=c.x+site.ox, pz=c.z+site.oz; if(Math.hypot(px-wx,pz-wz)>D+6) continue; near.push({cwW:[{x:px,z:pz,r:0.45}],walker:true}); }
   if(!near.length) return Infinity;
   const ci=t.path.ci;
   for(let d=0.35;d<=D+1e-6;d+=0.35){ const p=samplePath(t.path,t.s+d), h=t.rev?Math.atan2(-p.tx,-p.tz):Math.atan2(p.tx,p.tz);
-    circlesAt(t,p.x+site.ox,p.z+site.oz,h,_ownW); for(const o of near) if(overlapC(_ownW,o.cwW,0.05)){ t.path.ci=ci; return d-0.35; } }
+    circlesAt(t,p.x+site.ox,p.z+site.oz,h,_ownW); for(const o of near) if(overlapC(_ownW,o.cwW,0.05)){ t.path.ci=ci; return Math.max(0,d-0.35-(o.walker?0:G)); } }
   t.path.ci=ci; return Infinity;
 }
 /* ---------- trucks ---------- */
