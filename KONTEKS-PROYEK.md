@@ -243,6 +243,10 @@ Siklus: `open` → (aksi) `done` "Sedang ditindaklanjuti" → hilang dari daftar
 | Sopir tidak mendekat ke tujuannya >20 dtk | 0 |
 | Orang dengan bagian tubuh hilang | 0 |
 | Jarak antre truk (bemper–bemper) | rata-rata ±2–2,5 m, minimum ≥1,9 m |
+| Truk sampai di dock tanpa check-in gerbang | 0 |
+| Palang gerbang menutup di atas truk | 0 |
+| Truk antre di jalan raya depan gerbang > 45 dtk | 0 |
+| Truk menunggu di area tunggu > 10 menit | 0 |
 
 **Metode uji (sejak v30):** `node tests/headless-sim.mjs [menit] [seed] [jam]` di terminal, atau `?selftest` di browser. Keduanya memakai pemeriksa yang sama (`makeSafetyChecker` di `c_sim.js`) dan menghasilkan sidik jari yang sama untuk seed yang sama. Sebelum push minimal jalankan: `13 7 siang`, `13 7 malam`, `13 7 cycle`, dan satu uji `30 11 siang`.
 
@@ -296,6 +300,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v32):** check-in gerbang & area tunggu. State truk baru `gate` dan `yard_wait`; `siteGate(s)` (geometri palang/pos/area tunggu + kapasitas), `gateS`, `laneRoom`, `assignFromQueue` (FIFO urut check-in), `gateTick`, `PLANS.gatekeeper`, truk retur ikut antrean (`t.queued`, tidak lagi `homeBay`), aturan kuning truk `t._commit`. Pemeriksa baru: gateSkip, gateArm, roadQueue, queueLong.
+
 **Selesai (v31):** Tahap 3 KPI & grafik khas per gudang. `site.metrics` diisi `metricsTick()` di akhir `simSite()` (tanpa RAND, sidik jari tidak berubah), hook `kpiOnDock/kpiOnPull/kpiOnLoad/kpiOnUnload`, ringkasan `kpiSummary()` ikut `SCHEMA.sites.kpi`, grafik SVG + kanvas peta panas di `kpiBlock()`/`drawHeat()` (e_ui.js), pemeriksaan ke-16 "KPI gudang tidak valid".
 
 **Selesai (v30):** simulasi ber-seed (`?seed=`), uji mandiri `?selftest` + `tests/headless-sim.mjs` dengan 15 pemeriksaan invariant, perbaikan lalu lintas (mobil melepas kunci persimpangan karena lampu merah di persimpangan berikutnya, keputusan kuning/merah yang konsisten dengan pengereman, aturan "jangan menutup persimpangan"), sopir bisa memutari truk yang menghalangi di ruas panjang, crash pekerja di mode siklus cepat.
@@ -306,9 +312,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 **Belum dikerjakan (urutan disarankan):**
 
-1. Check-in gerbang & area tunggu truk.
-2. Pengiriman antar-gudang; arahkan truk yang sedang datang.
-3. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
-4. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
+1. Pengiriman antar-gudang; arahkan truk yang sedang datang.
+2. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
+3. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
 **Batasan yang diketahui:** data masih simulasi; tujuan pengiriman 2 toko + luar kota; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).

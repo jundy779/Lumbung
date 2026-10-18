@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v31** · oleh PT Fusionify Digital
+**Lumbung v32** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -42,7 +42,7 @@ Pantau dock, truk, forklift, stok, pekerja, dan pengiriman di lima gudang — da
 Setiap gudang punya bentuk bangunan, kendaraan, peralatan, seragam, dan **cara kerja** sendiri — dari gudang umum, cross-dock, pusat distribusi, rantai dingin, sampai hub robotik.
 
 ### 🚚 Truk & Pengiriman yang Bisa Diarahkan
-Truk datang lewat tol, masuk halaman gudang, sopir membuka pintu belakang, lalu mundur ke dock. Pilih truk dan **arahkan tujuannya** ke toko mana pun — bahkan saat truk sudah di perjalanan, rute dihitung ulang dari persimpangan berikutnya.
+Truk datang lewat tol, **check-in di gerbang gudang** (petugas mengecek surat jalan lalu membuka palang), menunggu di **area tunggu** bila semua bay terisi, lalu sopir membuka pintu belakang dan mundur ke dock. Pilih truk dan **arahkan tujuannya** ke toko mana pun — bahkan saat truk sudah di perjalanan, rute dihitung ulang dari persimpangan berikutnya.
 
 ### 🏗️ Forklift & AGV
 Forklift memindahkan palet antara slot dan truk dengan antrean tugas, anti-kebuntuan, dan stasiun pengisian. Di Hub Robotik, **AGV otonom** memproyeksikan jalurnya di lantai.
@@ -97,7 +97,10 @@ Ditambah dua tujuan pengiriman: **TK-01 Segar Mart** dan **TK-02 Nusantara Plaza
 ```mermaid
 flowchart LR
   A[Tol masuk] --> B[Jalan kota]
-  B --> C[Halaman gudang]
+  B --> C0[Check-in gerbang]
+  C0 --> W{Bay kosong?}
+  W -- belum --> AT[Area tunggu] --> C
+  W -- ya --> C[Halaman gudang]
   C --> D[Buka pintu belakang]
   D --> E[Mundur ke dock]
   E --> F{Mode}
@@ -106,7 +109,7 @@ flowchart LR
   G --> I[Tutup pintu]
   H --> I
   I --> J{Tujuan}
-  J -- Toko --> K[Antar ke toko] --> L[Retur?] -- ya --> C
+  J -- Toko --> K[Antar ke toko] --> L[Retur?] -- ya --> C0
   J -- Luar kota --> M[Tol keluar]
   L -- tidak --> M
 ```
@@ -117,6 +120,7 @@ Aturan keselamatan yang dijaga simulator:
 - Truk masuk persimpangan hanya jika ada ruang untuk **seluruh badannya** di seberang.
 - Pintu belakang dibuka **di halaman gudang**, tidak di jalan raya.
 - Truk berhenti bila ada sopir atau pekerja di jalurnya.
+- Bay dibagikan sesuai urutan check-in, dan palang hanya dibuka bila truk muat sepenuhnya di area tunggu, jadi antrean tidak meluber ke jalan raya.
 
 ---
 
@@ -237,7 +241,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 
 Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
 
-- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 17 pemeriksaan keselamatan (termasuk validitas angka KPI).
+- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 21 pemeriksaan keselamatan (termasuk validitas angka KPI dan gerbang check-in).
 - **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
 - **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 
@@ -250,6 +254,9 @@ Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepa
 | Cross-dock: truk di dock arah yang salah | **0** dari >8.000 pemeriksaan per 13 menit |
 | Gudang dingin: palet dipindah sebelum cek suhu | **0** |
 | Truk yang diarahkan tiba di tujuan yang salah | **0** |
+| Truk sampai di dock tanpa check-in gerbang | **0** |
+| Palang gerbang menutup di atas truk | **0** |
+| Truk antre di jalan raya depan gerbang > 45 dtk | **0** |
 | Pergantian shift tuntas | 100% |
 | Orang dengan bagian tubuh hilang | **0** dari 99 |
 | Tata letak di 6 ukuran layar (390 px – 1600 px) | Tidak ada yang meluap atau tertutup |
@@ -271,7 +278,6 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 ## Batasan yang Diketahui
 
 - **Data masih simulasi** — belum terhubung ke WMS, GPS armada, atau sensor dock.
-- Simulasi belum memakai **seed**, sehingga kasus langka sulit diulang persis.
 - Pengiriman **antar-gudang** dan pengarahan truk yang **sedang datang** ke dock lain belum tersedia.
 - Tujuan pengiriman saat ini: dua toko dan luar kota via tol.
 
@@ -281,7 +287,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 
 - [x] KPI & grafik khas per jenis gudang (suhu 24 jam, waktu transit, peta panas AGV) · v31
 - [x] Simulasi dengan *seed* + mode uji mandiri (`?selftest`) · v30
-- [ ] Check-in gerbang & area tunggu truk
+- [x] Check-in gerbang & area tunggu truk · v32
 - [ ] Pengiriman antar-gudang
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru

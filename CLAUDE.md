@@ -1,10 +1,23 @@
-# CLAUDE.md · Peta Teknis Lumbung v31
+# CLAUDE.md · Peta Teknis Lumbung v32
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v32 (19 Okt 2026), check-in gerbang & area tunggu (backlog C)**:
+- Geometri (koordinat lokal site, sama untuk semua site karena `xL=-51.75`): truk berhenti di gerbang dengan pusat `xc=xL+21` di akhir kurva masuk (`yardTail`), palang di `armX=xL+25.2` membentang `yardZ-1.8..yardZ+2.1`, pos Check-in di sisi selatan lajur (`booth`), petugas berdiri di `home`. Ujung area tunggu `headX=bay0.x-6.4` (depan truk 0,6 m sebelum region bay pertama). Semua di `siteGate(s)` (c_sim.js, setelah `TRUCK_SPAWN`), di-cache di `s.tgate` (hidden).
+- Kapasitas `g.cap` = jumlah truk yang muat sepenuhnya di antara palang dan `headX` (2 untuk BGR-01/BKS-01/BGR-03, 1 untuk BGR-02/DPK-01).
+- Alur: `away` → dispatch dengan bay (hanya bila tidak ada truk antre & bay kosong) atau tanpa bay (`t.queued=true`, peluang 0,5 per percobaan, bila `queuedCount<cap`) → `inbound` → `toll_in` → `approach` (jalur ke `gatePseudo` bila belum ada bay) → berhenti di `gateS(site,path)` → `gate` (petugas cek, `t.gateChecked`; palang dibuka petugas bila `laneRoom`; pengaman otomatis 45 dtk) → `approach` (punya bay) atau `yard_wait` (maju sampai `headX`/antre di belakang truk lain) → `assignFromQueue` memberi bay ke truk antre dengan `t.gq` (nomor urut check-in) terkecil, memperpanjang jalurnya ke `bay.x+RY` (atau jalur baru bila jalur sudah habis) → `approach` → `prep` dst.
+- Kenapa bebas kebuntuan: bay hanya dibagikan ke truk paling depan di antrean fisik (urut gerbang), truk retur dari toko tidak lagi memesan bay di toko (`homeBay` dihapus) melainkan ikut antrean, dan maksimal 2 truk retur per site < jumlah bay bongkar.
+- `t.stuck` tidak bertambah di `gate`/`yard_wait`. `goAway` membersihkan `queued/gq/gated` dan referensi gerbang.
+- `truckJunctionBlock`: aturan kuning truk `t._commit` (truk yang tidak sempat berhenti saat kuning tidak mengerem mendadak saat merah).
+- `PLANS.gatekeeper` (idempoten, membaca keadaan gerbang tiap ~1 dtk) + `personRecord(...,'Petugas gerbang')` di `populateSite`. Seragam di `SHIFT_UNIFORM`, dikecualikan dari `PROFILE_UNIFORM`.
+- View: pos Check-in, tiang + lengan palang (`View.gates`, rotasi dari `tgate.armT`), garis stop, kotak & tulisan AREA TUNGGU di `buildSiteView`.
+- UI: `truckStatus` 'Check-in gerbang'/'Area tunggu', `queuePos`, `qText`, `siteNumbers().waiting`, ETA/Rute/Bay di panel truk, kartu pelacakan, shot sinematik & cerita, status truk ikut indeks pencarian.
+- Pemeriksa: `gateSkip`, `gateArm`, `roadQueue` (radius 45 m dari gerbang), `queueLong`; metrik `gateCheckins`, `queuedTrucks`, `maxQueue`, `maxQueueWaitSec`. Total 20 pemeriksaan di Node, 21 di browser.
+- `SCHEMA.sites.gate = {checkins, waiting, capacity}`.
 
 **Perubahan v31 (19 Okt 2026), Tahap 3 KPI khas per gudang**:
 - `c_sim.js` (sebelum `simSite`): `KPI_COLD`, `kpiAct(h)`, `initMetrics(site)`, `metricsTick(site,dt)` (dipanggil di akhir `simSite`), hook `kpiOnDock` (reverse→docked), `kpiOnPull` (docked→pull), `kpiOnLoad` (palet masuk trailer), `kpiOnUnload` (palet masuk slot, set `pallet.inT`), `kpiHourVal`, `median`, `kpiSummary(site)`.
@@ -495,7 +508,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 - Mode uji harus memakai jam tetap (bukan `live`), karena `nowWIB()` ikut memengaruhi shift dan kepadatan lalu lintas.
 - `?selftest`: jalankan simulasi dipercepat di browser dengan pemeriksa invarian yang ada di tabel README (tabrakan, zebra cross, pintu dibuka di jalan, arah cross-dock, cek suhu sebelum bongkar, tujuan pengarahan), lalu tampilkan hasil sebagai overlay. Logika pemeriksanya bisa dibagi dengan `tests/headless-sim.mjs`.
 
-**C. Check-in gerbang & area tunggu truk**
+**C. Check-in gerbang & area tunggu truk** ✅ selesai di v32 (lihat catatan v32 di atas)
 - Sekarang truk langsung `toll_in → approach` ke bay, dan truk yang tidak dapat bay menunggu di luar peta (status `away`). Pos satpam (`site.gate`) hanya dekorasi; palang yang bergerak hanya di gerbang tol.
 - Perlu status baru, misalnya `gate_checkin` (berhenti di palang, satpam mendekat, palang naik) dan `yard_wait` (parkir di area tunggu bila belum ada bay), plus palang di pos satpam per site.
 - Hati-hati dengan sistem reservasi `canAcquire`/`resBlock`, klaim persimpangan, dan rute pejalan kaki satpam. Validasi dengan selftest dari B.

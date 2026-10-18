@@ -1,5 +1,18 @@
 # Changelog
 
+## v32 · 19 Okt 2026
+- **Check-in gerbang**: setiap gudang punya pos Check-in dan palang di ujung jalan masuk halaman. Truk berhenti di palang, petugas gerbang berjalan ke jendela sopir untuk mengecek surat jalan, kembali ke pos, lalu membuka palang. Palang turun lagi setelah ekor truk lewat.
+- **Area tunggu truk**: truk tidak lagi menunggu di luar peta saat semua bay penuh. Truk boleh datang, check-in, lalu menunggu di lajur halaman bertanda AREA TUNGGU. Bay yang kosong diberikan berurutan sesuai urutan check-in (FIFO), jadi truk yang sudah dapat bay tidak pernah terjebak di belakang truk yang masih menunggu.
+- Kapasitas area tunggu dihitung dari panjang lajur (2 truk di Hub Cibinong, DC Cikarang, dan Gudang Dingin; 1 truk di Cross-Dock Sentul dan Hub Robotik). Palang hanya dibuka bila truk bisa melewati palang sepenuhnya, sehingga antrean tidak meluber ke jalan raya.
+- Truk yang pulang dari toko membawa retur kini ikut antrean gerbang yang sama, bukan memesan bay sejak di toko.
+- Petugas gerbang baru di tiap gudang (5 orang), ikut pergantian shift.
+- Status truk baru: "Check-in gerbang" dan "Area tunggu", lengkap dengan posisi antrean di panel truk, kartu pelacakan, dan pencarian (ketik "area tunggu").
+- Mode sinematik punya shot check-in gerbang dan menunggu di area tunggu.
+- Truk kini memakai aturan kuning yang sama dengan mobil: bila tidak sempat berhenti saat lampu kuning, truk berkomitmen lewat dan tidak mengerem mendadak di atas zebra cross saat lampu menjadi merah.
+- Uji mandiri bertambah 4 pemeriksaan: truk sampai di dock tanpa check-in, palang menutup di atas truk, truk antre di jalan raya depan gerbang > 45 dtk, dan truk menunggu di area tunggu > 10 menit. Laporan juga mencatat jumlah check-in dan waktu tunggu terlama.
+- Data mentah gudang punya field `gate` (jumlah check-in, truk menunggu, kapasitas).
+- Catatan uji: 15 dari 16 skenario lulus penuh (termasuk 30 menit siang, malam, dan siklus cepat seed 6 dan 21). Satu kasus sisa bukan dari truk: pada `node tests/headless-sim.mjs 20 14 sore`, antrean mobil di jalan ujung barat menuju Jalan Lingkar meluber sampai zebra cross saat jam sibuk sore. Ini kelas masalah lalu lintas mobil yang sama dengan catatan v30.
+
 ## v31 · 19 Okt 2026
 - **Kinerja khas per gudang**: panel gudang kini punya bagian "Kinerja khas" dengan grafik yang dihitung dari simulasi, bukan rumus tampilan:
   - Gudang Dingin Cileungsi: suhu ruang 24 jam. Suhu naik ±0,54 °C untuk tiap pintu dock yang terbuka dan pulih ke −19 °C saat pintu tertutup; pita hijau menandai batas aman −20 s/d −17 °C.

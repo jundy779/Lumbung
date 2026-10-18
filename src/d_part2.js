@@ -145,6 +145,19 @@ function buildSiteView(s){
   for(let q=0;q<3;q++){ const a=makePallet(q===2?'white':'crate',R,R()<.5?1:2); a.position.set(W/2+8.2+q*1.35,GY,fz-6.2); g.add(a); STATIC_PALLETS.push(a); }
   if(s.gate){ const gp=s.gate.post; TP.box(1.7,2.3,1.7,0.12,0xF4F6FB,gp.x,1.15,gp.z); TP.box(1.72,0.7,1.72,0.06,0x9DB4EE,gp.x,1.6,gp.z); TP.box(2.1,0.16,2.1,0.06,0x2E5BE6,gp.x,2.38,gp.z);
     TP.box(0.7,1.5,0.06,0.03,0xD7DCEA,gp.x+0.5,0.8,gp.z+0.86); decal(g,storeSign('Pos Satpam','#1E2A55'),1.5,0.26,gp.x,2.1,gp.z+0.88); BB.add(2.6,2.6,gp.x,gp.z,0.1); }
+  /* gerbang check-in truk (v32): pos jaga, palang bergerak, garis stop, marka area tunggu */
+  { const G=siteGate(s), yZ=yardZ(s), bx=G.booth.x, bz=G.booth.z;
+    TP.box(1.6,2.4,1.5,0.12,0xF4F6FB,bx,1.2,bz); TP.box(1.62,0.75,1.52,0.05,0x9DB4EE,bx,1.6,bz); TP.box(2.0,0.16,1.9,0.06,0x2E5BE6,bx,2.46,bz);
+    TP.box(0.62,1.5,0.06,0.03,0xD7DCEA,bx+0.4,0.8,bz+0.76); decal(g,storeSign('Check-in','#1E2A55'),1.3,0.24,bx,2.18,bz+0.77); BB.add(2.2,2.1,bx,bz,0.1);
+    TP.box(0.34,1.05,0.34,0.06,0xE9EDF8,G.armX,0.55,G.zArm1+0.12); TP.box(0.36,0.16,0.36,0.04,0xE5484D,G.armX,1.0,G.zArm1+0.12);
+    const piv=new THREE.Group(); piv.position.set(G.armX,1.0,G.zArm1); g.add(piv);
+    const AP=new Parts(), n=5, seg=(G.zArm1-G.zArm0)/n; for(let i=0;i<n;i++) AP.add(gR(0.1,0.1,seg,0),i%2?0xE5484D:0xFFFFFF,0,0,-(seg/2+i*seg)); piv.add(AP.build(.5));
+    (View.gates||(View.gates=[])).push({piv,site:s});
+    LN.box(0.14,0.012,2.9,0,0xFFFFFF,G.armX-0.55,0.1,yZ);
+    const ax0=G.armX+1.2, ax1=s.bays[0].x-3.0; if(ax1>ax0+4){ rectLine(LN,(ax0+ax1)/2,yZ,ax1-ax0,3.1,0.1,0xF0B43C);
+      for(let x=ax0+0.6;x<ax1-0.4;x+=1.6) LN.box(0.7,0.012,0.12,0,0xF0B43C,x+0.35,0.1,yZ-1.95);
+      const tex=canvasTex(512,80,(x,w,h)=>{ x.fillStyle='rgba(183,110,0,.92)'; x.font='800 46px "Plus Jakarta Sans", system-ui, sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('AREA TUNGGU',w/2,h/2+2); });
+      decal(g,tex,Math.min(5.2,ax1-ax0-1),0.8,(ax0+ax1)/2,0.11,yZ+0.95,0,-Math.PI/2); } }
   /* Pos Sopir + jalur pejalan kaki */
   if(s.lounge){ const L=s.lounge, LX=L.x, LZ=L.z, WD=0x9C6B3E;
     ST.box(6.8,0.04,6.0,0.2,0xE7EBF7,LX,0.1,LZ+0.7);
@@ -307,6 +320,7 @@ function syncView(dt,now){
     for(const b of s.bays){ const dv=View.docks.get(b.id); if(!dv||dv.open<0.3) continue; any=Math.max(any,dv.open);
       for(let k=0;k<6;k++){ const life=((now*0.00045)+k/6+b.i*0.13)%1; S.set(n++,b.x+s.ox+Math.sin(k*2.3+b.i)*0.7,PH+2.2+life*1.4,s.fz+s.oz+0.4+life*1.8,0.5+life*1.4); } }
     S.m.visible=n>0; if(n){ S.m.material.opacity=0.28*any; S.update(n); } }
+  if(View.gates) for(const G of View.gates){ const tg=G.site.tgate; if(tg) G.piv.rotation.x=tg.armT*1.35; }
   for(const b of View.barriers){ let want=0; for(const t of Store.tables.trucks.values()){ if(!t.solid) continue; const s=t.site; if(Math.hypot(t.pos.x+s.ox-b.x,t.pos.z+s.oz-b.z)<9&&(t.state==='toll_in'||t.state==='toll_out'||t.v>0.5)){ want=1; break; } }
     b.open+=(want-b.open)*Math.min(1,dt*3); b.piv.rotation.x=-b.dir*b.open*1.35; }
   for(const h of View.holds) h.pin.position.y=h.base+(reduceMotion?0:Math.sin(now/1000*2.2+h.ph)*0.16);

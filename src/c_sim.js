@@ -121,11 +121,14 @@ function exitFree(site,t,P,sOut){ const ci=P.ci;
     for(const o of allTrucks()){ if(o===t||!o.solid||!o.cwW) continue; if(overlapC(_exC,o.cwW,0.2)){ P.ci=ci; return false; } } }
   P.ci=ci; return true; }
 function truckJunctionBlock(site,t){
-  const P=t.path; if(!P||t.rev) return Infinity; const J=pathJunctions(P,site.ox,site.oz); let block=Infinity, la;
+  const P=t.path; if(!P||t.rev) return Infinity; if(!('_commit' in t)) hidden(t,'_commit',null); const J=pathJunctions(P,site.ox,site.oz); let block=Infinity, la;
   for(const c of J){
-    if(t.s-3.6>c.sOut){ if(c.j.occ.has(t)) jRelease(c.j,t); continue; }
+    if(t.s-3.6>c.sOut){ if(c.j.occ.has(t)) jRelease(c.j,t); if(t._commit===c.j) t._commit=null; continue; }
     const d=c.sIn-c.j.pre-(t.s+3.5)-0.2;
-    if(c.j.sig&&d>-0.2){ const st=(c.hIn&1)?c.j.sig.stateH:c.j.sig.stateV; if(st==='R'||(st==='A'&&d>t.v*t.v/(2*t.dec))){ if(c.j.occ.has(t)) jRelease(c.j,t); jDequeue(t); block=Math.min(block,d); break; } }
+    /* kuning: berhenti hanya bila sempat mengerem; bila tidak, truk "berkomitmen" lewat dan tidak mengerem mendadak di atas zebra saat lampu jadi merah (sama dengan aturan mobil v30) */
+    if(c.j.sig&&d>-0.2){ const st=(c.hIn&1)?c.j.sig.stateH:c.j.sig.stateV, canStop=d>t.v*t.v/(2*t.dec);
+      if(st==='A'&&!canStop&&t.v>0.5) t._commit=c.j;
+      if((st==='R'&&t._commit!==c.j)||(st==='A'&&canStop)){ if(c.j.occ.has(t)) jRelease(c.j,t); jDequeue(t); block=Math.min(block,d); break; } }
     if(c.j.occ.has(t)) continue;
     if(d>t.v*t.v/(2*t.dec)+9) break;
     if(la===undefined) la=lookAheadTruck(t,site);
@@ -179,7 +182,8 @@ function clearCargo(t){ for(let k=0;k<6;k++){ if(t.cargo[k]) deletePallet(t.carg
 function fillCargo(site,t,n){ clearCargo(t); const r=RAND;
   for(let k=0;k<n;k++){ const p=newPallet(site,r,r()<.25?'crate':r()<.2?'white':'box',1+Math.floor(r()*2),{type:'truck',id:t.id,index:k}); t.cargo[k]=p.id; } }
 function expectedOcc(site){ let e=site.slots.filter(s=>s.occupied).length;
-  for(const o of site.trucks){ if(o.homeBay&&o.state.startsWith('store')){ e+=o.cargo.filter(Boolean).length+(o.storePhase==='load'?o.total-o.done:0); continue; }
+  for(const o of site.trucks){ if(o.queued&&o.state.startsWith('store')){ e+=o.cargo.filter(Boolean).length+(o.storePhase==='load'?o.total-o.done:0); continue; }
+    if(o.queued&&o.state!=='away'){ const left=o.total-o.done; e+=o.mode==='unload'?left:-left; continue; }   /* truk di antrean gerbang/area tunggu belum punya bay */
     if(!o.bay||o.bay.siteId!==site.id||o.state==='away'||o.state==='parked') continue; const left=o.total-o.done; e+=o.mode==='unload'?left:-left; }
   return e; }
 function planMode(site){ const cap=site.slots.length, e=expectedOcc(site), want=3+Math.floor(RAND()*4);
@@ -195,7 +199,8 @@ const xdHalf=site=>Math.ceil(site.bays.length/2);
 function freeBayFor(site,mode){ if(site.profile!=='crossdock') return site.bays.find(b=>!b.truck); const h=xdHalf(site); return site.bays.find(b=>!b.truck&&(mode==='unload'?b.i<h:b.i>=h)); }
 function dispatch(site,t,bay,m0){
   const m=m0||planMode(site); t.mode=m.mode;
-  t.bay=bay; bay.truck=t; t.total=m.total; t.done=0; t.pending=0; t.assigned=null;
+  t.bay=bay; if(bay) bay.truck=t; t.total=m.total; t.done=0; t.pending=0; t.assigned=null;
+  t.queued=!bay; t.gq=null; t.gated=false; t.gateChecked=false;   /* tanpa bay = masuk antrean, bay diberikan urut kedatangan di gerbang */
   const sh=newShipment(site,t,t.mode); sh.total=t.total; sh.status=t.mode==='load'?'scheduled':'in_transit'; t.shipmentId=sh.id; t.dest=null;
   if(t.mode==='load'&&RAND()<0.85){ const st=freeStore(); if(st){ t.dest=st.id; st.bays[0].truckId=t.id; sh.destination=st.name; sh.customer=st.name; sh.storeId=st.id; } }
   t.driver=pick(DRIVERS); t.plate=plate(RAND);
@@ -220,8 +225,40 @@ function departPath(site,bay,fromZ){ const R=HWY.rTurn, a=site.xR-2.2, zE=HWY.zE
   .concat(linePts(a,site.Zr-5,a,zE+R,2).slice(1)).concat(arcPts(a+R,zE+R,R,Math.PI,Math.PI*1.5,16).slice(1)).concat(linePts(a+R,zE,xt,zE,3).slice(1)); return finalize(pts); }
 function highwayOutPath(site){ const zE=HWY.zE-site.oz; return finalize(linePts(HWY.xToll-7-site.ox,zE,HWY.xEnd-site.ox,zE,3)); }
 const TRUCK_SPAWN={x:HWY.xEnd,z:HWY.zW};
+/* ---------- gerbang check-in truk & area tunggu (v32) ----------
+   Semua truk berhenti di palang ujung jalan masuk halaman (akhir kurva masuk dari jalan depan), petugas gerbang
+   mengecek surat jalan, lalu palang naik. Truk yang belum dapat bay menunggu di lajur halaman antara palang dan bay
+   pertama (area tunggu), bay dibagikan urut kedatangan di gerbang (FIFO), jadi tidak ada truk ber-bay yang terjebak
+   di belakang truk antrean. Kapasitas antrean dihitung dari panjang lajur, sehingga antrean tidak meluber ke jalan raya. */
+function siteGate(s){ if(s.tgate) return s.tgate; const yZ=yardZ(s);
+  const g={xc:s.xL+21.0,armX:s.xL+25.2,zArm0:yZ-1.8,zArm1:yZ+2.1,booth:{x:s.xL+27.6,z:yZ+3.25},home:{x:s.xL+26.5,z:yZ+2.65},headX:s.bays[0].x-6.4,armT:0,want:0,armFor:null,truck:null,seq:0,checked:0};
+  g.cap=Math.max(1,1+Math.floor((g.headX+3.3-(g.armX+0.8+6.5))/9)); hidden(s,'tgate',g); return g; }
+const gatePseudo=s=>({x:siteGate(s).headX-RY});   /* "bay" semu: ujung area tunggu, dipakai jalur truk yang belum dapat bay */
+function gateS(site,P){ if(P.gateS!==undefined) return P.gateS; const g=siteGate(site), yZ=yardZ(site); let s=Infinity;
+  for(let i=1;i<P.p.length;i++){ const a=P.p[i-1], b=P.p[i]; if(a.x<g.xc&&b.x>=g.xc&&Math.max(a.z,b.z)<site.Zr+0.8&&Math.min(a.z,b.z)>yZ-1.5){ s=P.L[i-1]+(P.L[i]-P.L[i-1])*(g.xc-a.x)/(b.x-a.x); break; } }
+  P.gateS=s; return s; }
+const queuedCount=site=>site.trucks.reduce((n,o)=>n+(o.queued&&o.state!=='away'?1:0),0);
+/* ruang di area tunggu: truk berikutnya harus bisa lewat palang sepenuhnya (ekor > palang + 0,8 m) */
+function laneRoom(site,t){ const g=siteGate(site), yZ=yardZ(site); let minRear=Infinity;
+  for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked') continue; if(Math.abs(o.pos.z-yZ)>2.2||o.pos.x<g.armX-1) continue;
+    const r=o.pos.x-3.4*Math.abs(Math.sin(o.heading)); if(r<minRear) minRear=r; }
+  return minRear>=g.armX+0.8+6.6+2.6; }
+function assignFromQueue(site){ let h=null;
+  for(const o of site.trucks) if(o.queued&&o.gq!=null&&(o.state==='gate'||o.state==='yard_wait')&&(!h||o.gq<h.gq)) h=o;
+  if(!h) return; const bay=freeBayFor(site,h.mode); if(!bay) return;
+  h.queued=false; h.bay=bay; bay.truck=h;
+  const P=h.path;
+  if(P){ const e=P.p[P.p.length-1], ext=linePts(e.x,e.z,bay.x+RY,e.z,2).slice(1); if(ext.length){ const N=finalize(P.p.concat(ext)); N.ci=P.ci; N.gateS=P.gateS; h.path=N; } }
+  else setPath(h,finalize(linePts(h.pos.x,h.pos.z,bay.x+RY,yardZ(site),2)),false,9,3);   /* sudah berhenti di ujung area tunggu: jalur baru ke bay */
+  if(h.state==='yard_wait'){ h.state='approach'; logEvent(site,`${h.id} keluar dari area tunggu menuju ${bay.label}`,'#2E5BFF',h); }
+  else logEvent(site,`${h.id} mendapat ${bay.label} saat check-in`,'#2E5BFF',h); }
+function gateTick(site,dt){ const g=siteGate(site);
+  g.armT=clamp(g.armT+(g.want?1:-1)*dt/1.3,0,1);
+  if(g.armFor){ const o=Store.get('trucks',g.armFor); if(!o||o.state==='away'||(o.gated&&o.pos.x-3.4>g.armX+0.8)){ g.armFor=null; g.want=0; } }
+  assignFromQueue(site); }
 function goAway(site,t,wait){ if(t.crew){ const L=site.lounge, sp=L&&t.crew.spot!=null?L.spots[t.crew.spot]:null; if(sp&&sp.who===t.id) sp.who=null; crewIn(t); } release(site,t); jReleaseAll(t); if(t.dest){ const st=Store.get('stores',t.dest); if(st&&st.bays[0].truckId===t.id) st.bays[0].truckId=null; t.dest=null; } if(t.mode==='unload') clearCargo(t); else clearCargo(t);
   if(t.shipment) t.shipment.status=t.mode==='load'?'delivered':'completed';
+  t.queued=false; t.gq=null; t.gated=false; if(t._commit) t._commit=null; { const g=site.tgate; if(g){ if(g.truck===t) g.truck=null; if(g.armFor===t.id){ g.armFor=null; g.want=0; } } }
   t.state='away'; t.solid=false; t.dockId=null; t.wait=wait; t.pos.set(-500,0,-500); t.path=null; t.v=0; t.presence=0; }
 /* ---------- sopir: naik-turun kabin, buka/tutup pintu, istirahat di Pos Sopir, kembali ke truk ---------- */
 const TRUCK_CIRC_DRV=[...TRUCK_CIRC,{z:-4.3,r:0.6}];
@@ -366,24 +403,43 @@ function truckStep(site,t,dt){
   switch(t.state){
     case 'away':
       t.wait-=dt*WX.arrive;
-      if(t.wait<=0){ const pm=planMode(site), bay=pm?freeBayFor(site,pm.mode):null;
+      if(t.wait<=0){ const pm=planMode(site), q=queuedCount(site), bay=pm&&q===0?freeBayFor(site,pm.mode):null;
         let clear=true; for(const o of Store.tables.trucks.values()){ if(o!==t&&o.solid&&Math.hypot(o.pos.x+o.site.ox-TRUCK_SPAWN.x,o.pos.z+o.site.oz-TRUCK_SPAWN.z)<22){ clear=false; break; } }
-        if(bay&&clear&&pm) dispatch(site,t,bay,pm); else t.wait=1.5; }
+        /* bay kosong & antrean kosong: truk langsung dijadwalkan ke bay. Bay penuh: truk boleh datang dan menunggu di area tunggu bila masih muat */
+        if(bay&&clear&&pm) dispatch(site,t,bay,pm);
+        else if(pm&&clear&&!bay&&q<siteGate(site).cap){ if(RAND()<0.5) dispatch(site,t,null,pm); else t.wait=3+RAND()*6; }
+        else t.wait=1.5; }
       return;
     case 'inbound': {
       const block=Math.min(lookAheadTruck(t,site),truckJunctionBlock(site,t)); t.presence=clamp(t.s/40,0,1);
       if(moveStep(t,dt,block)){ t.state='toll_in'; t.wait=1.6; }
       break; }
     case 'toll_in':
-      t.wait-=dt; if(t.wait<=0){ t.state='approach'; t.presence=1; setPath(t,approachPath(site,t.bay),false,9,3); }
+      t.wait-=dt; if(t.wait<=0){ t.state='approach'; t.presence=1; setPath(t,approachPath(site,t.bay||gatePseudo(site)),false,9,3); }
       break;
     case 'approach': {
+      if(!t.gated){ const g=siteGate(site), d=gateS(site,t.path)-t.s;
+        if(d<-1.5) t.gated=true;   /* pengaman: jalur tanpa gerbang */
+        else { t.presence=1; moveStep(t,dt,Math.min(lookAheadTruck(t,site),truckJunctionBlock(site,t),Math.max(0,d)));
+          if(d<0.6&&t.v<0.05&&!g.truck){ t.state='gate'; t.v=0; g.truck=t; t.gateT=0; t.gateChecked=false; if(t.gq==null) t.gq=++g.seq;
+            logEvent(site,`${t.id} tiba di gerbang ${site.name} · check-in`,'#1E2A55',t); }
+          break; } }
+      if(!t.bay){ t.state='yard_wait'; break; }
       const r=regionOf(site,t.bay), fx=t.pos.x+3.4, onFront=Math.abs(t.pos.z-yardZ(site))<1.6&&Math.sin(t.heading)>0.7;
       let block=Math.min(lookAheadTruck(t,site),resBlock(site,t),truckJunctionBlock(site,t));
       if(!t.res&&onFront){ if(fx>r.x0-26 && canAcquire(site,t,r,true)) acquire(site,t,r); else block=Math.min(block,r.x0-fx-0.6); }
       t.presence=1;
       if(moveStep(t,dt,block)){ t.state='prep'; t.wait=0.6; t.wantDoors=0; }
       break; }
+    case 'gate': { const g=siteGate(site); t.presence=1; t.v=0; t.gateT+=dt;
+      if(!t.gateChecked&&t.gateT>45) t.gateChecked=true;   /* pengaman bila petugas gerbang berhalangan */
+      if(t.gateChecked&&g.armFor!==t.id&&t.gateT>46&&!g.armFor&&laneRoom(site,t)){ g.armFor=t.id; g.want=1; }
+      if(g.armFor===t.id&&g.armT>0.97){ t.gated=true; g.truck=null; g.checked++; t.state=t.bay?'approach':'yard_wait';
+        logEvent(site,t.bay?`${t.id} lolos check-in · menuju ${t.bay.label}`:`${t.id} lolos check-in · menunggu bay di area tunggu`,t.bay?'#178A55':'#B76E00',t); }
+      break; }
+    case 'yard_wait':
+      t.presence=1; moveStep(t,dt,lookAheadTruck(t,site));
+      break;
     case 'prep':
       t.wait-=dt; if(t.wait<=0&&driverStep(t,dt,1)){ t.state='reverse'; setPath(t,reversePath(site,t.bay),true,2.1,1.6); }
       break;
@@ -428,7 +484,6 @@ function truckStep(site,t,dt){
       break;
     case 'store_docked': {
       const st=Store.get('stores',t.dest), inCab=crewStoreLife(t);
-      if(t.storePhase==='load'&&!t.homeBay){ const hb=freeBayFor(site,'unload'); if(hb){ hb.truckId=t.id; hidden(t,'homeBay',hb); } }
       if(t.done>=t.total&&t.pending===0&&!t.assigned){
         if(t.storePhase==='unload'){ st.receivedToday+=t.total; if(t.shipment) t.shipment.status='delivered';
           const ret=st.slots.filter(s=>s.data&&s.data.retur&&!s.reserved).length;
@@ -441,14 +496,15 @@ function truckStep(site,t,dt){
       break;
     case 'store_close':
       if(t.closed||(t.closed=driverStep(t,dt,0))){ const st=Store.get('stores',t.dest), ret=t.cargo.filter(Boolean).length;
-        if(ret&&!t.homeBay){ const hb=freeBayFor(site,'unload'); if(hb){ hb.truckId=t.id; hidden(t,'homeBay',hb); } }
-        if(ret&&!t.homeBay&&(t.wait=(t.wait||0)+dt)<60) break;
+        /* pulang membawa retur = ikut antrean gerbang seperti truk lain (bay dibagikan saat check-in) */
+        if(ret&&!t.queued&&queuedCount(site)<siteGate(site).cap){ t.queued=true; t.gq=null; }
+        if(ret&&!t.queued&&(t.wait=(t.wait||0)+dt)<60) break;
         st.bays[0].truckId=null; st.trucks.splice(st.trucks.indexOf(t),1);
-        const bay=t.homeBay||null, P=bay?storeToHomePath(site,t,st,bay):null; hidden(t,'homeBay',null);
-        if(P){ t.dockId=bay.id; bay.truck=t; t.mode='unload'; t.total=ret; t.done=0; t.pending=0; st.returnsToday+=ret;
+        const P=ret&&t.queued?storeToHomePath(site,t,st,gatePseudo(site)):null;
+        if(P){ t.dockId=null; t.gated=false; t.gateChecked=false; t.mode='unload'; t.total=ret; t.done=0; t.pending=0; st.returnsToday+=ret;
           const sh=newShipment(site,t,'unload'); sh.origin=st.name; sh.customer=st.name; sh.total=ret; sh.status='in_transit'; t.shipmentId=sh.id;
           t.state='approach'; t.dest=null; setPath(t,P,false,8,3); logEvent(site,`${t.id} kembali ke ${site.name} membawa ${ret} palet retur`,'#2E5BFF',t); }
-        else { if(bay&&bay.truckId===t.id) bay.truckId=null; const Q=storeToTollPath(site,t,st); t.dockId=null; t.dest=null; t.state='leave'; setPath(t,Q,false,8,3); } }
+        else { t.queued=false; const Q=storeToTollPath(site,t,st); t.dockId=null; t.dest=null; t.state='leave'; setPath(t,Q,false,8,3); } }
       break;
     case 'leave': {
       const block=Math.min(lookAheadTruck(t,site),truckJunctionBlock(site,t)); t.presence=1;
@@ -469,7 +525,7 @@ function truckStep(site,t,dt){
       if(moveStep(t,dt,block)) goAway(site,t,3+RAND()*6);
       break; }
   }
-  t.stuck = (t.path && t.v<0.02) ? t.stuck+dt : 0;
+  t.stuck = (t.path && t.v<0.02 && t.state!=='gate' && t.state!=='yard_wait') ? t.stuck+dt : 0;   /* antre resmi di gerbang/area tunggu bukan macet */
   if(t.stuck>300 && ['inbound','approach','depart','highway','to_store','leave'].includes(t.state)){ if(t.bay&&t.bay.truck===t) t.bay.truck=null; goAway(site,t,5); }
 }
 
@@ -611,6 +667,17 @@ const PLANS={
       p.ri=nx;
       if(o.label){ faceTo(p,o.h); idle(p,o.d+RAND()*1.5,o.pose,o.label); if(RAND()<0.3) idle(p,1.2,'point',o.label); } }
   },
+  /* petugas gerbang (v32): cek surat jalan truk di palang, kembali ke pos, lalu membuka palang bila area tunggu masih muat */
+  gatekeeper(ctx,p){ const g=siteGate(ctx), t=g.truck&&g.truck.state==='gate'?g.truck:null, H=g.home;
+    if(t&&!t.gateChecked){ const w=tLocal(t,-2.35,1.5);
+      if(Math.hypot(w.x-p.pos.x,w.z-p.pos.z)>0.3){ faceTo(p,Math.atan2(w.x-p.pos.x,w.z-p.pos.z)); walkTo(p,[{x:w.x,z:w.z}]); }
+      faceTo(p,t.heading+Math.PI/2); idle(p,2.4+RAND()*1.2,'clipboard',`Cek surat jalan ${t.id}`);
+      p.act.push({t:'do',fn:()=>{ if(g.truck===t&&t.state==='gate') t.gateChecked=true; }}); return; }
+    if(Math.hypot(H.x-p.pos.x,H.z-p.pos.z)>0.3){ faceTo(p,Math.atan2(H.x-p.pos.x,H.z-p.pos.z)); walkTo(p,[{x:H.x,z:H.z}]); faceTo(p,Math.PI); return; }
+    if(t&&t.gateChecked&&g.armFor!==t.id){
+      if(!g.armFor&&laneRoom(ctx,t)){ idle(p,0.6,'point',`Membuka palang untuk ${t.id}`); p.act.push({t:'do',fn:()=>{ if(g.truck===t&&t.state==='gate'&&!g.armFor&&laneRoom(ctx,t)){ g.armFor=t.id; g.want=1; } }}); return; }
+      idle(p,1.0,'look',`${t.id} menunggu area tunggu lega`); return; }
+    idle(p,1.0+RAND()*0.8,RAND()<0.12?'phone':'look','Menjaga gerbang truk'); },
   qc(ctx,p){
     const W=ctx.W, fz=ctx.fz, opts=[...ctx.holds.map(h=>({x:h.holdPos.x,z:h.holdPos.z-1.35,h:0,label:`Inspeksi ${h.id}`})),
       {x:W/2+7.0,z:fz+2.4,h:Math.PI/2,label:'Cek truk parkir'},{x:W/2+7.0,z:fz+0.6,h:Math.PI/2,label:'Cek truk parkir'}];
@@ -699,6 +766,7 @@ function kpiSummary(site){ const m=site.metrics; if(!m) return null; const r1=v=
 function simSite(site,dt){
   if(site.bias){ site.bias.t-=dt; if(site.bias.t<=0) site.bias=null; }
   refreshCircles(site.trucks); refreshTruckWorld(site); refreshCircles(site.forks); refreshCircles(site.people);
+  gateTick(site,dt);
   for(const t of site.trucks) if(t.state!=='parked') truckStep(site,t,dt);
   for(const f of site.forks) forkStep(site,f,dt);
   shiftTick(site,dt);
@@ -984,11 +1052,14 @@ const SAFETY_LABELS={
   personHit:'Orang tertabrak truk/forklift', crewTouch:'Sopir menyentuh badan truk lain', zebra:'Kendaraan berhenti di atas zebra cross',
   doorsRoad:'Pintu truk dibuka di jalan raya', crossdock:'Cross-dock: truk di dock arah yang salah', cold:'Gudang dingin: palet dipindah sebelum cek suhu',
   redirect:'Truk tiba di tujuan yang salah', crewStall:'Sopir tidak mendekat ke tujuannya > 20 dtk', stuck:'Truk tertahan > 120 dtk',
-  teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m', kpi:'KPI gudang tidak valid (NaN / di luar batas)'};
+  teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m', kpi:'KPI gudang tidak valid (NaN / di luar batas)',
+  gateSkip:'Truk sampai di dock tanpa check-in gerbang', gateArm:'Palang gerbang menutup di atas truk', roadQueue:'Truk antre di jalan raya depan gerbang gudang > 45 dtk',
+  queueLong:'Truk menunggu di area tunggu > 10 menit'};
 function makeSafetyChecker(){
   const V={}; for(const k in SAFETY_LABELS) V[k]={n:0,ex:[]};
   const bad=(k,msg)=>{ const v=V[k]; v.n++; if(v.ex.length<3&&!v.ex.includes(msg)) v.ex.push(msg); };
-  const M={simSec:0,checks:0,maxStuck:0,maxStuckId:'',minGap:Infinity,crossdock:0,cold:0,redirect:0,zebraStops:0};
+  const M={simSec:0,checks:0,maxStuck:0,maxStuckId:'',minGap:Infinity,crossdock:0,cold:0,redirect:0,zebraStops:0,maxQueue:0,maxWait:0,queued:0};
+  const prevSt=new Map(), roadT=new Map(), waitT=new Map(), gate0=new Map(); for(const s of Store.all('sites')) gate0.set(s.id,siteGate(s).checked);
   const VX=[],HZ=[]; for(let k=GRID.x0;k<=GRID.x1+1;k++) VX.push((k-0.5)*PX); for(let k=GRID.z0;k<=GRID.z1+1;k++) HZ.push((k-0.5)*PZ);
   const Z0=ROAD/2+0.4, Z1=ROAD/2+2.8, ZW=3.85;
   const onZebra=(x,z)=>{ for(const X of VX){ const dx=Math.abs(x-X); if(dx>Z1+0.1) continue; for(const Z of HZ){ const dz=Math.abs(z-Z); if(dx<=ZW&&dz>=Z0&&dz<=Z1) return true; if(dz<=ZW&&dx>=Z0&&dx<=Z1) return true; } } return false; };
@@ -1039,6 +1110,17 @@ function makeSafetyChecker(){
         if(t.dockId!==(Store.get('stores',t.dest)||{bays:[{}]}).bays[0].id||(sh&&sh.storeId&&sh.storeId!==t.dest)) bad('redirect',`${t.id} tiba di ${t.dockId}, seharusnya ${sh&&sh.storeId}`); } }
     }
     for(const c of cars) if(c.v<0.05){ const k='c'+c.id, st=(stopT.get(k)||0)+dt; stopT.set(k,st); if(st>=1&&body(c.x,c.z,c.heading,C_OFF).some(p=>onZebra(p.x,p.z))) bad('zebra',`${c.id}`); } else stopT.delete('c'+c.id);
+    /* gerbang & area tunggu */
+    for(const s of Store.all('sites')){ const g=siteGate(s), q=queuedCount(s); if(q>M.maxQueue) M.maxQueue=q;
+      if(g.armT<0.9){ const ax=g.armX+s.ox, z0=g.zArm0+s.oz, z1=g.zArm1+s.oz;
+        for(const t of solid){ if(t.cwW.some(c=>Math.abs(c.x-ax)<c.r&&c.z>z0-c.r&&c.z<z1+c.r)) bad('gateArm',`${t.id} (${t.state}) di ${s.id}`); } } }
+    for(const t of trucks){ const s=t.site; if(!s) continue; const ps=prevSt.get(t.id); prevSt.set(t.id,t.state);
+      if(t.state==='docked'&&ps&&ps!=='docked'&&!t.gateChecked) bad('gateSkip',`${t.id} di ${t.bay&&t.bay.label} (${s.id})`);
+      if(t.state==='yard_wait'&&ps!=='yard_wait') M.queued++;
+      if(t.state==='approach'&&!t.gated&&t.v<0.05){ const wx=t.pos.x+s.ox, wz=t.pos.z+s.oz, r=(roadT.get(t.id)||0)+dt; roadT.set(t.id,r);
+        const g=siteGate(s); if(r>45&&Math.hypot(wx-(g.xc+s.ox),wz-(yardZ(s)+s.oz))<45&&body(wx,wz,t.heading,T_OFF).some(p=>onRoad(p.x,p.z))){ bad('roadQueue',`${t.id} di depan ${s.id}`); roadT.set(t.id,-1e9); } } else if(!(roadT.get(t.id)<0)) roadT.delete(t.id);
+      if(t.state==='yard_wait'||t.state==='gate'){ const w=(waitT.get(t.id)||0)+dt; waitT.set(t.id,w); if(w>M.maxWait) M.maxWait=w; if(w>600&&w-dt<=600) bad('queueLong',`${t.id} di ${s.id}`); }
+      else if(t.state!=='approach') waitT.delete(t.id); }
     /* KPI khas gudang: angka harus terhingga dan masuk akal */
     for(const s of Store.all('sites')){ const m=s.metrics; if(!m) continue; const fin=v=>typeof v==='number'&&isFinite(v);
       if(m.hours) for(let h=0;h<24;h++){ const v=kpiHourVal(s,m.hours[h]); if(v!=null&&(!fin(v)||v<(s.profile==='cold'?-25:0)||(s.profile==='cold'&&v>-10))) bad('kpi',`${s.id} jam ${h}: ${v}`); }
@@ -1058,7 +1140,8 @@ function makeSafetyChecker(){
     tick(dt){ M.simSec+=dt; acc+=dt; if(acc>=0.25){ check(acc); acc=0; } },
     report(){ const rows=Object.keys(SAFETY_LABELS).map(k=>({id:k,label:SAFETY_LABELS[k],count:V[k].n,ok:V[k].n===0,examples:V[k].ex}));
       return {pass:rows.every(r=>r.ok),rows,metrics:{simMinutes:Math.round(M.simSec/6)/10,checks:M.checks,maxStuckSec:Math.round(M.maxStuck),maxStuckTruck:M.maxStuckId,
-        minQueueGapM:M.minGap===Infinity?null:Math.round(M.minGap*100)/100,crossdockChecks:M.crossdock,coldChecks:M.cold,storeArrivals:M.redirect,stoppedChecks:M.zebraStops}}; }
+        minQueueGapM:M.minGap===Infinity?null:Math.round(M.minGap*100)/100,crossdockChecks:M.crossdock,coldChecks:M.cold,storeArrivals:M.redirect,stoppedChecks:M.zebraStops,
+        gateCheckins:Store.all('sites').reduce((n,s)=>n+siteGate(s).checked-gate0.get(s.id),0),queuedTrucks:M.queued,maxQueue:M.maxQueue,maxQueueWaitSec:Math.round(M.maxWait)}}; }
   };
 }
 function selftestInit(opt={}){ setTimeMode(opt.jam&&TIME_MODES[opt.jam]&&opt.jam!=='live'?opt.jam:'siang'); setWeather(opt.cuaca&&WEATHER[opt.cuaca]?opt.cuaca:'clear',true); return makeSafetyChecker(); }
