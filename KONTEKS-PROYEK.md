@@ -8,7 +8,7 @@
 
 ## 1. Ringkasan
 
-**Lumbung** adalah dashboard operasional gudang 3D isometrik milik **PT Fusionify Digital Group** (Bogor). Lima gudang dan dua toko disimulasikan dalam satu kota: truk datang lewat tol, masuk halaman gudang, mundur ke dock, dibongkar/dimuat forklift, lalu berangkat ke toko atau luar kota. Terinspirasi video konsep **WareTrack**, tetapi dibangun ulang dari nol — nama, logo, model, dan kode milik sendiri.
+**Lumbung** adalah dashboard operasional gudang 3D isometrik milik **PT Fusionify Digital** (Bogor). Lima gudang dan dua toko disimulasikan dalam satu kota: truk datang lewat tol, masuk halaman gudang, mundur ke dock, dibongkar/dimuat forklift, lalu berangkat ke toko atau luar kota. Terinspirasi video konsep **WareTrack**, tetapi dibangun ulang dari nol — nama, logo, model, dan kode milik sendiri.
 
 | | |
 |---|---|
@@ -121,8 +121,8 @@ Tinggi platform dock = `PH` (1,01 m). Pekerja platform memakai `p.y = PH`.
 | BKS-01 | DC Cikarang | `dc` | 24×12 | 4 | 3 | pelana + annex |
 | BGR-03 | Gudang Dingin Cileungsi | `cold` | 20×12 | 3 | 2 | datar |
 | DPK-01 | Hub Robotik Depok | `robotic` | 28×12 | 5 | 4 | gergaji |
-| TK-01 | Segar Mart | toko | 14×10 | 1 | — | — |
-| TK-02 | Nusantara Plaza | mal | 22×12 | 1 | — | — |
+| TK-01 | Segar Mart | toko | 14×10 | 1 | 1 (FL-T, bongkar & muat retur) | — |
+| TK-02 | Nusantara Plaza | mal | 22×12 | 1 | 1 (FL-T, bongkar & muat retur) | — |
 
 Profil disetel lewat `SITE_PROFILE` di `a_core.js` → `site.profile`.
 
@@ -244,7 +244,7 @@ Siklus: `open` → (aksi) `done` "Sedang ditindaklanjuti" → hilang dari daftar
 | Orang dengan bagian tubuh hilang | 0 |
 | Jarak antre truk (bemper–bemper) | rata-rata ±2–2,5 m, minimum ≥1,9 m |
 
-**Metode uji yang dipakai selama pengembangan:** halaman debug yang mengekspos fungsi internal ke `window.__dbg`, lalu Playwright (Chromium headless + SwiftShader) menjalankan simulasi 12.000 langkah × 1/15 dtk (≈13 menit) dengan mode siang, malam, dan siklus cepat, plus uji ketahanan 30 menit. Skrip uji belum ada di repo — lihat backlog.
+**Metode uji (sejak v30):** `node tests/headless-sim.mjs [menit] [seed] [jam]` di terminal, atau `?selftest` di browser. Keduanya memakai pemeriksa yang sama (`makeSafetyChecker` di `c_sim.js`) dan menghasilkan sidik jari yang sama untuk seed yang sama. Sebelum push minimal jalankan: `13 7 siang`, `13 7 malam`, `13 7 cycle`, dan satu uji `30 11 siang`.
 
 **Catatan alat uji:** SwiftShader tidak merender `backdrop-filter` dan animasi CSS bisa tidak berjalan saat WebGL berat; pita hitam di bawah panel pada screenshot headless adalah **artefak**, bukan bug.
 
@@ -296,17 +296,18 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v30):** simulasi ber-seed (`?seed=`), uji mandiri `?selftest` + `tests/headless-sim.mjs` dengan 15 pemeriksaan invariant, perbaikan lalu lintas (mobil melepas kunci persimpangan karena lampu merah di persimpangan berikutnya, keputusan kuning/merah yang konsisten dengan pengereman, aturan "jangan menutup persimpangan"), sopir bisa memutari truk yang menghalangi di ruas panjang, crash pekerja di mode siklus cepat.
+
 **Selesai (v29):** mode sinematik bercerita (ikuti satu truk tanpa potong), kamera awal lebih dekat, tilt-shift ikut zoom, operator gudang & properti halaman, data demo milik sendiri, ID kiriman berurutan, `tests/headless-sim.mjs`.
 
 **Selesai (v28.3):** lima gudang berkarakter, jalan tol vs jalan raya, alur halaman gudang, shift, sopir & pintu kabin, arahkan pengiriman, pusat peringatan, jarak antre, UI responsif & ringkas, deploy Vercel + domain.
 
 **Belum dikerjakan (urutan disarankan):**
 
-1. Simulasi dengan *seed* (`?seed=123`) + mode uji mandiri (`?selftest`) + pindahkan skrip uji ke repo (`tests/`).
-2. Tahap 3: KPI & grafik khas per gudang (suhu 24 jam, waktu transit, peta panas AGV, paket/jam).
-3. Check-in gerbang & area tunggu truk.
-4. Pengiriman antar-gudang; arahkan truk yang sedang datang.
-5. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
-6. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
+1. Tahap 3: KPI & grafik khas per gudang (suhu 24 jam, waktu transit, peta panas AGV, paket/jam).
+2. Check-in gerbang & area tunggu truk.
+3. Pengiriman antar-gudang; arahkan truk yang sedang datang.
+4. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
+5. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
 **Batasan yang diketahui:** data masih simulasi; tujuan pengiriman 2 toko + luar kota; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).

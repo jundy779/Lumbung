@@ -266,6 +266,7 @@ function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
   $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
     <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+    <button class="cleanrow seedrow" data-copyseed="1"><span><b>Seed simulasi ${SEED}</b><small>${SEEDED?'Dipakai dari tautan':'Acak'} · salin tautan untuk mengulang kondisi awal</small></span></button>
     <h4>Waktu</h4><div class="seg">${Object.entries(TIME_MODES).map(([k,m])=>`<button data-time="${k}" aria-pressed="${c.mode===k}">${k==='live'?'● ':''}${m.label.replace(' (WIB)','')}</button>`).join('')}</div>
     <h4>Cuaca</h4><div class="wxg">${WX_ORDER.map(k=>`<button data-wx="${k}" aria-pressed="${w.condition===k}"><b>${WEATHER[k].icon}</b>${WEATHER[k].label}</button>`).join('')}</div>
     <div class="imp"><p><b>Dampak operasi:</b> ${w.impact} · ${trafficInfo().note}${WX.flash?' · lampu lalu lintas berkedip kuning':''}${WX.night?' · shift malam':''}</p>
@@ -293,6 +294,8 @@ $('#wxBtn').onclick=toggleEnv; $('#stormBtn').onclick=toggleEnv;
 $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.clean){ setClean(!CLEAN); renderEnvMenu(); return; }
   if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
+  if(b.dataset.copyseed){ const u=new URL(location.href); u.searchParams.set('seed',String(SEED)); const done=()=>showToast(`Tautan seed ${SEED} disalin`,'#16A34A');
+    try{ navigator.clipboard.writeText(u.toString()).then(done,()=>showToast(u.toString(),'#2E5BFF')); }catch(_){ showToast(u.toString(),'#2E5BFF'); } return; }
   if(b.dataset.time) setTimeMode(b.dataset.time); if(b.dataset.wx) setWeather(b.dataset.wx); renderEnvMenu(); refreshUI(true); });
 document.addEventListener('click',e=>{ if(!e.target.closest('#envMenu,#wxBtn,#stormBtn')){ $('#envMenu').hidden=true; $('#wxBtn').setAttribute('aria-expanded','false'); } });
 /* ---------- tampilan Tabel: antarmuka lain untuk data yang sama ---------- */
@@ -596,13 +599,43 @@ document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelect
 cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
 { const L=$('#loading'); L.classList.add('done'); setTimeout(()=>L.remove(),600); } refreshUI(true);
+/* ---------- uji mandiri di browser: ?selftest[&menit=13][&jam=siang|malam|cycle][&seed=7] ----------
+   Simulasi dipercepat dengan langkah tetap 1/15 dtk, diperiksa makeSafetyChecker (sama dengan tests/headless-sim.mjs).
+   Hasil juga tersedia di window.__selftest untuk otomasi (Playwright). */
+let SIM_PAUSED=QS.has('selftest'); /* mode uji: simulasi normal ditahan sejak awal supaya hasilnya sama persis dengan tests/headless-sim.mjs */
+const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function runSelftest(){
+  const menit=clamp(+(QS.get('menit')||13)||13,1,60), jam=['siang','pagi','sore','malam','cycle'].includes(QS.get('jam'))?QS.get('jam'):'siang';
+  SIM_PAUSED=true; stopCine(); select(null);
+  const box=document.createElement('div'); box.id='selftest'; box.setAttribute('role','dialog'); box.setAttribute('aria-live','polite'); document.body.appendChild(box);
+  box.innerHTML=`<div class="sth"><b>Uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(TIME_MODES[jam].label)}</small></div><p id="stP">Menyiapkan simulasi…</p><div class="stbar"><i id="stBar"></i></div>`;
+  const C=selftestInit({jam}), dt=1/15, total=Math.round(menit*60/dt), t0=performance.now(); let k=0;
+  while(k<total){ const end=Math.min(total,k+120); for(;k<end;k++) selftestStep(dt,C);
+    $('#stP').textContent=`Menjalankan simulasi ${Math.floor(k*dt/60)} dari ${menit} menit…`; $('#stBar').style.width=(k/total*100).toFixed(1)+'%';
+    await new Promise(r=>setTimeout(r,0)); }
+  const R=C.report(); R.rows.push({id:'pool',label:'Orang dengan bagian tubuh hilang',count:window.__poolWarned?1:0,ok:!window.__poolWarned,examples:[]});
+  Object.assign(R,{pass:R.rows.every(r=>r.ok),seed:SEED,menit,jam,fingerprint:simFingerprint(),durasiMs:Math.round(performance.now()-t0)});
+  window.__selftest=R; try{ console.table(R.rows.map(r=>({cek:r.label,jumlah:r.count,lulus:r.ok}))); }catch(_){}
+  const m=R.metrics, fail=R.rows.filter(r=>!r.ok);
+  box.innerHTML=`<div class="sth"><b>${R.pass?'✓ Lulus':'✗ Gagal'} · uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(TIME_MODES[jam].label)} · ${(R.durasiMs/1000).toFixed(1)} dtk</small></div>
+    <p class="${R.pass?'ok':'bad'}">${R.pass?`Semua ${R.rows.length} pemeriksaan keselamatan bernilai 0.`:`${fail.length} dari ${R.rows.length} pemeriksaan gagal.`}</p>
+    <ul>${R.rows.map(r=>`<li class="${r.ok?'ok':'bad'}"><span>${r.ok?'✓':'✗'}</span><div><b>${esc(r.label)}</b>${r.ok?'':`<small>${r.count}× · ${r.examples.map(esc).join(' · ')}</small>`}</div></li>`).join('')}</ul>
+    <p class="stm">Truk paling lama tertahan ${m.maxStuckSec} dtk · jarak antre minimum ${m.minQueueGapM??'–'} m · ${m.crossdockChecks.toLocaleString('id-ID')} cek cross-dock · ${m.coldChecks} cek suhu · sidik jari <code>${R.fingerprint}</code></p>
+    <div class="sta"><button data-st="again">Ulangi seed ini</button><button data-st="new">Seed baru</button><button data-st="close" class="pri">Tutup</button></div>`;
+  box.onclick=e=>{ const b=e.target.closest('[data-st]'); if(!b) return; const u=new URL(location.href);
+    if(b.dataset.st==='again'){ u.searchParams.set('seed',String(SEED)); location.href=u.toString(); } else if(b.dataset.st==='new'){ u.searchParams.set('seed',String(Math.floor(Math.random()*1e6))); location.href=u.toString(); } else box.remove(); };
+  SIM_PAUSED=false; refreshUI(true);
+}
+if(QS.has('selftest')) setTimeout(runSelftest,300);
 let last=performance.now(), uiT=0, fno=0, tiltB=-1; const simAcc=new Map();
 function frame(now){
   const rdt=Math.max(0,(now-last)/1000), dt=Math.min(0.05,rdt); last=Math.max(last,now); fno++;
+  if(!SIM_PAUSED){
   tickClock(dt);
   SITES().forEach((s,i)=>{ if(!LOWPOWER||i===active){ simSite(s,dt); return; } const a=(simAcc.get(s.id)||0)+dt; if(fno%2===i%2){ simSite(s,Math.min(a,0.1)); simAcc.set(s.id,0); } else simAcc.set(s.id,a); });
   for(const st of stores()) simStore(st,dt);
   simCity(dt);
+  }
   syncView(dt,now); updateWeather(Math.min(rdt,0.25),now);
   const k=reduceMotion?1:Math.min(1,dt*6);
   if(cine.on) stepCine(Math.min(rdt,0.1));
@@ -621,7 +654,7 @@ function frame(now){
   if(sel&&sel.kind==='pallet'&&!Store.get('pallets',sel.id)){ sel=null; clearSelVis(); document.body.classList.remove('has-sel'); }
   if(selVis&&sel&&sel.kind==='pallet'){ const v=View.pallets.get(sel.id); if(v&&selVis.parent!==v.mesh) v.mesh.add(selVis); }
   updateRoute();
-  if(!tableOpen) renderer.render(scene,camera);
+  if(!tableOpen&&(!SIM_PAUSED||fno%20===0)) renderer.render(scene,camera); /* saat uji mandiri, render jarang supaya uji cepat */
   drawLabels();
   uiT+=dt; if(uiT>0.5){ uiT=0; refreshUI(); }
   requestAnimationFrame(frame);

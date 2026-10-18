@@ -1,5 +1,21 @@
 # Changelog
 
+## v30 · 19 Okt 2026
+- **Simulasi ber-seed**: `?seed=123` membuat keputusan acak simulator bisa diulang. Seed tampil di menu Waktu & Cuaca dengan tombol salin tautan.
+- **Uji mandiri `?selftest`** (opsional `&menit=13&jam=malam`): simulasi dipercepat lalu muncul laporan 16 pemeriksaan keselamatan. Hasil juga ada di `window.__selftest` untuk otomasi.
+- `tests/headless-sim.mjs [menit] [seed] [jam]` memakai pemeriksa yang sama dan keluar dengan kode 1 bila ada yang gagal. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed yang sama.
+- Jam mode tetap (Pagi/Siang/Sore/Malam) kini maju dengan waktu simulasi, bukan jam dinding.
+- Perbaikan lalu lintas yang ditemukan oleh uji mandiri:
+  - Mobil melepas "kunci" persimpangan karena lampu merah di persimpangan *berikutnya* (±44 m di depan, dekat Jalan Lingkar), lalu tertahan di tengah persimpangan dan bisa bersenggolan dengan mobil dari arah lain.
+  - Keputusan berhenti saat kuning/merah kini konsisten dengan kemampuan rem; mobil yang terlanjur lewat batas aman saat kuning melanjutkan, tidak lagi mengerem di atas zebra cross.
+  - Aturan "jangan menutup persimpangan": mobil hanya masuk bila antrean di seberang (termasuk lampu yang akan merah saat tiba) menyisakan ruang sampai bemper belakang lewat zebra.
+  - Hijau arah masuk Jalan Lingkar diperpanjang menjadi 7 detik agar antrean tidak meluber ke persimpangan sebelumnya.
+  - Mobil tidak lagi muncul di dalam persimpangan saat halaman dibuka.
+- Sopir yang jalannya terhalang badan truk di ruas panjang kini menemukan jalan memutar (sebelumnya pemeriksaan jalur terlalu jarang dan truk di depannya tidak terdeteksi).
+- Perbaikan crash di mode Siklus cepat: operator gudang bisa kehabisan tugas saat pergantian shift sehingga simulasi berhenti.
+- Nama perusahaan diseragamkan menjadi PT Fusionify Digital.
+- Catatan uji: 9 dari 10 skenario lulus penuh (seed 1, 2, 3, 4, 5, 7, 11; siang, malam, siklus cepat; termasuk uji ketahanan 30 menit siang dan malam). Satu kasus sisa: pada uji 30 menit siklus cepat seed 21, satu mobil terdeteksi sekali (0,25 dtk) berhenti dengan badan di zebra saat lampu kuning berkedip malam dan antrean Jalan Lingkar meluber. Ulangi dengan `node tests/headless-sim.mjs 30 21 cycle`.
+
 ## v29 · 18 Okt 2026
 - **Mode sinematik bercerita**: kamera mengikuti satu truk tanpa potong dari gerbang tol, masuk halaman, sopir membuka pintu, mundur ke dock, cek suhu (gudang dingin), sampai forklift bongkar-muat; juga perjalanan antar ke toko. Shot pindah otomatis bila truk lama tertahan antrean.
 - Perpindahan kamera jarak jauh kini terbang mulus dengan kecepatan dibatasi, tidak lagi melompat.

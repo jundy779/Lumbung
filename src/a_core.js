@@ -16,8 +16,14 @@ const fmt = n => Math.round(n).toLocaleString('id-ID');
 const pad = n => String(n).padStart(2,'0');
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 const lerp = (a,b,t) => a+(b-a)*t;
-const pick = (a,r=Math.random) => a[Math.floor(r()*a.length)];
+const pick = (a,r=RAND) => a[Math.floor(r()*a.length)];
 function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+/* seed simulasi: ?seed=123 di URL (atau __LUMBUNG_SEED di Node) membuat keputusan acak simulator bisa diulang persis.
+   Semua keputusan acak di b_layout & c_sim WAJIB lewat RAND(), bukan Math.random() (tampilan/UI boleh Math.random). */
+const QS = typeof location!=='undefined' ? new URLSearchParams(location.search) : new URLSearchParams('');
+const SEED = (()=>{ const v=QS.get('seed')??(typeof __LUMBUNG_SEED!=='undefined'?String(__LUMBUNG_SEED):null); const n=parseInt(v,10); return Number.isFinite(n)?(n>>>0):((Date.now()^0x5EED)>>>0)%1000000; })();
+const SEEDED = QS.has('seed')||typeof __LUMBUNG_SEED!=='undefined';
+const RAND = rng(SEED);
 const strHash = s => { let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; };
 function nowWIB(){ return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'})); }
 const hm = d => pad(d.getHours())+':'+pad(d.getMinutes());

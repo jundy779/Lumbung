@@ -1,12 +1,17 @@
-// Menjalankan lapis Data + Simulator Lumbung (a_core, b_layout, c_sim) di Node tanpa browser/3D.
-// Dipakai untuk uji cepat invarian simulasi setelah mengubah c_sim.js.
-// Pemakaian: node tests/headless-sim.mjs [menit_simulasi=30]
+// Uji simulator Lumbung tanpa browser: lapis Data + Simulator (a_core, b_layout, c_sim) dijalankan di Node.
+// Memakai pemeriksa invariant yang SAMA dengan mode ?selftest di browser (makeSafetyChecker di c_sim.js).
+//
+// Pemakaian:
+//   node tests/headless-sim.mjs [menit=13] [seed=7] [jam=siang]
+//   node tests/headless-sim.mjs 30 123 malam
+// Keluar dengan kode 1 bila ada invariant yang gagal, sehingga bisa dipakai sebelum push / di CI.
+// Seed + menit + jam yang sama selalu menghasilkan sidik jari (fingerprint) yang sama.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const MIN = +(process.argv[2] || 30);
+const MIN = +(process.argv[2] || 13), SEED = +(process.argv[3] || 7), JAM = process.argv[4] || 'siang';
 const src = f => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');
-let core = src('a_core.js').split('\n').filter(l => !/^<script|^\(async function\(\)\{/.test(l)).join('\n');
+const core = src('a_core.js').split('\n').filter(l => !/^<script|^\(async function\(\)\{/.test(l)).join('\n');
 const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
 ;(function(){
   const dups = []; const add0 = Store.add.bind(Store);
@@ -14,45 +19,23 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
   SITE_CONFIG.forEach((C,i)=>createSite(C,i)); STORE_CONFIG.forEach((C,i)=>createStore(C,i));
   const SITES=()=>Store.all('sites');
   SITES().forEach(populateSite); SITES().forEach(seedDocks); initTraffic(); initCityWalkers();
-  setTimeMode('siang');
-  const dt = 1/20, steps = Math.round(${MIN}*60/dt); let maxStuck = 0, maxStuckId = '', teleports = 0, minPickerFork = Infinity, minPickerTruck = Infinity;
-  const seenStates = new Map(); let doneDeliveries = 0;
-  const origGoAway = goAway;
-  for (let k = 0; k < steps; k++) {
-    tickClock(dt);
-    for (const s of SITES()) simSite(s, dt);
-    for (const st of stores()) simStore(st, dt);
-    simCity(dt);
-    for (const t of Store.tables.trucks.values()) {
-      if (t.stuck > maxStuck) { maxStuck = t.stuck; maxStuckId = t.id + ' (' + t.state + ')'; }
-      if (t.stuck > 299.9 && t.stuck < 300.1) teleports++;
-      seenStates.set(t.state, (seenStates.get(t.state) || 0) + 1);
-    }
-    if (k % 10 === 0) for (const s of SITES()) for (const p of s.people) {
-      if (p.role !== 'Operator gudang') continue;
-      for (const f of s.forks) minPickerFork = Math.min(minPickerFork, Math.hypot(f.pos.x - p.pos.x, f.pos.z - p.pos.z));
-      for (const t of s.trucks) if (t.solid) minPickerTruck = Math.min(minPickerTruck, Math.hypot(t.pos.x - p.pos.x, t.pos.z - p.pos.z));
-    }
-  }
-  const ships = Store.all('shipments');
-  globalThis.__report = {
-    simMinutes: ${MIN},
-    shipmentIdCollisions: dups.length,
-    shipmentsInStore: ships.length,
-    shipmentStatus: ships.reduce((a, s) => (a[s.status] = (a[s.status] || 0) + 1, a), {}),
-    maxTruckStuckSec: Math.round(maxStuck), maxStuckTruck: maxStuckId,
-    teleports,
-    minOperatorToForkliftM: Math.round(minPickerFork * 10) / 10,
-    minOperatorToTruckCenterM: Math.round(minPickerTruck * 10) / 10,
-    openAlerts: openAlerts().map(a => a.title),
-    alertLog: ALERT_LOG.length,
-    pallets: Store.tables.pallets.size,
-    outToday: SITES().map(s => s.id + ':' + s.outToday + '/' + s.putToday),
-    stockPct: SITES().map(s => s.id + ':' + Math.round(s.slots.filter(x => x.occupied).length / s.slots.length * 100) + '%'),
-  };
+  /* pemanasan sama persis dengan startup aplikasi (e_ui.js), supaya yang diuji kondisi yang dilihat pengguna */
+  for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); }
+  for(let k=0;k<300;k++) simCity(1/15);
+  const C = selftestInit({ jam: ${JSON.stringify(JAM)} });
+  const dt = 1/15, steps = Math.round(${MIN}*60/dt);
+  for (let k = 0; k < steps; k++) selftestStep(dt, C);
+  const R = C.report();
+  globalThis.__report = { seed: SEED, jam: ${JSON.stringify(JAM)}, pass: R.pass && dups.length === 0, fingerprint: simFingerprint(),
+    ...R.metrics, shipmentIdCollisions: dups.length,
+    failed: R.rows.filter(r => !r.ok).map(r => ({ cek: r.label, jumlah: r.count, contoh: r.examples })),
+    passed: R.rows.filter(r => r.ok).map(r => r.label) };
 })();`;
-const ctx = { console, Math, Date, performance, matchMedia: () => ({ matches: false, addEventListener() {} }) };
+const ctx = { console, Math, Date, performance, URLSearchParams, __LUMBUNG_SEED: SEED, matchMedia: () => ({ matches: false, addEventListener() {} }) };
 vm.createContext(ctx);
 const t0 = Date.now();
 vm.runInContext(code, ctx, { filename: 'lumbung-sim.js' });
-console.log(JSON.stringify({ ...ctx.__report, wallMs: Date.now() - t0 }, null, 1));
+const rep = { ...ctx.__report, wallMs: Date.now() - t0 };
+console.log(JSON.stringify(rep, null, 1));
+console.log(rep.pass ? `\nLULUS · ${rep.passed.length} pemeriksaan · seed ${SEED} · ${MIN} menit (${JAM})` : `\nGAGAL · ${rep.failed.length} pemeriksaan · seed ${SEED}`);
+process.exit(rep.pass ? 0 : 1);

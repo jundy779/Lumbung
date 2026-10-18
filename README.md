@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v29** · oleh PT Fusionify Digital Group
+**Lumbung v30** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -235,15 +235,19 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 
 ## Kualitas & Pengujian
 
-Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit.
+Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
+
+- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 16 pemeriksaan keselamatan.
+- **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
+- **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 
 | Pemeriksaan | Hasil |
 |---|---|
 | Tabrakan truk, mobil, forklift, sopir | **0** |
 | Kebuntuan / truk tertahan permanen | **0** |
-| Kendaraan berhenti di zebra cross | **0** |
+| Kendaraan berhenti di zebra cross | **0** (lihat catatan di CHANGELOG v30 untuk satu kasus sisa di mode siklus cepat malam) |
 | Pintu truk dibuka di jalan raya | **0** |
-| Cross-dock: truk di dock arah yang salah | **0** dari >1.000 pemeriksaan |
+| Cross-dock: truk di dock arah yang salah | **0** dari >8.000 pemeriksaan per 13 menit |
 | Gudang dingin: palet dipindah sebelum cek suhu | **0** |
 | Truk yang diarahkan tiba di tujuan yang salah | **0** |
 | Pergantian shift tuntas | 100% |
@@ -290,6 +294,6 @@ Terinspirasi oleh video konsep dashboard gudang **WareTrack**. Lumbung dibangun 
 
 <div align="center">
 
-**© 2026 PT Fusionify Digital Group** · Bogor, Indonesia
+**© 2026 PT Fusionify Digital** · Bogor, Indonesia
 
 </div>

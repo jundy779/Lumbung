@@ -123,7 +123,7 @@ function createStore(C,idx){
   const s={kind:'store',id:C.id,name:C.name,type:C.type,address:C.address,color:C.color,idx:-1-idx,gx:C.gx,gz:C.gz,W,D,H:C.H,ox,oz,fz,
     zE:fz+3.4,zDock:fz+6.6,Zr:fz+19.6,zc:fz+1.5,xL:(cx-PX/2)-ox,xR:(cx+PX/2)-ox,xs0:-W/2-12,xs1:W/2+0.6,
     bounds:{xi0:cx-PX/2+ROAD/2+SW-ox,xi1:cx+PX/2-ROAD/2-SW-ox,zi0:cz-PZ/2+ROAD/2+SW-oz,zi1:cz+PZ/2-ROAD/2-SW-oz},
-    receivedToday:4+Math.floor(Math.random()*6),returnsToday:Math.floor(Math.random()*4),stockDelta:0,putToday:0,outToday:0,arrivals:0,
+    receivedToday:4+Math.floor(RAND()*6),returnsToday:Math.floor(RAND()*4),stockDelta:0,putToday:0,outToday:0,arrivals:0,
     inv:[{name:'Barang retur',qty:0,col:'#E9EDF8'}]};
   for(const k of ['trucks','forks','people','bays','slots','holds','res','spans','rest']) hidden(s,k,[]);
   Store.add('stores',s);
@@ -134,10 +134,10 @@ function createStore(C,idx){
     relate(sl,'data','pallets','palletId'); Object.defineProperty(sl,'occupied',{enumerable:false,get(){return !!this.palletId;}});
     Store.add('slots',sl); s.slots.push(sl); }
   s.rest.push({x:-W/2-9.0,z:fz-0.4,face:Math.PI});
-  for(let i=0;i<2;i++){ const sl=s.slots[i*2]; const p=newPallet(s,Math.random,'white',1,{type:'slot',id:sl.id},{retur:true,item:'Retur kardus & palet kosong'}); sl.palletId=p.id; }
+  for(let i=0;i<2;i++){ const sl=s.slots[i*2]; const p=newPallet(s,RAND,'white',1,{type:'slot',id:sl.id},{retur:true,item:'Retur kardus & palet kosong'}); sl.palletId=p.id; }
   const sp=s.rest[0];
   const f={kind:'forklift',id:s.id+'-FL1',siteId:s.id,short:'FL-T',task:'Siaga di stasiun',charging:false,battery:80,carryingPalletId:null,
-    lift:0.03,pos:P2(sp.x,sp.z),heading:sp.face,v:0,moves:Math.floor(Math.random()*8),restIdx:0,
+    lift:0.03,pos:P2(sp.x,sp.z),heading:sp.face,v:0,moves:Math.floor(RAND()*8),restIdx:0,
     acc:1.6,dec:2.6,vmax:2.2,path:null,s:0,circ:FORK_CIRC,solid:true,q:[],liftGoal:0.03,span:null,idleT:0,curv:0};
   relate(f,'site','stores','siteId'); hidden(f,'spot',sp); s.forks.push(Store.add('forklifts',f));
   return s;

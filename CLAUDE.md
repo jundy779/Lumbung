@@ -1,10 +1,21 @@
-# CLAUDE.md · Peta Teknis Lumbung v29
+# CLAUDE.md · Peta Teknis Lumbung v30
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v30 (19 Okt 2026)**:
+- `a_core.js`: `QS` (parameter URL), `SEED`, `SEEDED`, `RAND = rng(SEED)`. **Aturan: semua keputusan acak di b_layout & c_sim wajib lewat `RAND()`**, bukan `Math.random()` (View/UI boleh `Math.random`). `pick()` memakai `RAND` sebagai default. Di Node, seed dari global `__LUMBUNG_SEED`.
+- Jam mode tetap maju dengan akumulasi `dt` (`Store.clock.el`), bukan `performance.now()`.
+- Akhir `c_sim.js`: `SAFETY_LABELS`, `makeSafetyChecker()` (15 pemeriksaan, hanya membaca Store), `selftestInit({jam,cuaca})`, `selftestStep(dt,C)`, `simFingerprint()`.
+- `e_ui.js`: `SIM_PAUSED` (frame loop tidak menjalankan simulasi saat uji), `runSelftest()` untuk `?selftest&menit=&jam=&seed=`, hasil di `window.__selftest`, helper `esc()`, baris "Seed simulasi" + salin tautan di menu Waktu & Cuaca.
+- `tests/headless-sim.mjs [menit] [seed] [jam]`: pemanasan identik dengan startup aplikasi, lalu pemeriksa yang sama; exit code 1 bila gagal. Sidik jari Node = browser untuk seed/menit/jam yang sama (terbukti: `d15e868a` untuk 2 menit, seed 7, siang).
+- Lalu lintas (`stepTraffic`): kunci persimpangan dilepas hanya bila lampu **persimpangan itu sendiri** merah (`redSigs`), sebelumnya lampu merah di persimpangan berikutnya dalam 45 m ikut melepas kunci; keputusan kuning (6 m/s²) / merah (8 m/s²) + `c.commit`; `exitRoom()` = aturan jangan menutup persimpangan (memprediksi lampu saat tiba dan antrean di seberang; saat kuning berkedip, persimpangan berikutnya yang terpakai dianggap titik berhenti); mobil yang badannya masih di persimpangan boleh merapat 4,4 m; `clearOfJunctions()` saat spawn; hijau masuk Jalan Lingkar 7 dtk.
+- `crewDetour`: sampel jalur tiap 0,5 m sampai 8 m (sebelumnya 6 sampel di seluruh ruas, sehingga truk di depan sopir lolos).
+- `PLANS.picker` dan `personStep`: tidak pernah meninggalkan antrean aksi kosong (sebelumnya crash di mode Siklus cepat).
+- Temuan #5 (simulasi tanpa seed) dan #16 (nama perusahaan, kini "PT Fusionify Digital") selesai. Backlog B selesai.
 
 **Perubahan v29 (18 Okt 2026)** yang memengaruhi isi dokumen ini:
 - Data demo diganti angka Lumbung sendiri (sebelumnya identik dengan video konsep WareTrack). ID truk `TRK-{3104+i*59+idx*97}` (parkir `TRK-{4705+i*11+idx*23}`), ID kiriman `KRM-{24181..}` berurutan lewat `SHIP_SEQ` (b_layout.js).
@@ -32,7 +43,7 @@ Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Ka
 
 ## 1. Ringkasan satu paragraf
 
-Lumbung adalah dashboard operasional gudang 3D isometrik milik FUSIONIFY (PT Fusionify Digital Group menurut README). Lima gudang dan dua toko tujuan hidup di satu peta kota fiktif area Bogor/Depok/Cikarang. Truk datang lewat Tol Jagorawi, mundur ke dock, dibongkar atau dimuat forklift, lalu mengantar ke toko atau keluar kota. Semua data masih **simulasi di browser**; tidak ada backend, tidak ada API, tidak ada database. Hasil build berupa satu file `index.html` yang memuat Three.js r128 dan font Plus Jakarta Sans dari CDN. Target deploy: `lumbung.fusionify.id`.
+Lumbung adalah dashboard operasional gudang 3D isometrik milik FUSIONIFY (PT Fusionify Digital). Lima gudang dan dua toko tujuan hidup di satu peta kota fiktif area Bogor/Depok/Cikarang. Truk datang lewat Tol Jagorawi, mundur ke dock, dibongkar atau dimuat forklift, lalu mengantar ke toko atau keluar kota. Semua data masih **simulasi di browser**; tidak ada backend, tidak ada API, tidak ada database. Hasil build berupa satu file `index.html` yang memuat Three.js r128 dan font Plus Jakarta Sans dari CDN. Target deploy: `lumbung.fusionify.id`.
 
 ---
 
@@ -328,11 +339,14 @@ Di `alertsTick`: hitung kondisi, panggil `upAlert(id,{sev:'crit'|'warn'|'info', 
 ### Menambah kolom tabel / field publik
 Ubah `SCHEMA` (kontrak data) dan `TABLES` (e_ui:299) bersamaan.
 
-### Uji cepat simulator
+### Uji simulator (wajib sebelum push perubahan perilaku)
 ```bash
-node tests/headless-sim.mjs 30    # 30 menit simulasi ≈ 30 detik di laptop
+node tests/headless-sim.mjs 13 7 siang    # menit, seed, jam (siang|pagi|sore|malam|cycle)
+node tests/headless-sim.mjs 13 7 malam
+node tests/headless-sim.mjs 13 7 cycle
+node tests/headless-sim.mjs 30 11 siang   # ketahanan
 ```
-Laporan: tabrakan ID shipment, status shipment, truk paling lama macet, peringatan terbuka, keluar/put-away per site, isi slot.
+Atau di browser: `index.html?selftest&menit=13&jam=malam&seed=7`. Untuk menyelidiki kegagalan, ulangi seed yang sama: hasilnya identik. Menambah invariant baru: tambahkan label di `SAFETY_LABELS` dan pemeriksaannya di `check()` dalam `makeSafetyChecker`.
 
 ---
 
@@ -344,7 +358,7 @@ Laporan: tabrakan ID shipment, status shipment, truk paling lama macet, peringat
 | 2 | Tinggi (saat data nyata masuk) | Hampir semua render memakai `innerHTML` dengan string data tanpa escape (nama, ID, item, alamat, teks kejadian). Aman selama data dari config sendiri, berbahaya begitu data datang dari WMS/API | e_ui.js (15 titik `innerHTML`), hanya `dataBlock` yang escape `<` | Buat helper `esc()` dan pakai di semua template sebelum integrasi |
 | 3 | ✅ Selesai v29 | ID shipment acak 9.000 kemungkinan. Saat bentrok, `Store.add` **menimpa** shipment lama dan dua truk berbagi satu record. Terbukti: 1 tabrakan dalam simulasi 150 menit | b_layout.js:17 | Pakai `Store.nextId('SHP')` atau counter khusus |
 | 4 | Sedang | Tiga konsep "stok" yang tidak saling terhubung: `site.stock+stockDelta` (angka KPI, kapasitas ribuan), `inv[].qty` (unit per barang, **tidak pernah berkurang**, hanya bertambah saat restock), dan 10 slot staging fisik yang menggerakkan simulasi | a_core:100, b_layout:43, c_sim:181 | Satukan model sebelum integrasi WMS. Akibat sekarang: 6 peringatan "stok menipis" selalu ada sejak awal |
-| 5 | Sedang | Simulasi memakai `Math.random` di banyak tempat (dispatch, planMode, shipment, sopir), jadi kasus langka tidak bisa diulang | c_sim (banyak), b_layout | Suntik RNG ber-seed lewat satu `RAND` global; sudah ada `rng(seed)` |
+| 5 | ✅ Selesai v30 | Simulasi memakai `Math.random` di banyak tempat (dispatch, planMode, shipment, sopir), jadi kasus langka tidak bisa diulang | c_sim (banyak), b_layout | Suntik RNG ber-seed lewat satu `RAND` global; sudah ada `rng(seed)` |
 | 6 | Sedang | Panel notifikasi dirender ulang tiap 0,5 detik saat terbuka; klik bisa hilang kalau DOM diganti di antara pointerdown dan click | e_ui.js:247 → `renderNotif` | Render ulang hanya bila daftar peringatan berubah (bandingkan hash) |
 | 7 | Rendah | Pemanasan 1.500 langkah memblok main thread sebelum render pertama | e_ui.js:542 | Pecah per chunk dengan `await` atau jalankan di Web Worker |
 | 8 | Rendah | Default `lumbung.clean='1'` memaksa mode Siang + Cerah, jadi fitur Real-time WIB dan lalu lintas kota tidak terlihat di kunjungan pertama | e_ui.js:548 | Keputusan produk: pertimbangkan default live |
@@ -355,9 +369,9 @@ Laporan: tabrakan ID shipment, status shipment, truk paling lama macet, peringat
 | 13 | Rendah | Pencarian di ponsel hampir tak terpakai (placeholder terpotong jadi 1 huruf di 390 px) | shell.html @820 | Ikon kaca pembesar yang membuka overlay pencarian |
 | 14 | Info | README menyebut "~310 KB", hasil build sekarang 321 KB; README menyebut tabel hasil uji otomatis, tetapi skrip ujinya tidak ada di repo (sekarang ada `tests/headless-sim.mjs` sebagai awal) | README | Perbarui |
 | 15 | Info | Teks di trailer truk mencetak `lumbung.id/lacak`, sedangkan domain resmi `lumbung.fusionify.id` | d_part1.js:166 | Samakan, atau pastikan domain itu memang dimiliki |
-| 16 | Info | README (baris 7 & 289), `package.json`, dan KONTEKS-PROYEK.md menulis "PT Fusionify Digital Group", sedangkan nama badan hukum FUSIONIFY yang dipakai di materi lain adalah "PT Fusionify Digital Store" | README, package.json | Pastikan mana yang benar lalu samakan |
+| 16 | ✅ Selesai v30 (PT Fusionify Digital) | README (baris 7 & 289), `package.json`, dan KONTEKS-PROYEK.md menulis "PT Fusionify Digital Group", sedangkan nama badan hukum FUSIONIFY yang dipakai di materi lain adalah "PT Fusionify Digital Store" | README, package.json | Pastikan mana yang benar lalu samakan |
 | 17 | Info | Salinan kerja di zip punya `src/shell.html`, `CHANGELOG.md`, dan `index.html` ber-CRLF (Windows), sedangkan repo `jundy779/Lumbung` menyimpan LF. Isinya sama, tetapi `git status` menganggap 3 file berubah total dan `index.html` hasil build jadi campuran CRLF/LF | root | Tambah `.gitattributes` berisi `* text=auto eol=lf` |
-| 18 | Info | Tabel gudang di KONTEKS-PROYEK.md §7 mengosongkan kolom forklift untuk toko, padahal tiap toko punya 1 forklift `FL-T` (b_layout.js:135) yang membongkar dan memuat retur | KONTEKS-PROYEK.md | Koreksi tabelnya |
+| 18 | ✅ Selesai v30 | Tabel gudang di KONTEKS-PROYEK.md §7 mengosongkan kolom forklift untuk toko, padahal tiap toko punya 1 forklift `FL-T` (b_layout.js:135) yang membongkar dan memuat retur | KONTEKS-PROYEK.md | Koreksi tabelnya |
 | 19 | Info | Angka on-time, ETA, langkah pelacakan, dan riwayat sparkline adalah formula/kosmetik, bukan dihitung dari data | c_sim:749, e_ui:99, 204, 227 | Tandai jelas sebagai demo atau hitung dari histori shipment |
 
 Yang **sudah bagus** dan sebaiknya dipertahankan: pemisahan View yang hanya membaca Store, `SCHEMA` sebagai kontrak, `pallet.location` sebagai satu-satunya sumber posisi palet, instancing yang disiplin, histeresis di peringatan, dan aksesibilitas dasar (aria, `prefers-reduced-motion`, fokus keyboard, `/` untuk cari, Esc untuk tutup).
@@ -466,7 +480,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 - Hub Robotik: peta panas AGV = grid sel ±1 m yang mengakumulasi `f.pos` forklift, ditampilkan sebagai tekstur canvas di lantai atau mini-map di panel.
 - DC: paket/jam dari laju `outToday` sungguhan, bukan rumus.
 
-**B. Fondasi anti-bug: seed + `?selftest`**
+**B. Fondasi anti-bug: seed + `?selftest`** ✅ selesai di v30 (lihat catatan v30 di atas)
 - Ada 28 pemanggilan `Math.random` di b_layout.js + c_sim.js. Ganti dengan satu RNG global `RAND = rng(seed)` dari `?seed=`. RNG lama tetap dipakai untuk hal kosmetik di View/UI (6 pemanggilan) supaya tidak mengganggu urutan angka simulasi.
 - Mode uji harus memakai jam tetap (bukan `live`), karena `nowWIB()` ikut memengaruhi shift dan kepadatan lalu lintas.
 - `?selftest`: jalankan simulasi dipercepat di browser dengan pemeriksa invarian yang ada di tabel README (tabrakan, zebra cross, pintu dibuka di jalan, arah cross-dock, cek suhu sebelum bongkar, tujuan pengarahan), lalu tampilkan hasil sebagai overlay. Logika pemeriksanya bisa dibagi dengan `tests/headless-sim.mjs`.
