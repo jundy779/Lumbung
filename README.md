@@ -4,14 +4,14 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v28** · oleh PT Fusionify Digital Group
+**Lumbung v29** · oleh PT Fusionify Digital Group
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
 Pantau dock, truk, forklift, stok, pekerja, dan pengiriman di lima gudang — dalam satu peta 3D isometrik yang hidup.
 
 [![Three.js](https://img.shields.io/badge/THREE.JS-r128-2E5BFF?style=flat-square)](#teknologi)
-[![Single File](https://img.shields.io/badge/SATU_FILE-~310_KB-0EA5E9?style=flat-square)](#struktur-proyek)
+[![Single File](https://img.shields.io/badge/SATU_FILE-~330_KB-0EA5E9?style=flat-square)](#struktur-proyek)
 [![Gudang](https://img.shields.io/badge/GUDANG-5_KARAKTER-7C3AED?style=flat-square)](#lima-gudang-lima-karakter)
 [![Tabrakan](https://img.shields.io/badge/TABRAKAN-0-22C55E?style=flat-square)](#kualitas--pengujian)
 [![Mobile](https://img.shields.io/badge/PONSEL-%E2%89%A4150_DRAW_CALL-38BDF8?style=flat-square)](#performa)
@@ -48,7 +48,7 @@ Truk datang lewat tol, masuk halaman gudang, sopir membuka pintu belakang, lalu 
 Forklift memindahkan palet antara slot dan truk dengan antrean tugas, anti-kebuntuan, dan stasiun pengisian. Di Hub Robotik, **AGV otonom** memproyeksikan jalurnya di lantai.
 
 ### 👷 Pekerja & Shift
-Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir.
+Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir; operator gudang berkeliling memeriksa rak, palet masuk, dan tumpukan krat.
 
 ### 🌦️ Waktu & Cuaca
 Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, berawan, hujan, badai petir, kabut, dan badai pasir. Cuaca memengaruhi kecepatan truk, forklift, dan jarak pandang.
@@ -57,7 +57,7 @@ Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, ber
 Grid jalan kota dengan lampu lalu lintas, zebra cross, dan garis stop di lajur kiri; Jalan Lingkar; serta **Tol Jagorawi** 4 lajur dengan median beton, guardrail, dan gantry hijau.
 
 ### 🎬 Sinematik & Tampilan Bersih
-Mode sinematik memilih shot terbaik secara otomatis. Tampilan Bersih menyembunyikan rambu dan lalu lintas kota agar fokus ke operasional gudang.
+Mode sinematik **bercerita**: kamera mengikuti satu truk tanpa potong, dari Gerbang Tol Jagorawi, masuk halaman, sopir membuka pintu, mundur ke dock, sampai forklift mulai bongkar-muat, lalu terbang mulus ke cerita berikutnya. Tampilan Bersih menyembunyikan rambu dan lalu lintas kota agar fokus ke operasional gudang.
 
 ### 🚨 Peringatan yang Bisa Ditindaklanjuti
 Pusat peringatan memantau operasi terus-menerus dan setiap peringatan punya **tombol aksi yang langsung mengubah jalannya operasi**:
@@ -170,6 +170,8 @@ Lumbung/
 │   ├── d_part1.js     # model 3D, pool instancing, kota & jalan
 │   ├── d_part2.js     # bangunan gudang, sinkronisasi tampilan per frame
 │   └── e_ui.js        # antarmuka, panel, KPI, interaksi
+├── tests/
+│   └── headless-sim.mjs  # uji simulator tanpa browser: node tests/headless-sim.mjs 30
 ├── index.html         # hasil rakitan — file yang di-deploy
 ├── build.mjs          # merakit src/ → index.html
 ├── package.json
@@ -177,6 +179,7 @@ Lumbung/
 ├── _headers           # konfigurasi Cloudflare Pages / Netlify
 ├── CARA-DEPLOY.md     # panduan deploy ke lumbung.fusionify.id
 ├── KONTEKS-PROYEK.md  # rujukan lengkap untuk pengembangan (arsitektur, aturan, backlog)
+├── CLAUDE.md          # peta kode rinci (nomor baris, temuan audit, resep pengembangan)
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -244,7 +247,7 @@ Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepa
 | Gudang dingin: palet dipindah sebelum cek suhu | **0** |
 | Truk yang diarahkan tiba di tujuan yang salah | **0** |
 | Pergantian shift tuntas | 100% |
-| Orang dengan bagian tubuh hilang | **0** dari 89 |
+| Orang dengan bagian tubuh hilang | **0** dari 99 |
 | Tata letak di 6 ukuran layar (390 px – 1600 px) | Tidak ada yang meluap atau tertutup |
 
 ---

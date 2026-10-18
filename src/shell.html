@@ -329,8 +329,8 @@ body.cine #labels{opacity:0}
 .ship .tkimg{width:84px;height:54px;flex:none;object-fit:contain;margin:-4px 2px -4px -6px}
 /* blur tepi ala miniatur (tilt-shift) */
 .tilt{position:fixed;left:0;right:0;pointer-events:none;z-index:1}
-.tilt.t{top:0;height:30vh;-webkit-backdrop-filter:blur(2.6px);backdrop-filter:blur(2.6px);-webkit-mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%);mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%)}
-.tilt.b{bottom:0;height:16vh;-webkit-backdrop-filter:blur(1.6px);backdrop-filter:blur(1.6px);-webkit-mask-image:linear-gradient(to top,#000 0%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,transparent 100%)}
+.tilt.t{top:0;height:30vh;-webkit-backdrop-filter:blur(calc(2.6px * var(--tilt,1)));backdrop-filter:blur(calc(2.6px * var(--tilt,1)));-webkit-mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%);mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%)}
+.tilt.b{bottom:0;height:16vh;-webkit-backdrop-filter:blur(calc(1.6px * var(--tilt,1)));backdrop-filter:blur(calc(1.6px * var(--tilt,1)));-webkit-mask-image:linear-gradient(to top,#000 0%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,transparent 100%)}
 body.lowp .tilt,body.cine .tilt.b{display:none}
 @media (prefers-reduced-transparency:reduce){ .tilt{display:none} }
 /* skala UI di layar lebar */

@@ -296,6 +296,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v29):** mode sinematik bercerita (ikuti satu truk tanpa potong), kamera awal lebih dekat, tilt-shift ikut zoom, operator gudang & properti halaman, data demo milik sendiri, ID kiriman berurutan, `tests/headless-sim.mjs`.
+
 **Selesai (v28.3):** lima gudang berkarakter, jalan tol vs jalan raya, alur halaman gudang, shift, sopir & pintu kabin, arahkan pengiriman, pusat peringatan, jarak antre, UI responsif & ringkas, deploy Vercel + domain.
 
 **Belum dikerjakan (urutan disarankan):**

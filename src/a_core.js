@@ -1,4 +1,3 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (async function(){
 'use strict';
@@ -33,16 +32,16 @@ const P2 = (x,z) => ({x,z,set(a,b,c){this.x=a;this.z=c;return this;}});
 /* ---------- konfigurasi dunia & master data ---------- */
 const PX=100, PZ=76, ROAD=9, SW=3, PH=1.01, RT=7, GY=0.06;
 const SITE_CONFIG = [
-  {id:'BGR-01', name:'Hub Cibinong', type:'Hub', address:'Jl. Mayor Oking No. 12, Cibinong, Bogor', gx:0, gz:0, W:16, D:9, H:4.6, bays:3, forks:2, roof:'gable', annex:true, capacity:1800, stock:1412, ontimePct:96.6, ontimeDelta:0.4,
-   inventory:[['Kardus Lipat (M)',1906,'#D9A66B'],['Kontainer Plastik',297,'#2F5BEA'],['Helm Proyek',212,'#F2B53A'],['Lakban Cokelat',4448,'#9C6B3E']]},
-  {id:'BGR-02', name:'Cross-Dock Sentul', type:'Cross-dock', address:'Jl. MH Thamrin Kav. 8, Sentul City, Bogor', gx:1, gz:0, W:26, D:10, H:4.5, bays:5, forks:3, roof:'saw', capacity:1200, stock:610, ontimePct:96.2, ontimeDelta:-0.3,
-   inventory:[['Air Mineral 24-pak',820,'#5AB0E8'],['Kardus Lipat (L)',145,'#D9A66B'],['Palet Kayu',96,'#B9874F'],['Stretch Film',1210,'#B8C4E6']]},
-  {id:'BKS-01', name:'DC Cikarang', type:'Pusat distribusi', address:'Kawasan Jababeka II Blok C3, Cikarang', gx:-1, gz:0, W:24, D:12, H:5.4, bays:4, forks:3, roof:'gable', annex:true, capacity:4200, stock:3310, ontimePct:98.1, ontimeDelta:0.9,
-   inventory:[['Panel LED 60×60',1787,'#E8EDFB'],['Kursi Kantor',174,'#3B4A7A'],['Kardus Lipat (M)',882,'#D9A66B'],['Botol Air 600ml',5750,'#5AB0E8']]},
-  {id:'BGR-03', name:'Gudang Dingin Cileungsi', type:'Gudang dingin', address:'Jl. Raya Narogong Km 18, Cileungsi', gx:0, gz:1, W:20, D:12, H:5.0, bays:3, forks:2, roof:'flat', capacity:1400, stock:990, ontimePct:96.0, ontimeDelta:0.4,
-   inventory:[['Kacang Polong Beku 10 kg',334,'#A7D8B8'],['Air Mineral 24-pak',364,'#5AB0E8'],['Sarung Tangan Nitril',495,'#2F5BEA'],['Kontainer Plastik',208,'#2F5BEA']]},
-  {id:'DPK-01', name:'Hub Robotik Depok', type:'Hub robotik', address:'Jl. Margonda Raya No. 300, Depok', gx:1, gz:1, W:28, D:12, H:5.6, bays:5, forks:4, roof:'saw', capacity:2600, stock:1730, ontimePct:95.9, ontimeDelta:-0.2,
-   inventory:[['Panel LED 60×60',1767,'#E8EDFB'],['Kardus Lipat (M)',1017,'#D9A66B'],['Sarung Tangan Nitril',486,'#2F5BEA'],['Helm Proyek',306,'#F2B53A']]}
+  {id:'BGR-01', name:'Hub Cibinong', type:'Hub', address:'Jl. Mayor Oking No. 12, Cibinong, Bogor', gx:0, gz:0, W:16, D:9, H:4.6, bays:3, forks:2, roof:'gable', annex:true, capacity:2000, stock:1286, ontimePct:97.1, ontimeDelta:0.3,
+   inventory:[['Kardus Lipat (M)',2140,'#D9A66B'],['Kontainer Plastik',268,'#2F5BEA'],['Helm Proyek',455,'#F2B53A'],['Lakban Cokelat',3870,'#9C6B3E']]},
+  {id:'BGR-02', name:'Cross-Dock Sentul', type:'Cross-dock', address:'Jl. MH Thamrin Kav. 8, Sentul City, Bogor', gx:1, gz:0, W:26, D:10, H:4.5, bays:5, forks:3, roof:'saw', capacity:1350, stock:742, ontimePct:95.4, ontimeDelta:-0.5,
+   inventory:[['Air Mineral 24-pak',935,'#5AB0E8'],['Kardus Lipat (L)',182,'#D9A66B'],['Palet Kayu',410,'#B9874F'],['Stretch Film',1385,'#B8C4E6']]},
+  {id:'BKS-01', name:'DC Cikarang', type:'Pusat distribusi', address:'Kawasan Jababeka II Blok C3, Cikarang', gx:-1, gz:0, W:24, D:12, H:5.4, bays:4, forks:3, roof:'gable', annex:true, capacity:3800, stock:2955, ontimePct:97.8, ontimeDelta:0.6,
+   inventory:[['Panel LED 60×60',1520,'#E8EDFB'],['Kursi Kantor',236,'#3B4A7A'],['Kardus Lipat (M)',1045,'#D9A66B'],['Botol Air 600ml',6120,'#5AB0E8']]},
+  {id:'BGR-03', name:'Gudang Dingin Cileungsi', type:'Gudang dingin', address:'Jl. Raya Narogong Km 18, Cileungsi', gx:0, gz:1, W:20, D:12, H:5.0, bays:3, forks:2, roof:'flat', capacity:1500, stock:1118, ontimePct:98.4, ontimeDelta:0.2,
+   inventory:[['Kacang Polong Beku 10 kg',412,'#A7D8B8'],['Air Mineral 24-pak',520,'#5AB0E8'],['Sarung Tangan Nitril',640,'#2F5BEA'],['Kontainer Plastik',245,'#2F5BEA']]},
+  {id:'DPK-01', name:'Hub Robotik Depok', type:'Hub robotik', address:'Jl. Margonda Raya No. 300, Depok', gx:1, gz:1, W:28, D:12, H:5.6, bays:5, forks:4, roof:'saw', capacity:2400, stock:1604, ontimePct:96.5, ontimeDelta:0.7,
+   inventory:[['Panel LED 60×60',1365,'#E8EDFB'],['Kardus Lipat (M)',880,'#D9A66B'],['Sarung Tangan Nitril',530,'#2F5BEA'],['Helm Proyek',318,'#F2B53A']]}
 ];
 const SITE_PROFILE={'BGR-01':'general','BGR-02':'crossdock','BKS-01':'dc','BGR-03':'cold','DPK-01':'robotic'};
 SITE_CONFIG.forEach(c=>c.profile=SITE_PROFILE[c.id]||'general');

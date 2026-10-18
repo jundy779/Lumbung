@@ -597,6 +597,16 @@ const PLANS={
     if(Math.abs(angDiff(p.heading,h))>0.6) faceTo(p,h);
     walkTo(p,[tgt]); p.ri=nx; if(Math.random()<0.15) idle(p,2+Math.random()*2,'look','Jalan-jalan');
   },
+  /* operator gudang: berkeliling area timur (rak, deretan palet, tumpukan krat), jauh dari jalur forklift & truk */
+  picker(ctx,p){
+    const W=ctx.W, fz=ctx.fz, X=W/2;
+    const seq=[{x:X+10.4,z:fz-7.6,h:Math.PI,label:'Cek stok rak',d:3.2,pose:'clipboard'},{x:X+11.9,z:fz-7.6},{x:X+11.9,z:fz-6.25,h:-Math.PI/2,label:'Memeriksa palet masuk',d:2.6,pose:'look'},
+      {x:X+11.9,z:fz-7.6},{x:X+15.2,z:fz-7.6},{x:X+15.2,z:fz-4.2,h:-Math.PI/2,label:'Menghitung krat',d:3.4,pose:'clipboard'},{x:X+15.2,z:fz-7.6}];
+    const nx=(p.ri+1)%seq.length, o=seq[nx], h=Math.atan2(o.x-p.pos.x,o.z-p.pos.z);
+    if(Math.hypot(o.x-p.pos.x,o.z-p.pos.z)>0.05){ if(Math.abs(angDiff(p.heading,h))>0.6) faceTo(p,h); walkTo(p,[{x:o.x,z:o.z}]); }
+    p.ri=nx;
+    if(o.label){ faceTo(p,o.h); idle(p,o.d+Math.random()*1.5,o.pose,o.label); if(Math.random()<0.3) idle(p,1.2,'point',o.label); }
+  },
   qc(ctx,p){
     const W=ctx.W, fz=ctx.fz, opts=[...ctx.holds.map(h=>({x:h.holdPos.x,z:h.holdPos.z-1.35,h:0,label:`Inspeksi ${h.id}`})),
       {x:W/2+7.0,z:fz+2.4,h:Math.PI/2,label:'Cek truk parkir'},{x:W/2+7.0,z:fz+0.6,h:Math.PI/2,label:'Cek truk parkir'}];

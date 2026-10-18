@@ -1,5 +1,15 @@
 # Changelog
 
+## v29 · 18 Okt 2026
+- **Mode sinematik bercerita**: kamera mengikuti satu truk tanpa potong dari gerbang tol, masuk halaman, sopir membuka pintu, mundur ke dock, cek suhu (gudang dingin), sampai forklift bongkar-muat; juga perjalanan antar ke toko. Shot pindah otomatis bila truk lama tertahan antrean.
+- Perpindahan kamera jarak jauh kini terbang mulus dengan kecepatan dibatasi, tidak lagi melompat.
+- Tampilan awal lebih dekat: truk, forklift, dan pekerja tampil lebih besar.
+- Efek tilt-shift ikut tingkat zoom, bayangan desktop lebih tajam (shadow map 4096).
+- Halaman gudang lebih hidup: dua operator gudang per site, lampu halaman yang menyala di malam hari, kontainer bertumpuk, hand pallet di dekat rak.
+- Data demo diganti angka Lumbung sendiri (stok, kapasitas, inventaris, on-time) dan format ID baru: truk `TRK-31xx` dst., kiriman `KRM-24181` dst. berurutan sehingga tidak pernah bentrok.
+- Three.js tidak lagi dimuat dua kali.
+- Skrip uji `tests/headless-sim.mjs` ditambahkan ke repo.
+
 ## v28.3 — 17 Okt 2026
 - Kartu pelacakan tidak lagi menimpa panel gudang di jendela sempit/pendek (misalnya jendela artifact atau zoom browser besar).
 - Area sangat pendek (tinggi < 620 px) otomatis memakai UI sedikit lebih kecil.

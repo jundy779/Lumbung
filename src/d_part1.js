@@ -21,7 +21,7 @@ resize(); addEventListener('resize',resize);
 const C = h => new THREE.Color(h).convertSRGBToLinear();
 const hemi = new THREE.HemisphereLight(0xffffff,0xffffff,0.56); hemi.groundColor=C(0xBFC8EA); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff,0.86);
-sun.castShadow=true; sun.shadow.mapSize.set(LOWP?1024:2048,LOWP?1024:2048);
+sun.castShadow=true; sun.shadow.mapSize.set(LOWP?1024:4096,LOWP?1024:4096); /* desktop: bayangan lebih tajam saat kamera dekat */
 Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,near:1,far:200});
 sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.03; sun.shadow.radius=LOWP?2:3.5;
 scene.add(sun); scene.add(sun.target);
@@ -35,7 +35,7 @@ function applyCam(){
   camera.position.set(cam.target.x+Math.sin(cam.theta)*c*dist, Math.sin(cam.phi)*dist, cam.target.z+Math.cos(cam.theta)*c*dist);
   camera.lookAt(cam.target.x,0,cam.target.z);
   sun.position.set(cam.target.x+SUN_OFF[0],SUN_OFF[1],cam.target.z+SUN_OFF[2]); sun.target.position.set(cam.target.x,0,cam.target.z);
-  const want=clamp(dist*0.5,26,80);
+  const want=clamp(dist*0.5,18,80);
   if(Math.abs(want-shadowHalf)>3){ shadowHalf=want; Object.assign(sun.shadow.camera,{left:-want,right:want,top:want,bottom:-want}); sun.shadow.camera.updateProjectionMatrix(); }
 }
 

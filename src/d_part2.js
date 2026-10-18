@@ -190,6 +190,14 @@ function buildSiteView(s){
   for(let x=xi0+6;x<xi1-4;x+=3.3) bush(x+R(),zi0+1.6+(R()-.5),0.45+R()*0.2);
   const gz0=zi0+2.8, gz1=-fz-16.5; if(gz1>gz0) ST.box(W+10,0.05,gz1-gz0,1.2,0xE2E7F8,0,0.11,(gz0+gz1)/2);
   for(let i=0;i<6;i++) tree(-W/2-4+R()*(W+8),zi0+4+R()*Math.max(1,(-fz-17)-(zi0+4)),0.8+R()*0.4);
+  /* properti halaman (desain Lumbung): lampu halaman, kontainer bertumpuk, hand pallet di dekat rak */
+  { const pole=(x,z,ry)=>{ TP.add(gCyl(0.09,6.4,8),0x9AA3BA,x,3.2,z); TP.box(0.12,0.12,1.3,0.03,0x9AA3BA,x+Math.sin(ry)*0.6,6.35,z+Math.cos(ry)*0.6,ry);
+      TP.box(0.5,0.16,0.7,0.05,0xEEF1F8,x+Math.sin(ry)*1.2,6.25,z+Math.cos(ry)*1.2,ry); BB.add(0.7,0.7,x,z,0.1);
+      View.lampPts.push([x+Math.sin(ry)*1.2+s.ox,6.1,z+Math.cos(ry)*1.2+s.oz]); };
+    for(let x=xi0+9;x<xi1-6;x+=19) pole(x,zi0+0.9,0);
+    for(let z=zi0+14;z<-fz-2;z+=16) pole(xi1-0.9,z,-Math.PI/2);
+    wall(gR(2.5,2.6,6.2,0.08),0xE0702B,-W/2-24,1.36+2.62,fz-8,0,16);
+    if(prof!=='crossdock'){ const jx=W/2+7.3, jz=fz-8.4; TP.box(0.56,0.07,1.1,0.02,0xE5484D,jx,0.1,jz); TP.box(0.62,0.2,0.22,0.05,0xE5484D,jx,0.22,jz-0.6); TP.add(gCyl(0.03,1.1,6),0x23262F,jx,0.7,jz-0.77,0,1,1,1,0.35,0); TP.box(0.3,0.05,0.05,0.01,0x23262F,jx,1.22,jz-0.97); BB.add(0.9,1.5,jx,jz,0.08); } }
   { const im=INT.build(1,false); im.material=new THREE.MeshBasicMaterial({vertexColors:true}); im.receiveShadow=false; g.add(im); }
   { const pm=PK.build(.5); g.add(pm); View.clutter.push(pm); }
   if(GLS.l.length){ const gm2=GLS.build(.15,false); gm2.material=new THREE.MeshStandardMaterial({color:C(0x9DBBFF),roughness:.08,metalness:.25,transparent:true,opacity:.62,emissive:C(0xFFE3B0),emissiveIntensity:0}); g.add(gm2); View.nightMats.push({m:gm2.material,max:0.7}); }

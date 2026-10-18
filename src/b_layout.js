@@ -12,9 +12,10 @@ function newPallet(site,R,packing,layers,location,extra){
 }
 function setPalletLocation(pid,loc){ const p=Store.get('pallets',pid); if(p) p.location=loc; }
 function deletePallet(pid){ Store.remove('pallets',pid); }
+let SHIP_SEQ=24180; /* nomor kiriman berurutan: tidak pernah bentrok */
 function newShipment(site,truck,mode){
   const city=pick(CITIES);
-  const sh={kind:'shipment',id:'#SHP-'+(78000+Math.floor(Math.random()*9000)),siteId:site.id,truckId:truck.id,direction:mode==='load'?'outbound':'inbound',
+  const sh={kind:'shipment',id:'KRM-'+(++SHIP_SEQ),siteId:site.id,truckId:truck.id,direction:mode==='load'?'outbound':'inbound',
     customer:pick(CUSTOMERS),origin:mode==='load'?site.name:city,destination:mode==='load'?city:site.name,status:'scheduled',total:0,createdAt:hm(nowWIB())};
   if(Store.tables.shipments.size>160){ for(const [id,o] of Store.tables.shipments){ if(o.status==='delivered'||o.status==='completed'){ Store.remove('shipments',id); break; } } }
   return Store.add('shipments',sh);
@@ -72,8 +73,8 @@ function createSite(C,idx){
 }
 function populateSite(s){
   const R=s.R, W=s.W, fz=s.fz, cx=s.gx*PX, cz=s.gz*PZ;
-  for(let i=0;i<s.bayCount+4;i++){ const t=truckRecord(s,'TRK-'+(2051+i*77+s.idx*131),CARRIERS[(i+s.idx)%CARRIERS.length],R); t.wait=0.3+i*4; }
-  for(let i=0;i<2;i++){ const t=truckRecord(s,'TRK-'+(2290+i*7+s.idx*40),CARRIERS[(i+1+s.idx)%CARRIERS.length],R);
+  for(let i=0;i<s.bayCount+4;i++){ const t=truckRecord(s,'TRK-'+(3104+i*59+s.idx*97),CARRIERS[(i+s.idx)%CARRIERS.length],R); t.wait=0.3+i*4; }
+  for(let i=0;i<2;i++){ const t=truckRecord(s,'TRK-'+(4705+i*11+s.idx*23),CARRIERS[(i+1+s.idx)%CARRIERS.length],R);
     t.state='parked'; t.solid=true; t.pos.set(W/2+9+i*2.8,0,fz+2); t.heading=0; const sh=newShipment(s,t,'load'); t.shipmentId=sh.id; }
   for(let i=0;i<s.forkCount;i++){ const sp=s.rest[i];
     const f={kind:'forklift',id:s.id+'-FL'+(i+1),siteId:s.id,short:'FL-0'+(i+1),task:'Siaga di stasiun',charging:false,battery:45+Math.floor(R()*50),carryingPalletId:null,
@@ -86,6 +87,9 @@ function populateSite(s){
     personRecord(s,R,'Petugas keamanan',{plan:'patrol',route,ri:i+1,y:0.08,start:{x:a.x+dx*t+dz/l*0.45,z:a.z+dz*t-dx/l*0.45,h:Math.atan2(dx,dz)},look:{vest:0x2E5BFF,hat:0xFFFFFF}}); }
   personRecord(s,R,'Pengawas dock',{plan:'supervisor',y:PH,start:{x:s.bays[0].x,z:fz+0.34,h:0},look:{vest:0xF26B1D,hat:0xFFFFFF,clip:true}});
   personRecord(s,R,'Petugas QC',{plan:'qc',y:GY,start:{x:W/2+2.6,z:fz+2.3,h:0},look:{vest:0xF6C40A,hat:0xF6C40A,clip:true}});
+  /* dua operator gudang di area timur (lihat PLANS.picker) */
+  personRecord(s,R,'Operator gudang',{plan:'picker',ri:0,y:GY,start:{x:W/2+10.4,z:fz-7.6,h:Math.PI},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
+  personRecord(s,R,'Operator gudang',{plan:'picker',ri:5,y:GY,start:{x:W/2+15.2,z:fz-4.2,h:-Math.PI/2},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
 }
 const SHIFT_UNIFORM={
   'Petugas keamanan':{pagi:{vest:0x2E5BFF,hat:0xFFFFFF},malam:{vest:0x1E2A55,hat:0x2E5BFF}},

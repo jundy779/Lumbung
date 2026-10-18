@@ -1,10 +1,21 @@
-# CLAUDE.md · Peta Teknis Lumbung v28.3
+# CLAUDE.md · Peta Teknis Lumbung v29
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v29 (18 Okt 2026)** yang memengaruhi isi dokumen ini:
+- Data demo diganti angka Lumbung sendiri (sebelumnya identik dengan video konsep WareTrack). ID truk `TRK-{3104+i*59+idx*97}` (parkir `TRK-{4705+i*11+idx*23}`), ID kiriman `KRM-{24181..}` berurutan lewat `SHIP_SEQ` (b_layout.js).
+- Three.js hanya dimuat sekali (baris duplikat di a_core.js dihapus). Temuan #1 dan #3 di bagian 11 sudah selesai.
+- Tampilan awal lebih dekat: `HOME_ZOOM()` di e_ui.js (desktop 1,5, ponsel 0,82).
+- Mode sinematik punya **mode cerita** (`storyCandidates`, `storyFrame`, `glide` di e_ui.js): ikuti satu truk dari tol sampai dock lalu forklift; pindah cerita bila truk diam > 10 dtk; perpindahan jauh dibatasi kecepatannya.
+- Tilt-shift ikut zoom lewat variabel CSS `--tilt`; shadow map desktop 4096, frustum bayangan minimum 18.
+- Plan pekerja baru `PLANS.picker` (c_sim.js) + 2 "Operator gudang" per site di area timur (rak, palet, krat), jauh dari forklift (uji: jarak minimum ≥16 m) dan truk.
+- Properti halaman baru di `buildSiteView`: lampu halaman (ikut `View.lampPts`, menyala malam), kontainer kedua bertumpuk, hand pallet dekat rak.
+- Populasi: 35 staf gudang (7 per site) + 14 warga + 50 sopir = 99 figur.
+- Nomor baris di bawah mengacu ke v28.3. Di v29, e_ui.js bertambah ±45 baris mulai bagian sinematik, c_sim.js ±10 baris mulai `PLANS`.
 
 ## 0. Aturan kerja (wajib, dari KONTEKS-PROYEK.md §2)
 
@@ -329,9 +340,9 @@ Laporan: tabrakan ID shipment, status shipment, truk paling lama macet, peringat
 
 | # | Prioritas | Temuan | Lokasi | Saran |
 |---|---|---|---|---|
-| 1 | Tinggi | Three.js dimuat dan dieksekusi dua kali (unduhan kedua biasanya dari cache, tetapi parse + eksekusi ±600 KB terjadi dua kali; konsol: "Multiple instances") | shell.html:554 & a_core.js:1 | Hapus baris 1 di a_core.js |
+| 1 | ✅ Selesai v29 | Three.js dimuat dan dieksekusi dua kali (unduhan kedua biasanya dari cache, tetapi parse + eksekusi ±600 KB terjadi dua kali; konsol: "Multiple instances") | shell.html:554 & a_core.js:1 | Hapus baris 1 di a_core.js |
 | 2 | Tinggi (saat data nyata masuk) | Hampir semua render memakai `innerHTML` dengan string data tanpa escape (nama, ID, item, alamat, teks kejadian). Aman selama data dari config sendiri, berbahaya begitu data datang dari WMS/API | e_ui.js (15 titik `innerHTML`), hanya `dataBlock` yang escape `<` | Buat helper `esc()` dan pakai di semua template sebelum integrasi |
-| 3 | Sedang | ID shipment acak 9.000 kemungkinan. Saat bentrok, `Store.add` **menimpa** shipment lama dan dua truk berbagi satu record. Terbukti: 1 tabrakan dalam simulasi 150 menit | b_layout.js:17 | Pakai `Store.nextId('SHP')` atau counter khusus |
+| 3 | ✅ Selesai v29 | ID shipment acak 9.000 kemungkinan. Saat bentrok, `Store.add` **menimpa** shipment lama dan dua truk berbagi satu record. Terbukti: 1 tabrakan dalam simulasi 150 menit | b_layout.js:17 | Pakai `Store.nextId('SHP')` atau counter khusus |
 | 4 | Sedang | Tiga konsep "stok" yang tidak saling terhubung: `site.stock+stockDelta` (angka KPI, kapasitas ribuan), `inv[].qty` (unit per barang, **tidak pernah berkurang**, hanya bertambah saat restock), dan 10 slot staging fisik yang menggerakkan simulasi | a_core:100, b_layout:43, c_sim:181 | Satukan model sebelum integrasi WMS. Akibat sekarang: 6 peringatan "stok menipis" selalu ada sejak awal |
 | 5 | Sedang | Simulasi memakai `Math.random` di banyak tempat (dispatch, planMode, shipment, sopir), jadi kasus langka tidak bisa diulang | c_sim (banyak), b_layout | Suntik RNG ber-seed lewat satu `RAND` global; sudah ada `rng(seed)` |
 | 6 | Sedang | Panel notifikasi dirender ulang tiap 0,5 detik saat terbuka; klik bisa hilang kalau DOM diganti di antara pointerdown dan click | e_ui.js:247 → `renderNotif` | Render ulang hanya bila daftar peringatan berubah (bandingkan hash) |

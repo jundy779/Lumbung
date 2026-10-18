@@ -329,8 +329,8 @@ body.cine #labels{opacity:0}
 .ship .tkimg{width:84px;height:54px;flex:none;object-fit:contain;margin:-4px 2px -4px -6px}
 /* blur tepi ala miniatur (tilt-shift) */
 .tilt{position:fixed;left:0;right:0;pointer-events:none;z-index:1}
-.tilt.t{top:0;height:30vh;-webkit-backdrop-filter:blur(2.6px);backdrop-filter:blur(2.6px);-webkit-mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%);mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%)}
-.tilt.b{bottom:0;height:16vh;-webkit-backdrop-filter:blur(1.6px);backdrop-filter:blur(1.6px);-webkit-mask-image:linear-gradient(to top,#000 0%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,transparent 100%)}
+.tilt.t{top:0;height:30vh;-webkit-backdrop-filter:blur(calc(2.6px * var(--tilt,1)));backdrop-filter:blur(calc(2.6px * var(--tilt,1)));-webkit-mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%);mask-image:linear-gradient(#000 0%,rgba(0,0,0,.55) 45%,transparent 100%)}
+.tilt.b{bottom:0;height:16vh;-webkit-backdrop-filter:blur(calc(1.6px * var(--tilt,1)));backdrop-filter:blur(calc(1.6px * var(--tilt,1)));-webkit-mask-image:linear-gradient(to top,#000 0%,transparent 100%);mask-image:linear-gradient(to top,#000 0%,transparent 100%)}
 body.lowp .tilt,body.cine .tilt.b{display:none}
 @media (prefers-reduced-transparency:reduce){ .tilt{display:none} }
 /* skala UI di layar lebar */
@@ -552,7 +552,6 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (async function(){
 'use strict';
@@ -587,16 +586,16 @@ const P2 = (x,z) => ({x,z,set(a,b,c){this.x=a;this.z=c;return this;}});
 /* ---------- konfigurasi dunia & master data ---------- */
 const PX=100, PZ=76, ROAD=9, SW=3, PH=1.01, RT=7, GY=0.06;
 const SITE_CONFIG = [
-  {id:'BGR-01', name:'Hub Cibinong', type:'Hub', address:'Jl. Mayor Oking No. 12, Cibinong, Bogor', gx:0, gz:0, W:16, D:9, H:4.6, bays:3, forks:2, roof:'gable', annex:true, capacity:1800, stock:1412, ontimePct:96.6, ontimeDelta:0.4,
-   inventory:[['Kardus Lipat (M)',1906,'#D9A66B'],['Kontainer Plastik',297,'#2F5BEA'],['Helm Proyek',212,'#F2B53A'],['Lakban Cokelat',4448,'#9C6B3E']]},
-  {id:'BGR-02', name:'Cross-Dock Sentul', type:'Cross-dock', address:'Jl. MH Thamrin Kav. 8, Sentul City, Bogor', gx:1, gz:0, W:26, D:10, H:4.5, bays:5, forks:3, roof:'saw', capacity:1200, stock:610, ontimePct:96.2, ontimeDelta:-0.3,
-   inventory:[['Air Mineral 24-pak',820,'#5AB0E8'],['Kardus Lipat (L)',145,'#D9A66B'],['Palet Kayu',96,'#B9874F'],['Stretch Film',1210,'#B8C4E6']]},
-  {id:'BKS-01', name:'DC Cikarang', type:'Pusat distribusi', address:'Kawasan Jababeka II Blok C3, Cikarang', gx:-1, gz:0, W:24, D:12, H:5.4, bays:4, forks:3, roof:'gable', annex:true, capacity:4200, stock:3310, ontimePct:98.1, ontimeDelta:0.9,
-   inventory:[['Panel LED 60×60',1787,'#E8EDFB'],['Kursi Kantor',174,'#3B4A7A'],['Kardus Lipat (M)',882,'#D9A66B'],['Botol Air 600ml',5750,'#5AB0E8']]},
-  {id:'BGR-03', name:'Gudang Dingin Cileungsi', type:'Gudang dingin', address:'Jl. Raya Narogong Km 18, Cileungsi', gx:0, gz:1, W:20, D:12, H:5.0, bays:3, forks:2, roof:'flat', capacity:1400, stock:990, ontimePct:96.0, ontimeDelta:0.4,
-   inventory:[['Kacang Polong Beku 10 kg',334,'#A7D8B8'],['Air Mineral 24-pak',364,'#5AB0E8'],['Sarung Tangan Nitril',495,'#2F5BEA'],['Kontainer Plastik',208,'#2F5BEA']]},
-  {id:'DPK-01', name:'Hub Robotik Depok', type:'Hub robotik', address:'Jl. Margonda Raya No. 300, Depok', gx:1, gz:1, W:28, D:12, H:5.6, bays:5, forks:4, roof:'saw', capacity:2600, stock:1730, ontimePct:95.9, ontimeDelta:-0.2,
-   inventory:[['Panel LED 60×60',1767,'#E8EDFB'],['Kardus Lipat (M)',1017,'#D9A66B'],['Sarung Tangan Nitril',486,'#2F5BEA'],['Helm Proyek',306,'#F2B53A']]}
+  {id:'BGR-01', name:'Hub Cibinong', type:'Hub', address:'Jl. Mayor Oking No. 12, Cibinong, Bogor', gx:0, gz:0, W:16, D:9, H:4.6, bays:3, forks:2, roof:'gable', annex:true, capacity:2000, stock:1286, ontimePct:97.1, ontimeDelta:0.3,
+   inventory:[['Kardus Lipat (M)',2140,'#D9A66B'],['Kontainer Plastik',268,'#2F5BEA'],['Helm Proyek',455,'#F2B53A'],['Lakban Cokelat',3870,'#9C6B3E']]},
+  {id:'BGR-02', name:'Cross-Dock Sentul', type:'Cross-dock', address:'Jl. MH Thamrin Kav. 8, Sentul City, Bogor', gx:1, gz:0, W:26, D:10, H:4.5, bays:5, forks:3, roof:'saw', capacity:1350, stock:742, ontimePct:95.4, ontimeDelta:-0.5,
+   inventory:[['Air Mineral 24-pak',935,'#5AB0E8'],['Kardus Lipat (L)',182,'#D9A66B'],['Palet Kayu',410,'#B9874F'],['Stretch Film',1385,'#B8C4E6']]},
+  {id:'BKS-01', name:'DC Cikarang', type:'Pusat distribusi', address:'Kawasan Jababeka II Blok C3, Cikarang', gx:-1, gz:0, W:24, D:12, H:5.4, bays:4, forks:3, roof:'gable', annex:true, capacity:3800, stock:2955, ontimePct:97.8, ontimeDelta:0.6,
+   inventory:[['Panel LED 60×60',1520,'#E8EDFB'],['Kursi Kantor',236,'#3B4A7A'],['Kardus Lipat (M)',1045,'#D9A66B'],['Botol Air 600ml',6120,'#5AB0E8']]},
+  {id:'BGR-03', name:'Gudang Dingin Cileungsi', type:'Gudang dingin', address:'Jl. Raya Narogong Km 18, Cileungsi', gx:0, gz:1, W:20, D:12, H:5.0, bays:3, forks:2, roof:'flat', capacity:1500, stock:1118, ontimePct:98.4, ontimeDelta:0.2,
+   inventory:[['Kacang Polong Beku 10 kg',412,'#A7D8B8'],['Air Mineral 24-pak',520,'#5AB0E8'],['Sarung Tangan Nitril',640,'#2F5BEA'],['Kontainer Plastik',245,'#2F5BEA']]},
+  {id:'DPK-01', name:'Hub Robotik Depok', type:'Hub robotik', address:'Jl. Margonda Raya No. 300, Depok', gx:1, gz:1, W:28, D:12, H:5.6, bays:5, forks:4, roof:'saw', capacity:2400, stock:1604, ontimePct:96.5, ontimeDelta:0.7,
+   inventory:[['Panel LED 60×60',1365,'#E8EDFB'],['Kardus Lipat (M)',880,'#D9A66B'],['Sarung Tangan Nitril',530,'#2F5BEA'],['Helm Proyek',318,'#F2B53A']]}
 ];
 const SITE_PROFILE={'BGR-01':'general','BGR-02':'crossdock','BKS-01':'dc','BGR-03':'cold','DPK-01':'robotic'};
 SITE_CONFIG.forEach(c=>c.profile=SITE_PROFILE[c.id]||'general');
@@ -666,9 +665,10 @@ function newPallet(site,R,packing,layers,location,extra){
 }
 function setPalletLocation(pid,loc){ const p=Store.get('pallets',pid); if(p) p.location=loc; }
 function deletePallet(pid){ Store.remove('pallets',pid); }
+let SHIP_SEQ=24180; /* nomor kiriman berurutan: tidak pernah bentrok */
 function newShipment(site,truck,mode){
   const city=pick(CITIES);
-  const sh={kind:'shipment',id:'#SHP-'+(78000+Math.floor(Math.random()*9000)),siteId:site.id,truckId:truck.id,direction:mode==='load'?'outbound':'inbound',
+  const sh={kind:'shipment',id:'KRM-'+(++SHIP_SEQ),siteId:site.id,truckId:truck.id,direction:mode==='load'?'outbound':'inbound',
     customer:pick(CUSTOMERS),origin:mode==='load'?site.name:city,destination:mode==='load'?city:site.name,status:'scheduled',total:0,createdAt:hm(nowWIB())};
   if(Store.tables.shipments.size>160){ for(const [id,o] of Store.tables.shipments){ if(o.status==='delivered'||o.status==='completed'){ Store.remove('shipments',id); break; } } }
   return Store.add('shipments',sh);
@@ -726,8 +726,8 @@ function createSite(C,idx){
 }
 function populateSite(s){
   const R=s.R, W=s.W, fz=s.fz, cx=s.gx*PX, cz=s.gz*PZ;
-  for(let i=0;i<s.bayCount+4;i++){ const t=truckRecord(s,'TRK-'+(2051+i*77+s.idx*131),CARRIERS[(i+s.idx)%CARRIERS.length],R); t.wait=0.3+i*4; }
-  for(let i=0;i<2;i++){ const t=truckRecord(s,'TRK-'+(2290+i*7+s.idx*40),CARRIERS[(i+1+s.idx)%CARRIERS.length],R);
+  for(let i=0;i<s.bayCount+4;i++){ const t=truckRecord(s,'TRK-'+(3104+i*59+s.idx*97),CARRIERS[(i+s.idx)%CARRIERS.length],R); t.wait=0.3+i*4; }
+  for(let i=0;i<2;i++){ const t=truckRecord(s,'TRK-'+(4705+i*11+s.idx*23),CARRIERS[(i+1+s.idx)%CARRIERS.length],R);
     t.state='parked'; t.solid=true; t.pos.set(W/2+9+i*2.8,0,fz+2); t.heading=0; const sh=newShipment(s,t,'load'); t.shipmentId=sh.id; }
   for(let i=0;i<s.forkCount;i++){ const sp=s.rest[i];
     const f={kind:'forklift',id:s.id+'-FL'+(i+1),siteId:s.id,short:'FL-0'+(i+1),task:'Siaga di stasiun',charging:false,battery:45+Math.floor(R()*50),carryingPalletId:null,
@@ -740,6 +740,9 @@ function populateSite(s){
     personRecord(s,R,'Petugas keamanan',{plan:'patrol',route,ri:i+1,y:0.08,start:{x:a.x+dx*t+dz/l*0.45,z:a.z+dz*t-dx/l*0.45,h:Math.atan2(dx,dz)},look:{vest:0x2E5BFF,hat:0xFFFFFF}}); }
   personRecord(s,R,'Pengawas dock',{plan:'supervisor',y:PH,start:{x:s.bays[0].x,z:fz+0.34,h:0},look:{vest:0xF26B1D,hat:0xFFFFFF,clip:true}});
   personRecord(s,R,'Petugas QC',{plan:'qc',y:GY,start:{x:W/2+2.6,z:fz+2.3,h:0},look:{vest:0xF6C40A,hat:0xF6C40A,clip:true}});
+  /* dua operator gudang di area timur (lihat PLANS.picker) */
+  personRecord(s,R,'Operator gudang',{plan:'picker',ri:0,y:GY,start:{x:W/2+10.4,z:fz-7.6,h:Math.PI},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
+  personRecord(s,R,'Operator gudang',{plan:'picker',ri:5,y:GY,start:{x:W/2+15.2,z:fz-4.2,h:-Math.PI/2},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
 }
 const SHIFT_UNIFORM={
   'Petugas keamanan':{pagi:{vest:0x2E5BFF,hat:0xFFFFFF},malam:{vest:0x1E2A55,hat:0x2E5BFF}},
@@ -1391,6 +1394,16 @@ const PLANS={
     if(Math.abs(angDiff(p.heading,h))>0.6) faceTo(p,h);
     walkTo(p,[tgt]); p.ri=nx; if(Math.random()<0.15) idle(p,2+Math.random()*2,'look','Jalan-jalan');
   },
+  /* operator gudang: berkeliling area timur (rak, deretan palet, tumpukan krat), jauh dari jalur forklift & truk */
+  picker(ctx,p){
+    const W=ctx.W, fz=ctx.fz, X=W/2;
+    const seq=[{x:X+10.4,z:fz-7.6,h:Math.PI,label:'Cek stok rak',d:3.2,pose:'clipboard'},{x:X+11.9,z:fz-7.6},{x:X+11.9,z:fz-6.25,h:-Math.PI/2,label:'Memeriksa palet masuk',d:2.6,pose:'look'},
+      {x:X+11.9,z:fz-7.6},{x:X+15.2,z:fz-7.6},{x:X+15.2,z:fz-4.2,h:-Math.PI/2,label:'Menghitung krat',d:3.4,pose:'clipboard'},{x:X+15.2,z:fz-7.6}];
+    const nx=(p.ri+1)%seq.length, o=seq[nx], h=Math.atan2(o.x-p.pos.x,o.z-p.pos.z);
+    if(Math.hypot(o.x-p.pos.x,o.z-p.pos.z)>0.05){ if(Math.abs(angDiff(p.heading,h))>0.6) faceTo(p,h); walkTo(p,[{x:o.x,z:o.z}]); }
+    p.ri=nx;
+    if(o.label){ faceTo(p,o.h); idle(p,o.d+Math.random()*1.5,o.pose,o.label); if(Math.random()<0.3) idle(p,1.2,'point',o.label); }
+  },
   qc(ctx,p){
     const W=ctx.W, fz=ctx.fz, opts=[...ctx.holds.map(h=>({x:h.holdPos.x,z:h.holdPos.z-1.35,h:0,label:`Inspeksi ${h.id}`})),
       {x:W/2+7.0,z:fz+2.4,h:Math.PI/2,label:'Cek truk parkir'},{x:W/2+7.0,z:fz+0.6,h:Math.PI/2,label:'Cek truk parkir'}];
@@ -1709,7 +1722,7 @@ resize(); addEventListener('resize',resize);
 const C = h => new THREE.Color(h).convertSRGBToLinear();
 const hemi = new THREE.HemisphereLight(0xffffff,0xffffff,0.56); hemi.groundColor=C(0xBFC8EA); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff,0.86);
-sun.castShadow=true; sun.shadow.mapSize.set(LOWP?1024:2048,LOWP?1024:2048);
+sun.castShadow=true; sun.shadow.mapSize.set(LOWP?1024:4096,LOWP?1024:4096); /* desktop: bayangan lebih tajam saat kamera dekat */
 Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,near:1,far:200});
 sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.03; sun.shadow.radius=LOWP?2:3.5;
 scene.add(sun); scene.add(sun.target);
@@ -1723,7 +1736,7 @@ function applyCam(){
   camera.position.set(cam.target.x+Math.sin(cam.theta)*c*dist, Math.sin(cam.phi)*dist, cam.target.z+Math.cos(cam.theta)*c*dist);
   camera.lookAt(cam.target.x,0,cam.target.z);
   sun.position.set(cam.target.x+SUN_OFF[0],SUN_OFF[1],cam.target.z+SUN_OFF[2]); sun.target.position.set(cam.target.x,0,cam.target.z);
-  const want=clamp(dist*0.5,26,80);
+  const want=clamp(dist*0.5,18,80);
   if(Math.abs(want-shadowHalf)>3){ shadowHalf=want; Object.assign(sun.shadow.camera,{left:-want,right:want,top:want,bottom:-want}); sun.shadow.camera.updateProjectionMatrix(); }
 }
 
@@ -2496,6 +2509,14 @@ function buildSiteView(s){
   for(let x=xi0+6;x<xi1-4;x+=3.3) bush(x+R(),zi0+1.6+(R()-.5),0.45+R()*0.2);
   const gz0=zi0+2.8, gz1=-fz-16.5; if(gz1>gz0) ST.box(W+10,0.05,gz1-gz0,1.2,0xE2E7F8,0,0.11,(gz0+gz1)/2);
   for(let i=0;i<6;i++) tree(-W/2-4+R()*(W+8),zi0+4+R()*Math.max(1,(-fz-17)-(zi0+4)),0.8+R()*0.4);
+  /* properti halaman (desain Lumbung): lampu halaman, kontainer bertumpuk, hand pallet di dekat rak */
+  { const pole=(x,z,ry)=>{ TP.add(gCyl(0.09,6.4,8),0x9AA3BA,x,3.2,z); TP.box(0.12,0.12,1.3,0.03,0x9AA3BA,x+Math.sin(ry)*0.6,6.35,z+Math.cos(ry)*0.6,ry);
+      TP.box(0.5,0.16,0.7,0.05,0xEEF1F8,x+Math.sin(ry)*1.2,6.25,z+Math.cos(ry)*1.2,ry); BB.add(0.7,0.7,x,z,0.1);
+      View.lampPts.push([x+Math.sin(ry)*1.2+s.ox,6.1,z+Math.cos(ry)*1.2+s.oz]); };
+    for(let x=xi0+9;x<xi1-6;x+=19) pole(x,zi0+0.9,0);
+    for(let z=zi0+14;z<-fz-2;z+=16) pole(xi1-0.9,z,-Math.PI/2);
+    wall(gR(2.5,2.6,6.2,0.08),0xE0702B,-W/2-24,1.36+2.62,fz-8,0,16);
+    if(prof!=='crossdock'){ const jx=W/2+7.3, jz=fz-8.4; TP.box(0.56,0.07,1.1,0.02,0xE5484D,jx,0.1,jz); TP.box(0.62,0.2,0.22,0.05,0xE5484D,jx,0.22,jz-0.6); TP.add(gCyl(0.03,1.1,6),0x23262F,jx,0.7,jz-0.77,0,1,1,1,0.35,0); TP.box(0.3,0.05,0.05,0.01,0x23262F,jx,1.22,jz-0.97); BB.add(0.9,1.5,jx,jz,0.08); } }
   { const im=INT.build(1,false); im.material=new THREE.MeshBasicMaterial({vertexColors:true}); im.receiveShadow=false; g.add(im); }
   { const pm=PK.build(.5); g.add(pm); View.clutter.push(pm); }
   if(GLS.l.length){ const gm2=GLS.build(.15,false); gm2.material=new THREE.MeshStandardMaterial({color:C(0x9DBBFF),roughness:.08,metalness:.25,transparent:true,opacity:.62,emissive:C(0xFFE3B0),emissiveIntensity:0}); g.add(gm2); View.nightMats.push({m:gm2.material,max:0.7}); }
@@ -3168,6 +3189,7 @@ $('#tvq').addEventListener('input',renderTable);
 $('#tvBody').addEventListener('click',e=>{const r=e.target.closest('[data-id]'); if(!r) return; const rec=Store.find(r.dataset.id); if(!rec) return; tableOpen=false; document.body.classList.remove('table-open'); $('#viewToggle span').textContent='Tabel'; select(rec,true);});
 
 /* ---------- seleksi, kamera, menu ---------- */
+const HOME_ZOOM=()=>isMobile()?0.82:1.5; /* tampilan awal lebih dekat: truk & forklift tampil besar */
 function flyTo(p,zoom,dur=0.9){ cam.flight={from:cam.target.clone(),to:p.clone(),z0:cam.zoom,z1:zoom??cam.zoomGoal,t:0,dur:reduceMotion?0.001:dur,dip:p.distanceTo(cam.target)>40}; follow=false; }
 function select(e,fly){
   if(e&&e.kind==='slot') e=e.palletId?Store.get('pallets',e.palletId):null;
@@ -3180,8 +3202,8 @@ function select(e,fly){
   if(fly&&e&&e.kind!=='shipment'&&!(e.kind==='truck'&&e.state==='away')) flyTo(e.kind==='site'?siteHome(e.idx):worldPos(e),Math.max(cam.zoomGoal,e.kind==='site'?1.12:e.kind==='store'?1.25:1.45));
   refreshUI(true);
 }
-function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),isMobile()?0.62:1.12,1.7); refreshUI(true); }
-function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),isMobile()?0.62:1.12); }
+function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
+function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),HOME_ZOOM()); }
 const ptrs=new Map(); let drag=null, pinch=null;
 canvas.addEventListener('pointerdown',e=>{ canvas.classList.add('grabbing'); canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); closeMenus();
   if(ptrs.size===1) drag={sx:e.clientX,sy:e.clientY,moved:0,start:groundAt(e.clientX,e.clientY)};
@@ -3245,7 +3267,7 @@ function searchIndex(){
 }
 function renderResults(){ const v=q.value.trim().toLowerCase(); if(!v){res.hidden=true;return;}
   hits=searchIndex().filter(it=>(it.label+' '+it.sub).toLowerCase().includes(v)).slice(0,8); hi=0;
-  res.innerHTML=hits.length?hits.map((h,i)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span><b>${h.label}</b><small>${h.sub}</small></span></button>`).join(''):`<div class="empty">Tidak ada yang cocok dengan “${q.value.replace(/</g,'&lt;')}”. Coba ID truk (mis. TRK-2051), forklift, bay, palet, atau nomor pengiriman.</div>`;
+  res.innerHTML=hits.length?hits.map((h,i)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span><b>${h.label}</b><small>${h.sub}</small></span></button>`).join(''):`<div class="empty">Tidak ada yang cocok dengan “${q.value.replace(/</g,'&lt;')}”. Coba ID truk (mis. TRK-3104), forklift, bay, palet, atau nomor pengiriman.</div>`;
   res.hidden=false; }
 q.addEventListener('input',renderResults); q.addEventListener('focus',renderResults);
 q.addEventListener('keydown',e=>{
@@ -3282,22 +3304,68 @@ function cineCandidates(){
   c.push({key:'wide',score:1.3,pos:new THREE.Vector3(40,0,60),zoom:0.42,phi:0.88,title:'Kawasan Gudang Lumbung',sub:`5 site · ${[...Store.tables.trucks.values()].filter(t=>t.state!=='away').length} truk aktif`});
   return c.filter(x=>x.key!==cine.last);
 }
+function setCap(title,sub){ if(cine.capT===title&&cine.capS===sub) return; const fresh=cine.capT!==title; cine.capT=title; cine.capS=sub;
+  const cap=$('#cineCap'); if(!fresh){ $('#cineSub').textContent=sub; return; }
+  cap.classList.remove('show'); clearTimeout(cine.capTimer); cine.capTimer=setTimeout(()=>{ $('#cineTitle').textContent=title; $('#cineSub').textContent=sub; cap.classList.add('show'); },450); }
+/* cerita: kamera mengikuti satu truk tanpa potong, dari gerbang tol sampai dock, lalu forklift yang melayaninya */
+function storyCandidates(){ const c=[];
+  for(const s of SITES()) for(const t of s.trucks){
+    if(!t.bay||t.bay.siteId!==s.id) continue;
+    if(t.state==='inbound'&&t.path&&t.path.len-t.s<150) c.push({t,kind:'arrive',w:3});
+    else if(t.state==='toll_in') c.push({t,kind:'arrive',w:3});
+    else if(t.state==='approach'&&t.presence>0.95&&t.path&&t.path.len-t.s>60) c.push({t,kind:'arrive',w:2});
+    else if(t.state==='to_store'&&t.path&&t.s<40) c.push({t,kind:'deliver',w:2}); }
+  return c.filter(x=>x.t.id!==cine.lastStory); }
 function pickShot(){
+  const sc=storyCandidates();
+  if(sc.length&&Math.random()<0.8){ let tot=sc.reduce((a,x)=>a+x.w,0), r=Math.random()*tot, p=sc[0]; for(const x of sc){ r-=x.w; if(r<=0){ p=x; break; } }
+    cine.shot={story:true,rec:p.t,kind:p.kind,t:0,dock:0,orbit:(Math.random()<.5?-1:1)*0.035}; cine.lastStory=p.t.id; cine.last=p.t.id; return; }
   const c=cineCandidates(); let tot=c.reduce((a,x)=>a+x.score**1.6,0), r=Math.random()*tot, pick=c[0];
   for(const x of c){ r-=x.score**1.6; if(r<=0){ pick=x; break; } }
   cine.shot={...pick,t:0,dur:8+Math.random()*4,orbit:(Math.random()<.5?-1:1)*(0.05+Math.random()*0.04)}; cine.last=pick.key;
-  const cap=$('#cineCap'); cap.classList.remove('show'); setTimeout(()=>{ $('#cineTitle').textContent=pick.title; $('#cineSub').textContent=pick.sub; cap.classList.add('show'); },450);
+  setCap(pick.title,pick.sub);
 }
 function shotTarget(sh){ if(sh.pos) return sh.pos; const r=sh.rec; return r.kind==='site'?siteHome(r.idx):worldPos(r); }
 function shotValid(sh){ const r=sh.rec; if(!r) return true; if(r.kind==='truck') return r.state!=='away'&&(r.state==='parked'||r.presence>0.6); return true; }
-function startCine(){ if(cine.on) return; cine.on=true; select(null); cam.flight=null; follow=false; document.body.classList.add('cine'); $('#cineBtn').setAttribute('aria-pressed','true'); pickShot(); }
+/* bingkai per tahap cerita: subjek yang diikuti, zoom, sudut, dan teks */
+function storyFrame(sh,dt){ const t=sh.rec, s=t.site; if(!s||t.state==='away') return null;
+  const st=Store.get('stores',t.dest), car=t.carrier.name;
+  if(sh.kind==='arrive'){
+    switch(t.state){
+      case 'inbound': case 'toll_in': return {sub:t,zoom:1.15,phi:0.6,title:`${t.id} keluar Gerbang Tol Jagorawi`,cap:`${car} · menuju ${s.name}`};
+      case 'approach': return {sub:t,zoom:1.4,phi:0.55,title:`${t.id} menuju ${s.name}`,cap:`${car} · ${t.driver} · ${t.bay?t.bay.label:''}`};
+      case 'prep': return {sub:t,zoom:1.9,phi:0.5,title:'Sopir membuka pintu belakang',cap:`${t.id} di halaman ${s.name}`};
+      case 'reverse': return {sub:t,zoom:2.05,phi:0.48,title:`${t.id} mundur ke ${t.bay.label}`,cap:s.name};
+      case 'docked': { sh.dock+=dt; if(sh.dock>36) return null;
+        const f=s.forks.find(f=>f.carryingPalletId&&f.task.includes(t.id))||s.forks.find(f=>f.task.includes(t.id));
+        const ttl=t.coldCheck>0?`Cek suhu muatan ${t.id}`:`${t.mode==='load'?'Memuat':'Membongkar'} ${t.id} · ${t.done}/${t.total} palet`;
+        return {sub:f&&!(t.coldCheck>0)?f:t,zoom:f?2.35:1.9,phi:0.55,title:ttl,cap:f?`${f.short} · ${f.task}`:`${s.name} · ${t.bay.label}`}; }
+      default: return null; } }
+  switch(t.state){
+    case 'to_store': return {sub:t,zoom:1.35,phi:0.55,title:`${t.id} mengantar ke ${st?st.name:'toko'}`,cap:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`};
+    case 'store_prep': case 'store_reverse': return {sub:t,zoom:1.95,phi:0.5,title:`${t.id} merapat di ${st?st.name:'toko'}`,cap:st?st.address:''};
+    case 'store_docked': { sh.dock+=dt; if(sh.dock>26) return null; return {sub:t,zoom:1.9,phi:0.55,title:`${t.storePhase==='load'?'Memuat retur':'Bongkar'} di ${st?st.name:'toko'} · ${t.done}/${t.total}`,cap:`${t.id} · ${car}`}; }
+    default: return null; } }
+const _look=new THREE.Vector3();
+/* geser target kamera dengan batas kecepatan: perpindahan jauh jadi terbang mulus, bukan lompatan */
+function glide(goal,rateFn,dt){ const d=cam.target.distanceTo(goal); if(d<1e-4) return 0; const step=Math.min(d*(1-Math.exp(-dt*rateFn(d))),(18+d*0.25)*dt); cam.target.lerp(goal,step/d); return d; }
+function startCine(){ if(cine.on) return; cine.on=true; select(null); cam.flight=null; follow=false; document.body.classList.add('cine'); $('#cineBtn').setAttribute('aria-pressed','true'); cine.capT=null; pickShot(); }
 function stopCine(){ if(!cine.on) return; cine.on=false; cine.shot=null; document.body.classList.remove('cine'); $('#cineCap').classList.remove('show'); $('#cineBtn').setAttribute('aria-pressed','false');
   cam.thetaGoal=cam.theta; cam.zoomGoal=cam.zoom; cine.phiBack=true; }
 function stepCine(dt){
   const sh=cine.shot; if(!sh) return; sh.t+=dt;
+  if(sh.story){
+    const F=sh.t<170?storyFrame(sh,dt):null; if(!F){ pickShot(); return; }
+    /* truk lama tertahan antrean/lampu merah → pindah ke cerita lain supaya shot tidak membosankan */
+    const tr=sh.rec; sh.idle=(['inbound','approach','to_store'].includes(tr.state)&&tr.v<0.3)?(sh.idle||0)+dt:0; if(sh.idle>10){ pickShot(); return; }
+    setCap(F.title,F.cap);
+    const r=F.sub, p=worldPos(r), ahead=r.v?Math.min(7,r.v*0.75):0; _look.set(p.x+Math.sin(r.heading||0)*ahead,0,p.z+Math.cos(r.heading||0)*ahead);
+    const dist=glide(_look,dist0=>dist0>40?1.1:1.9,dt), zg=dist>40?Math.min(F.zoom,clamp(0.95-dist/600,0.5,0.75)):F.zoom;
+    cam.zoom+=(zg-cam.zoom)*(1-Math.exp(-dt*0.7)); cam.zoomGoal=cam.zoom;
+    cam.phi+=(F.phi-cam.phi)*(1-Math.exp(-dt*0.6)); cam.theta+=sh.orbit*dt; cam.thetaGoal=cam.theta; return; }
   if(sh.t>sh.dur||!shotValid(sh)){ pickShot(); return; }
-  const goal=shotTarget(sh), k=1-Math.exp(-dt*0.85);
-  cam.target.lerp(goal,k); cam.zoom+=(sh.zoom-cam.zoom)*(1-Math.exp(-dt*0.55)); cam.zoomGoal=cam.zoom;
+  const goal=shotTarget(sh), dist=glide(goal,()=>0.85,dt), zg=dist>60?Math.min(sh.zoom,clamp(0.95-dist/600,0.5,0.8)):sh.zoom;
+  cam.zoom+=(zg-cam.zoom)*(1-Math.exp(-dt*0.55)); cam.zoomGoal=cam.zoom;
   cam.phi+=(sh.phi-cam.phi)*(1-Math.exp(-dt*0.6)); cam.theta+=sh.orbit*dt; cam.thetaGoal=cam.theta;
 }
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>canvas.addEventListener(ev,()=>canvas.classList.remove('grabbing')));
@@ -3395,10 +3463,10 @@ SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.n
 Store.unread=2;
 document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
-cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=isMobile()?0.62:1.12; applyCam();
+cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
 { const L=$('#loading'); L.classList.add('done'); setTimeout(()=>L.remove(),600); } refreshUI(true);
-let last=performance.now(), uiT=0, fno=0; const simAcc=new Map();
+let last=performance.now(), uiT=0, fno=0, tiltB=-1; const simAcc=new Map();
 function frame(now){
   const rdt=Math.max(0,(now-last)/1000), dt=Math.min(0.05,rdt); last=Math.max(last,now); fno++;
   tickClock(dt);
@@ -3415,6 +3483,8 @@ function frame(now){
   else { cam.zoom+=(cam.zoomGoal-cam.zoom)*k; if(follow&&sel&&!(sel.kind==='truck'&&sel.state==='away')){ cam.target.lerp(worldPos(sel),Math.min(1,dt*2.5)); } }
   if(!cine.on) cam.theta+=(cam.thetaGoal-cam.theta)*k;
   applyCam();
+  /* tilt-shift ikut zoom: makin dekat, makin terasa seperti maket */
+  { const tb=Math.round(clamp((cam.zoom-0.6)/0.9,0.45,1.7)*10)/10; if(tb!==tiltB){ tiltB=tb; document.documentElement.style.setProperty('--tilt',tb); } }
   camera.getWorldDirection(tmp); const dx=tmp.x,dy=tmp.y,dz=tmp.z;
   for(const h of View.holds){ h.disc.quaternion.copy(camera.quaternion); h.disc.position.set(-dx*0.45,0.78-dy*0.45,-dz*0.45); }
   if(selVis&&!reduceMotion) selVis.children[1].material.opacity=0.75+Math.sin(now/1000*4)*0.25;

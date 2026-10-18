@@ -319,6 +319,7 @@ $('#tvq').addEventListener('input',renderTable);
 $('#tvBody').addEventListener('click',e=>{const r=e.target.closest('[data-id]'); if(!r) return; const rec=Store.find(r.dataset.id); if(!rec) return; tableOpen=false; document.body.classList.remove('table-open'); $('#viewToggle span').textContent='Tabel'; select(rec,true);});
 
 /* ---------- seleksi, kamera, menu ---------- */
+const HOME_ZOOM=()=>isMobile()?0.82:1.5; /* tampilan awal lebih dekat: truk & forklift tampil besar */
 function flyTo(p,zoom,dur=0.9){ cam.flight={from:cam.target.clone(),to:p.clone(),z0:cam.zoom,z1:zoom??cam.zoomGoal,t:0,dur:reduceMotion?0.001:dur,dip:p.distanceTo(cam.target)>40}; follow=false; }
 function select(e,fly){
   if(e&&e.kind==='slot') e=e.palletId?Store.get('pallets',e.palletId):null;
@@ -331,8 +332,8 @@ function select(e,fly){
   if(fly&&e&&e.kind!=='shipment'&&!(e.kind==='truck'&&e.state==='away')) flyTo(e.kind==='site'?siteHome(e.idx):worldPos(e),Math.max(cam.zoomGoal,e.kind==='site'?1.12:e.kind==='store'?1.25:1.45));
   refreshUI(true);
 }
-function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),isMobile()?0.62:1.12,1.7); refreshUI(true); }
-function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),isMobile()?0.62:1.12); }
+function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
+function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),HOME_ZOOM()); }
 const ptrs=new Map(); let drag=null, pinch=null;
 canvas.addEventListener('pointerdown',e=>{ canvas.classList.add('grabbing'); canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); closeMenus();
   if(ptrs.size===1) drag={sx:e.clientX,sy:e.clientY,moved:0,start:groundAt(e.clientX,e.clientY)};
@@ -396,7 +397,7 @@ function searchIndex(){
 }
 function renderResults(){ const v=q.value.trim().toLowerCase(); if(!v){res.hidden=true;return;}
   hits=searchIndex().filter(it=>(it.label+' '+it.sub).toLowerCase().includes(v)).slice(0,8); hi=0;
-  res.innerHTML=hits.length?hits.map((h,i)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span><b>${h.label}</b><small>${h.sub}</small></span></button>`).join(''):`<div class="empty">Tidak ada yang cocok dengan “${q.value.replace(/</g,'&lt;')}”. Coba ID truk (mis. TRK-2051), forklift, bay, palet, atau nomor pengiriman.</div>`;
+  res.innerHTML=hits.length?hits.map((h,i)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span><b>${h.label}</b><small>${h.sub}</small></span></button>`).join(''):`<div class="empty">Tidak ada yang cocok dengan “${q.value.replace(/</g,'&lt;')}”. Coba ID truk (mis. TRK-3104), forklift, bay, palet, atau nomor pengiriman.</div>`;
   res.hidden=false; }
 q.addEventListener('input',renderResults); q.addEventListener('focus',renderResults);
 q.addEventListener('keydown',e=>{
@@ -433,22 +434,68 @@ function cineCandidates(){
   c.push({key:'wide',score:1.3,pos:new THREE.Vector3(40,0,60),zoom:0.42,phi:0.88,title:'Kawasan Gudang Lumbung',sub:`5 site · ${[...Store.tables.trucks.values()].filter(t=>t.state!=='away').length} truk aktif`});
   return c.filter(x=>x.key!==cine.last);
 }
+function setCap(title,sub){ if(cine.capT===title&&cine.capS===sub) return; const fresh=cine.capT!==title; cine.capT=title; cine.capS=sub;
+  const cap=$('#cineCap'); if(!fresh){ $('#cineSub').textContent=sub; return; }
+  cap.classList.remove('show'); clearTimeout(cine.capTimer); cine.capTimer=setTimeout(()=>{ $('#cineTitle').textContent=title; $('#cineSub').textContent=sub; cap.classList.add('show'); },450); }
+/* cerita: kamera mengikuti satu truk tanpa potong, dari gerbang tol sampai dock, lalu forklift yang melayaninya */
+function storyCandidates(){ const c=[];
+  for(const s of SITES()) for(const t of s.trucks){
+    if(!t.bay||t.bay.siteId!==s.id) continue;
+    if(t.state==='inbound'&&t.path&&t.path.len-t.s<150) c.push({t,kind:'arrive',w:3});
+    else if(t.state==='toll_in') c.push({t,kind:'arrive',w:3});
+    else if(t.state==='approach'&&t.presence>0.95&&t.path&&t.path.len-t.s>60) c.push({t,kind:'arrive',w:2});
+    else if(t.state==='to_store'&&t.path&&t.s<40) c.push({t,kind:'deliver',w:2}); }
+  return c.filter(x=>x.t.id!==cine.lastStory); }
 function pickShot(){
+  const sc=storyCandidates();
+  if(sc.length&&Math.random()<0.8){ let tot=sc.reduce((a,x)=>a+x.w,0), r=Math.random()*tot, p=sc[0]; for(const x of sc){ r-=x.w; if(r<=0){ p=x; break; } }
+    cine.shot={story:true,rec:p.t,kind:p.kind,t:0,dock:0,orbit:(Math.random()<.5?-1:1)*0.035}; cine.lastStory=p.t.id; cine.last=p.t.id; return; }
   const c=cineCandidates(); let tot=c.reduce((a,x)=>a+x.score**1.6,0), r=Math.random()*tot, pick=c[0];
   for(const x of c){ r-=x.score**1.6; if(r<=0){ pick=x; break; } }
   cine.shot={...pick,t:0,dur:8+Math.random()*4,orbit:(Math.random()<.5?-1:1)*(0.05+Math.random()*0.04)}; cine.last=pick.key;
-  const cap=$('#cineCap'); cap.classList.remove('show'); setTimeout(()=>{ $('#cineTitle').textContent=pick.title; $('#cineSub').textContent=pick.sub; cap.classList.add('show'); },450);
+  setCap(pick.title,pick.sub);
 }
 function shotTarget(sh){ if(sh.pos) return sh.pos; const r=sh.rec; return r.kind==='site'?siteHome(r.idx):worldPos(r); }
 function shotValid(sh){ const r=sh.rec; if(!r) return true; if(r.kind==='truck') return r.state!=='away'&&(r.state==='parked'||r.presence>0.6); return true; }
-function startCine(){ if(cine.on) return; cine.on=true; select(null); cam.flight=null; follow=false; document.body.classList.add('cine'); $('#cineBtn').setAttribute('aria-pressed','true'); pickShot(); }
+/* bingkai per tahap cerita: subjek yang diikuti, zoom, sudut, dan teks */
+function storyFrame(sh,dt){ const t=sh.rec, s=t.site; if(!s||t.state==='away') return null;
+  const st=Store.get('stores',t.dest), car=t.carrier.name;
+  if(sh.kind==='arrive'){
+    switch(t.state){
+      case 'inbound': case 'toll_in': return {sub:t,zoom:1.15,phi:0.6,title:`${t.id} keluar Gerbang Tol Jagorawi`,cap:`${car} · menuju ${s.name}`};
+      case 'approach': return {sub:t,zoom:1.4,phi:0.55,title:`${t.id} menuju ${s.name}`,cap:`${car} · ${t.driver} · ${t.bay?t.bay.label:''}`};
+      case 'prep': return {sub:t,zoom:1.9,phi:0.5,title:'Sopir membuka pintu belakang',cap:`${t.id} di halaman ${s.name}`};
+      case 'reverse': return {sub:t,zoom:2.05,phi:0.48,title:`${t.id} mundur ke ${t.bay.label}`,cap:s.name};
+      case 'docked': { sh.dock+=dt; if(sh.dock>36) return null;
+        const f=s.forks.find(f=>f.carryingPalletId&&f.task.includes(t.id))||s.forks.find(f=>f.task.includes(t.id));
+        const ttl=t.coldCheck>0?`Cek suhu muatan ${t.id}`:`${t.mode==='load'?'Memuat':'Membongkar'} ${t.id} · ${t.done}/${t.total} palet`;
+        return {sub:f&&!(t.coldCheck>0)?f:t,zoom:f?2.35:1.9,phi:0.55,title:ttl,cap:f?`${f.short} · ${f.task}`:`${s.name} · ${t.bay.label}`}; }
+      default: return null; } }
+  switch(t.state){
+    case 'to_store': return {sub:t,zoom:1.35,phi:0.55,title:`${t.id} mengantar ke ${st?st.name:'toko'}`,cap:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`};
+    case 'store_prep': case 'store_reverse': return {sub:t,zoom:1.95,phi:0.5,title:`${t.id} merapat di ${st?st.name:'toko'}`,cap:st?st.address:''};
+    case 'store_docked': { sh.dock+=dt; if(sh.dock>26) return null; return {sub:t,zoom:1.9,phi:0.55,title:`${t.storePhase==='load'?'Memuat retur':'Bongkar'} di ${st?st.name:'toko'} · ${t.done}/${t.total}`,cap:`${t.id} · ${car}`}; }
+    default: return null; } }
+const _look=new THREE.Vector3();
+/* geser target kamera dengan batas kecepatan: perpindahan jauh jadi terbang mulus, bukan lompatan */
+function glide(goal,rateFn,dt){ const d=cam.target.distanceTo(goal); if(d<1e-4) return 0; const step=Math.min(d*(1-Math.exp(-dt*rateFn(d))),(18+d*0.25)*dt); cam.target.lerp(goal,step/d); return d; }
+function startCine(){ if(cine.on) return; cine.on=true; select(null); cam.flight=null; follow=false; document.body.classList.add('cine'); $('#cineBtn').setAttribute('aria-pressed','true'); cine.capT=null; pickShot(); }
 function stopCine(){ if(!cine.on) return; cine.on=false; cine.shot=null; document.body.classList.remove('cine'); $('#cineCap').classList.remove('show'); $('#cineBtn').setAttribute('aria-pressed','false');
   cam.thetaGoal=cam.theta; cam.zoomGoal=cam.zoom; cine.phiBack=true; }
 function stepCine(dt){
   const sh=cine.shot; if(!sh) return; sh.t+=dt;
+  if(sh.story){
+    const F=sh.t<170?storyFrame(sh,dt):null; if(!F){ pickShot(); return; }
+    /* truk lama tertahan antrean/lampu merah → pindah ke cerita lain supaya shot tidak membosankan */
+    const tr=sh.rec; sh.idle=(['inbound','approach','to_store'].includes(tr.state)&&tr.v<0.3)?(sh.idle||0)+dt:0; if(sh.idle>10){ pickShot(); return; }
+    setCap(F.title,F.cap);
+    const r=F.sub, p=worldPos(r), ahead=r.v?Math.min(7,r.v*0.75):0; _look.set(p.x+Math.sin(r.heading||0)*ahead,0,p.z+Math.cos(r.heading||0)*ahead);
+    const dist=glide(_look,dist0=>dist0>40?1.1:1.9,dt), zg=dist>40?Math.min(F.zoom,clamp(0.95-dist/600,0.5,0.75)):F.zoom;
+    cam.zoom+=(zg-cam.zoom)*(1-Math.exp(-dt*0.7)); cam.zoomGoal=cam.zoom;
+    cam.phi+=(F.phi-cam.phi)*(1-Math.exp(-dt*0.6)); cam.theta+=sh.orbit*dt; cam.thetaGoal=cam.theta; return; }
   if(sh.t>sh.dur||!shotValid(sh)){ pickShot(); return; }
-  const goal=shotTarget(sh), k=1-Math.exp(-dt*0.85);
-  cam.target.lerp(goal,k); cam.zoom+=(sh.zoom-cam.zoom)*(1-Math.exp(-dt*0.55)); cam.zoomGoal=cam.zoom;
+  const goal=shotTarget(sh), dist=glide(goal,()=>0.85,dt), zg=dist>60?Math.min(sh.zoom,clamp(0.95-dist/600,0.5,0.8)):sh.zoom;
+  cam.zoom+=(zg-cam.zoom)*(1-Math.exp(-dt*0.55)); cam.zoomGoal=cam.zoom;
   cam.phi+=(sh.phi-cam.phi)*(1-Math.exp(-dt*0.6)); cam.theta+=sh.orbit*dt; cam.thetaGoal=cam.theta;
 }
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>canvas.addEventListener(ev,()=>canvas.classList.remove('grabbing')));
@@ -546,10 +593,10 @@ SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.n
 Store.unread=2;
 document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
-cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=isMobile()?0.62:1.12; applyCam();
+cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
 { const L=$('#loading'); L.classList.add('done'); setTimeout(()=>L.remove(),600); } refreshUI(true);
-let last=performance.now(), uiT=0, fno=0; const simAcc=new Map();
+let last=performance.now(), uiT=0, fno=0, tiltB=-1; const simAcc=new Map();
 function frame(now){
   const rdt=Math.max(0,(now-last)/1000), dt=Math.min(0.05,rdt); last=Math.max(last,now); fno++;
   tickClock(dt);
@@ -566,6 +613,8 @@ function frame(now){
   else { cam.zoom+=(cam.zoomGoal-cam.zoom)*k; if(follow&&sel&&!(sel.kind==='truck'&&sel.state==='away')){ cam.target.lerp(worldPos(sel),Math.min(1,dt*2.5)); } }
   if(!cine.on) cam.theta+=(cam.thetaGoal-cam.theta)*k;
   applyCam();
+  /* tilt-shift ikut zoom: makin dekat, makin terasa seperti maket */
+  { const tb=Math.round(clamp((cam.zoom-0.6)/0.9,0.45,1.7)*10)/10; if(tb!==tiltB){ tiltB=tb; document.documentElement.style.setProperty('--tilt',tb); } }
   camera.getWorldDirection(tmp); const dx=tmp.x,dy=tmp.y,dz=tmp.z;
   for(const h of View.holds){ h.disc.quaternion.copy(camera.quaternion); h.disc.position.set(-dx*0.45,0.78-dy*0.45,-dz*0.45); }
   if(selVis&&!reduceMotion) selVis.children[1].material.opacity=0.75+Math.sin(now/1000*4)*0.25;

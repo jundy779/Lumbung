@@ -15,7 +15,7 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
   const SITES=()=>Store.all('sites');
   SITES().forEach(populateSite); SITES().forEach(seedDocks); initTraffic(); initCityWalkers();
   setTimeMode('siang');
-  const dt = 1/20, steps = Math.round(${MIN}*60/dt); let maxStuck = 0, maxStuckId = '', teleports = 0;
+  const dt = 1/20, steps = Math.round(${MIN}*60/dt); let maxStuck = 0, maxStuckId = '', teleports = 0, minPickerFork = Infinity, minPickerTruck = Infinity;
   const seenStates = new Map(); let doneDeliveries = 0;
   const origGoAway = goAway;
   for (let k = 0; k < steps; k++) {
@@ -28,6 +28,11 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
       if (t.stuck > 299.9 && t.stuck < 300.1) teleports++;
       seenStates.set(t.state, (seenStates.get(t.state) || 0) + 1);
     }
+    if (k % 10 === 0) for (const s of SITES()) for (const p of s.people) {
+      if (p.role !== 'Operator gudang') continue;
+      for (const f of s.forks) minPickerFork = Math.min(minPickerFork, Math.hypot(f.pos.x - p.pos.x, f.pos.z - p.pos.z));
+      for (const t of s.trucks) if (t.solid) minPickerTruck = Math.min(minPickerTruck, Math.hypot(t.pos.x - p.pos.x, t.pos.z - p.pos.z));
+    }
   }
   const ships = Store.all('shipments');
   globalThis.__report = {
@@ -36,6 +41,9 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
     shipmentsInStore: ships.length,
     shipmentStatus: ships.reduce((a, s) => (a[s.status] = (a[s.status] || 0) + 1, a), {}),
     maxTruckStuckSec: Math.round(maxStuck), maxStuckTruck: maxStuckId,
+    teleports,
+    minOperatorToForkliftM: Math.round(minPickerFork * 10) / 10,
+    minOperatorToTruckCenterM: Math.round(minPickerTruck * 10) / 10,
     openAlerts: openAlerts().map(a => a.title),
     alertLog: ALERT_LOG.length,
     pallets: Store.tables.pallets.size,
