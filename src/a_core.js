@@ -92,7 +92,7 @@ function hidden(obj,key,val){ Object.defineProperty(obj,key,{value:val,writable:
 const r2=v=>Math.round(v*100)/100;
 const SCHEMA={
   stores:    r=>({id:r.id,name:r.name,type:r.type,address:r.address,dockId:r.bays[0].id,dockTruckId:r.bays[0].truckId,receivingSlots:r.slots.map(s=>({code:s.code,palletId:s.palletId})),receivedToday:r.receivedToday,returnsToday:r.returnsToday}),
-  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
+  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,kpi:kpiSummary(r),inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
   docks:     r=>({id:r.id,siteId:r.siteId,label:r.label,truckId:r.truckId,doorState:r.doorState,trucksToday:r.today}),
   slots:     r=>({id:r.id,siteId:r.siteId,code:r.code,palletId:r.palletId,reserved:r.reserved}),
   pallets:   r=>({id:r.id,siteId:r.siteId,item:r.item,qty:r.qty,kg:r.kg,lot:r.lot,received:r.recv,packing:r.packing,hold:!!r.hold,location:r.location}),

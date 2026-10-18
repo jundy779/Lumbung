@@ -107,7 +107,7 @@ function palletWhere(p){ const L=p.location||{}; if(L.type==='slot'){ const sl=S
   if(L.type==='truck') return `Di dalam ${L.id}`; return '—'; }
 function header(icon,cls,small,title,sub,extra=''){
   return `<div class="dh"><div class="dic ${cls}">${icon}</div><div><small>${small}</small><h2>${title}</h2><p>${sub}</p></div>
-  <div class="acts">${extra}<button data-act="data" aria-pressed="${showData}" aria-label="Lihat data mentah" title="Data mentah (JSON)" class="${showData?'on':''}">${IC.code}</button><button data-act="focus" aria-label="Fokus" title="Fokus">${IC.focus}</button>${sel?`<button data-act="close" aria-label="Tutup" title="Tutup">${IC.close}</button>`:''}</div></div>`;
+  <div class="acts">${extra}<button data-act="data" aria-pressed="${showData}" aria-label="Lihat data mentah" title="Data mentah (JSON)" class="${showData?'on':''}">${IC.code}</button><button data-act="focus" aria-label="Fokus" title="Fokus">${IC.focus}</button>${sel||document.body.classList.contains('site-sheet')?`<button data-act="close" aria-label="Tutup" title="Tutup">${IC.close}</button>`:''}</div></div>`;
 }
 const dataBlock=rec=>showData?`<div class="rawdata"><div class="rawh"><b>Store.${Store.tableOf(rec)}</b><small>record yang dibaca tampilan 3D &amp; panel ini</small></div><pre>${JSON.stringify(publicRecord(rec),null,2).replace(/</g,'&lt;')}</pre></div>`:'';
 function renderDetail(){
@@ -123,6 +123,7 @@ function renderDetail(){
         <div class="stat"><small>Keluar hari ini</small><b>${s.outToday} <span>truk</span></b></div>
         <div class="stat"><small>Put-away hari ini</small><b>${s.putToday} <span>palet</span></b></div>
       </div>
+      ${kpiBlock(s)}
       <div class="sec"><h3>Inventaris</h3><small>unit</small></div>
       <ul class="inv">${s.inv.map(i=>`<li>${img3(ICON3D.item(i.name))}<span class="n">${i.name}</span><span class="q">${fmt(i.qty)}</span>${chip(i.qty<STOCK_LOW?['Stok menipis','warn']:['Tersedia','ok'])}</li>`).join('')}</ul>
       <div class="sec"><h3>Armada forklift</h3><small>${n.working}/${s.forks.length} bekerja</small></div>
@@ -179,8 +180,12 @@ function renderDetail(){
       `<div class="chips">${chip([{scheduled:'Dijadwalkan',loading:'Dimuat',unloading:'Dibongkar',in_transit:'Dalam perjalanan',delivered:'Terkirim',completed:'Selesai'}[e.status]||e.status,'info'])}<span>${e.customer}</span></div>
       <dl class="kv"><dt>Truk</dt><dd>${t?link(t.id,t.id):'—'}</dd><dt>Asal</dt><dd>${e.origin}</dd><dt>Tujuan</dt><dd>${e.destination}</dd><dt>Palet</dt><dd>${e.total}</dd><dt>Dibuat</dt><dd>${e.createdAt}</dd></dl>`;
   }
-  el.innerHTML=h;
+  el.innerHTML=h; if(!e) drawHeat(s);
 }
+/* tooltip grafik KPI: elemen ber-data-tip di panel detail memakai #hoverTip yang sama dengan kanvas 3D */
+{ const tip=$('#hoverTip'), show=ev=>{ const t=ev.target.closest&&ev.target.closest('[data-tip]'); if(!t||!t.dataset.tip){ tip.classList.remove('show'); return; }
+    const [a,b]=t.dataset.tip.split('|'); tip.firstChild.textContent=a; tip.lastChild.textContent=b||''; const fl=ev.clientX>innerWidth-280; tip.style.left=fl?'auto':ev.clientX+'px'; tip.style.right=fl?(innerWidth-ev.clientX)+'px':'auto'; tip.style.top=ev.clientY+'px'; tip.classList.toggle('flip',fl); tip.classList.add('show'); };
+  $('#detail').addEventListener('pointermove',show); $('#detail').addEventListener('pointerdown',show); $('#detail').addEventListener('pointerleave',()=>tip.classList.remove('show','flip')); }
 $('#detail').addEventListener('click',ev=>{
   const l=ev.target.closest('[data-sel]'); if(l){ select(Store.find(l.dataset.sel),true); return; }
   const b=ev.target.closest('[data-act]'); if(!b) return;
@@ -253,13 +258,75 @@ function renderKPIs(){
 function destBlock(t){ const o=destOptions(t); if(!o) return '';
   const btn=x=>`<button class="dopt${x.cur?' on':''}" data-dest="${x.id}"${x.busy?' disabled':''}><b>${x.name}</b><small>${x.busy?'Dipakai '+x.by:x.cur?(t.pendingDest===x.id?'Menunggu keluar persimpangan…':'Tujuan saat ini'):x.type}</small></button>`;
   return `<div class="dest"><div class="dh"><b>Arahkan pengiriman</b><span>${o.enroute?'Ubah rute saat di perjalanan':'Pilih tujuan sebelum berangkat'}</span></div><div class="dgrid">${o.list.map(btn).join('')}${o.toll?`<button class="dopt${!t.dest?' on':''}" data-dest="toll"><b>Luar kota</b><small>${!t.dest?'Tujuan saat ini':'via Tol Jagorawi'}</small></button>`:''}</div></div>`; }
-function profileLine(s){ const p=s.profile||'general', nb=s.bays.length, busy=s.bays.filter(b=>b.truck&&b.truck.state==='docked').length;
-  let ic='🏬', t='Gudang umum · penyimpanan rak';
-  if(p==='cold'){ const open=s.bays.filter(b=>b.doorState==='open').length, temp=-18.6+0.4*Math.sin(performance.now()/40000)+open*0.35; ic='❄️'; t=`Suhu ruang ${temp.toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})}°C · ${open}/${nb} pintu terbuka`; }
-  else if(p==='crossdock'){ const h=Math.ceil(nb/2), ib=s.bays.filter(b=>b.i<h&&b.truck&&b.truck.state==='docked').length, ob=busy-ib; ic='🔀'; t=`Transit rata-rata ${34+busy*3} mnt · Inbound ${ib}/${h} · Outbound ${ob}/${nb-h}`; }
-  else if(p==='dc'){ ic='📦'; t=`${(980+busy*140+Math.round(siteNumbers(s).stock/12)).toLocaleString('id-ID')} paket/jam · armada kurir siap`; }
-  else if(p==='robotic'){ const w=s.forks.filter(f=>forkWorking(f)).length; ic='🤖'; t=`Utilisasi AGV ${Math.round(w/Math.max(1,s.forks.length)*100)}% · ${w}/${s.forks.length} AGV bekerja`; }
+function profileLine(s){ const p=s.profile||'general', nb=s.bays.length, busy=s.bays.filter(b=>b.truck&&b.truck.state==='docked').length, k=kpiSummary(s)||{};
+  let ic='🏬', t=`Gudang umum · ${k.avgDockDwellMin!=null?`rata-rata ${n1(k.avgDockDwellMin)} mnt per truk di dock`:'penyimpanan rak'}`;
+  if(p==='cold'){ ic='❄️'; t=`Suhu ruang ${n1(k.roomTempC)}°C · ${k.doorsOpen}/${nb} pintu terbuka`; }
+  else if(p==='crossdock'){ const h=Math.ceil(nb/2), ib=s.bays.filter(b=>b.i<h&&b.truck&&b.truck.state==='docked').length, ob=busy-ib; ic='🔀'; t=`${k.medianTransitMin!=null?`Transit median ${n1(k.medianTransitMin)} mnt`:'Transit: menunggu palet pertama'} · Inbound ${ib}/${h} · Outbound ${ob}/${nb-h}`; }
+  else if(p==='dc'){ ic='📦'; t=`${fmt(k.packagesPerHour||0)} paket/jam · ${k.windowMin||0} menit terakhir`; }
+  else if(p==='robotic'){ const w=s.forks.filter(f=>forkWorking(f)).length; ic='🤖'; t=`Utilisasi AGV ${k.agvUtilPct??Math.round(w/Math.max(1,s.forks.length)*100)}% · ${w}/${s.forks.length} AGV bekerja`; }
   return `<div class="profline"><span>${ic}</span>${t}</div>`; }
+
+/* ---------- Kinerja khas per gudang (v31): grafik SVG dari site.metrics ----------
+   Satu seri per grafik, warna merek biru; riwayat perkiraan (sebelum aplikasi dibuka) memakai biru muda.
+   Setiap batang/titik punya area hover lebar dengan data-tip "judul|keterangan". */
+const n1=(v,d=1)=>v==null?'–':v.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const hh=h=>String(h).padStart(2,'0')+'.00';
+const kTip=(a,b)=>` data-tip="${esc(a)}|${esc(b)}"`;
+function barD(x,y,w,h){ const r=Math.min(4,w/2,h); if(h<=0.5) return ''; return `M${x.toFixed(1)} ${(y+h).toFixed(1)}V${(y+r).toFixed(1)}A${r} ${r} 0 0 1 ${(x+r).toFixed(1)} ${y.toFixed(1)}H${(x+w-r).toFixed(1)}A${r} ${r} 0 0 1 ${(x+w).toFixed(1)} ${(y+r).toFixed(1)}V${(y+h).toFixed(1)}Z`; }
+const KC={W:300,H:118,L:34,R:6,T:8,B:18};
+function kAxisY(ticks,y,fmtv){ return ticks.map(v=>`<line class="kg" x1="${KC.L}" x2="${KC.W-KC.R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="kt" x="${KC.L-5}" y="${(y(v)+3.5).toFixed(1)}" text-anchor="end">${fmtv(v)}</text>`).join(''); }
+/* grafik batang: items [{v, seed, tip:[a,b], lab}] */
+function kBars(items,{max,ticks,fmtv,ref,cap}={}){ const n=Math.max(items.length,cap||1), pw=KC.W-KC.L-KC.R, ph=KC.H-KC.T-KC.B, slot=pw/n, bw=Math.min(24,slot*0.72);
+  const mx=max||Math.max(1,...items.map(i=>i.v||0))*1.12, y=v=>KC.T+ph-(v/mx)*ph;
+  const tk=ticks||[0,mx/2,mx].map(v=>Math.round(v)), out=[kAxisY(tk,y,fmtv||fmt)];
+  if(ref!=null) out.push(`<line class="kref" x1="${KC.L}" x2="${KC.W-KC.R}" y1="${y(ref).toFixed(1)}" y2="${y(ref).toFixed(1)}"/>`);
+  items.forEach((it,i)=>{ const x=KC.L+i*slot+(slot-bw)/2, v=Math.max(0,it.v||0), top=y(v);
+    out.push(`<path class="kb${it.seed?' sd':''}${it.cur?' cur':''}" d="${barD(x,top,bw,KC.T+ph-top)}"/>`);
+    if(it.lab) out.push(`<text class="kt" x="${(x+bw/2).toFixed(1)}" y="${KC.H-5}" text-anchor="middle">${it.lab}</text>`);
+    out.push(`<rect class="khit" x="${(KC.L+i*slot).toFixed(1)}" y="${KC.T}" width="${slot.toFixed(1)}" height="${ph}"${kTip(...it.tip)}/>`); });
+  return `<svg class="kchart" viewBox="0 0 ${KC.W} ${KC.H}" role="img">${out.join('')}</svg>`; }
+function kCard(title,big,unit,note,body,legend){ return `<div class="kcard"><div class="kh"><small>${title}</small><b>${big}<span> ${unit}</span></b><em>${note}</em></div>${body}${legend||''}</div>`; }
+const kLegend=(a,b)=>`<div class="klg"><span><i class="m"></i>${a}</span>${b?`<span><i class="s"></i>${b}</span>`:''}</div>`;
+function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s), p=s.profile, H=m.h<0?Math.floor(Store.clock.hour):m.h;
+  const order=Array.from({length:24},(_,i)=>(H+1+i)%24); let card='';
+  if(p==='cold'){ const lo=-20.5, hi=-15.5, pw=KC.W-KC.L-KC.R, ph=KC.H-KC.T-KC.B, x=i=>KC.L+i/23*pw, y=v=>KC.T+(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo)*ph;
+    const pts=order.map((h,i)=>{ const b=m.hours[h], v=kpiHourVal(s,b); return {h,i,v,seed:b&&b.seed}; });
+    const seg=(f)=>{ let d='', on=false; pts.forEach(q=>{ if(q.v==null||!f(q)){ on=false; return; } d+=(on?'L':'M')+x(q.i).toFixed(1)+' '+y(q.v).toFixed(1); on=true; }); return d; };
+    const firstLive=pts.findIndex(q=>!q.seed&&q.v!=null);
+    const out=[`<rect class="kband" x="${KC.L}" y="${y(KPI_COLD.hi).toFixed(1)}" width="${pw}" height="${(y(KPI_COLD.lo)-y(KPI_COLD.hi)).toFixed(1)}"/>`, kAxisY([-20,-18,-16],y,v=>'−'+Math.abs(v)+'°'),
+      `<path class="kl sd" d="${seg(q=>q.seed||q.i===firstLive)}"/>`, `<path class="kl" d="${seg(q=>!q.seed)}"/>`];
+    pts.forEach(q=>{ if(q.i%6===5||q.i===23) out.push(`<text class="kt" x="${x(q.i).toFixed(1)}" y="${KC.H-5}" text-anchor="${q.i===23?'end':'middle'}">${q.i===23?'kini':hh(q.h)}</text>`);
+      const w=pw/23; out.push(`<rect class="khit" x="${(x(q.i)-w/2).toFixed(1)}" y="${KC.T}" width="${w.toFixed(1)}" height="${ph}"${kTip(`${hh(q.h)}${q.i===23?' · jam berjalan':''}`,q.v==null?'belum ada data':`${n1(q.v)} °C rata-rata · ${q.seed?'perkiraan riwayat':'terukur'}`)}/>`); });
+    const last=pts[23]; if(last.v!=null) out.push(`<circle class="kdot" cx="${x(23).toFixed(1)}" cy="${y(k.roomTempC).toFixed(1)}" r="4"/>`);
+    const ok=k.roomTempC<=KPI_COLD.hi;
+    card=kCard('Suhu ruang · 24 jam',`${n1(k.roomTempC)}°C`,'',`${ok?'dalam':'di atas'} batas aman ≤ ${KPI_COLD.hi} °C · ${k.doorsOpen}/${s.bays.length} pintu dock terbuka`,
+      `<svg class="kchart" viewBox="0 0 ${KC.W} ${KC.H}" role="img" aria-label="Suhu ruang 24 jam terakhir">${out.join('')}</svg>`,kLegend('Terukur','Perkiraan sebelum dibuka')+`<div class="klg"><span><i class="b"></i>Batas aman −20 s/d −17 °C</span></div>`); }
+  else if(p==='dc'){ const items=order.map((h,i)=>{ const b=m.hours[h], v=kpiHourVal(s,b); return {v:v||0,seed:b&&b.seed,cur:i===23,lab:i===23?'kini':i%6===5?hh(h):'',tip:[`${hh(h)}${i===23?' · jam berjalan':''}`,v==null?'belum cukup data':`${fmt(Math.round(v))} paket/jam · ${b.seed?'perkiraan riwayat':'terukur'}`]}; });
+    card=kCard('Paket keluar per jam',fmt(k.packagesPerHour),'paket/jam',`laju ${k.windowMin} menit terakhir dari palet yang dimuat`,kBars(items,{fmtv:v=>v>=1000?n1(v/1000,1)+'rb':fmt(v)}),kLegend('Terukur','Perkiraan sebelum dibuka')); }
+  else if(p==='crossdock'){ const T=m.transit;
+    if(!T.length) card=kCard('Waktu transit palet','–','mnt','menunggu palet pertama yang masuk lalu keluar',`<div class="kempty">Belum ada palet yang selesai transit${(()=>{ const w=s.slots.map(x=>x.palletId&&Store.get('pallets',x.palletId)).filter(P=>P&&P.inT!=null); return w.length?`<br>${w.length} palet sedang menunggu outbound · tertua ${n1((s.t-Math.min(...w.map(P=>P.inT)))/60)} mnt`:''; })()}</div>`);
+    else { const med=k.medianTransitMin, items=T.map((x,i)=>({v:x.min,lab:'',tip:[x.id,`${n1(x.min)} mnt dari bongkar (inbound) sampai dimuat (outbound)`]}));
+      card=kCard('Waktu transit palet',n1(med),'mnt median',`${T.length} palet terakhir · garis putus = median`,kBars(items,{ref:med,fmtv:v=>n1(v,0),cap:16}),''); } }
+  else if(p==='robotic'){ const u=k.agvUtilPct;
+    card=kCard('Peta panas pergerakan AGV',u==null?'–':u+'%','utilisasi',`rata-rata 2 menit · ${s.forks.length} AGV`,`<div class="kheatw"><canvas class="kheat" id="kHeat" aria-label="Peta panas pergerakan AGV"></canvas></div>`,
+      `<div class="klg"><span>Gudang di atas, dock di bawah</span><span class="kramp"><i></i>jarang → padat</span></div>`); }
+  else { const D=m.dwell;
+    if(!D.length) card=kCard('Waktu truk di dock','–','mnt','menunggu truk pertama selesai',`<div class="kempty">Belum ada truk yang selesai di dock${(()=>{ const d=s.trucks.filter(t=>t.state==='docked'), w=d.filter(t=>t.dockT!=null); return d.length?`<br>${d.length} truk sedang di dock${w.length?` · terlama ${n1((s.t-Math.min(...w.map(t=>t.dockT)))/60)} mnt`:''}`:''; })()}</div>`);
+    else { const items=D.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt di dock · ${x.mode==='load'?'muat':'bongkar'} ${x.n} palet`]}));
+      card=kCard('Waktu truk di dock',n1(k.avgDockDwellMin),'mnt rata-rata',`${D.length} truk terakhir · dari dock sampai keluar`,kBars(items,{fmtv:v=>n1(v,0),cap:12}),''); } }
+  return `<div class="sec"><h3>Kinerja khas</h3><small>dihitung dari simulasi</small></div>${card}`; }
+const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
+function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  c.fillStyle=dark?'#222A52':'#F4F6FD'; c.fillRect(0,0,W,Hh);
+  for(let r=0;r<g.rows;r++) for(let q=0;q<g.cols;q++){ const v=g.g[r*g.cols+q]; if(v<=mx*0.02||!mx) continue; const t=Math.sqrt(v/mx), k=Math.min(HEAT_RAMP.length-1,Math.floor(t*HEAT_RAMP.length)); c.fillStyle=dark?HEAT_RAMP[HEAT_RAMP.length-1-k]:HEAT_RAMP[k];   /* mode gelap: jarang = dekat latar, padat = terang */ c.fillRect(q*cs+0.5,r*cs+0.5,cs-1,cs-1); }
+  const X=x=>(x-g.x0)*cs, Z=z=>(z-g.z0)*cs; c.strokeStyle=dark?'#AEB6DA':'#56608A'; c.lineWidth=1.2; c.setLineDash([]);
+  c.strokeRect(X(-s.W/2),Z(g.z0)-1,s.W*cs,Z(s.fz)+1);   /* muka gedung (sisi dock) */
+  c.setLineDash([3,3]); for(const b of s.bays) c.strokeRect(X(b.x-1.3),Z(s.zDock-1.6),2.6*cs,3.2*cs); c.setLineDash([]);
+  c.fillStyle=dark?'#AEB6DA':'#56608A'; c.font='600 10px "Plus Jakarta Sans",system-ui,sans-serif'; c.textBaseline='top'; c.fillText('Gudang',X(-s.W/2)+4,2); c.textBaseline='bottom'; c.fillText('Dock',X(s.bays[0].x-1.3),Hh-2); c.fillText('Staging & charger',3,Hh-2);
+  cv.onpointermove=ev=>{ const rc=cv.getBoundingClientRect(), q=Math.floor((ev.clientX-rc.left)/cs), r=Math.floor((ev.clientY-rc.top)/cs); if(q<0||r<0||q>=g.cols||r>=g.rows) return;
+    const v=g.g[r*g.cols+q]; cv.dataset.tip=`Sel ${q},${r} (1 × 1 m)|${mx?Math.round(v/mx*100):0}% dari sel terpadat`; }; }
 const hhmm=h=>{ const H=Math.floor(h)%24, M=Math.floor((h-Math.floor(h))*60); return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0'); };
 const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3?'Senja':'Malam';
 function renderEnvMenu(){
@@ -330,12 +397,13 @@ function select(e,fly){
   if(sid){ const i=SITES().findIndex(s=>s.id===sid); if(i>=0) active=i; }
   sel=(e&&e.kind!=='site')?e:null;
   document.body.classList.toggle('has-sel',!!sel);
+  document.body.classList.toggle('site-sheet',!!(e&&e.kind==='site'));   /* ponsel: ketuk gedung = buka ringkasan gudang + Kinerja khas */
   applySelVis(sel);
   follow=!!(sel&&fly&&((sel.kind==='truck'&&sel.state!=='parked')||sel.kind==='forklift'||sel.kind==='person'));
   if(fly&&e&&e.kind!=='shipment'&&!(e.kind==='truck'&&e.state==='away')) flyTo(e.kind==='site'?siteHome(e.idx):worldPos(e),Math.max(cam.zoomGoal,e.kind==='site'?1.12:e.kind==='store'?1.25:1.45));
   refreshUI(true);
 }
-function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
+function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel','site-sheet'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
 function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),HOME_ZOOM()); }
 const ptrs=new Map(); let drag=null, pinch=null;
 canvas.addEventListener('pointerdown',e=>{ canvas.classList.add('grabbing'); canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); closeMenus();
@@ -516,7 +584,7 @@ function hoverInfo(r){ if(!r) return null; switch(r.kind){
 canvas.addEventListener('pointermove',ev=>{ if(ptrs.size||cine.on||ev.pointerType==='touch'){ tipEl.classList.remove('show'); return; }
   const now=performance.now(); if(now-tipT<70) return; tipT=now;
   let info=null; try{ info=hoverInfo(recordAt(ev.clientX,ev.clientY)); }catch(_){}
-  if(info){ tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
+  if(info){ tipEl.classList.remove('flip'); tipEl.style.right='auto'; tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
   else { tipEl.classList.remove('show'); canvas.style.cursor=''; } });
 canvas.addEventListener('pointerleave',()=>{ tipEl.classList.remove('show'); canvas.style.cursor=''; });
 /* ---- toast untuk peringatan kritis baru ---- */
@@ -603,7 +671,7 @@ syncView(0,performance.now());
    Simulasi dipercepat dengan langkah tetap 1/15 dtk, diperiksa makeSafetyChecker (sama dengan tests/headless-sim.mjs).
    Hasil juga tersedia di window.__selftest untuk otomasi (Playwright). */
 let SIM_PAUSED=QS.has('selftest'); /* mode uji: simulasi normal ditahan sejak awal supaya hasilnya sama persis dengan tests/headless-sim.mjs */
-const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function esc(v){ return String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }   /* deklarasi fungsi: ter-hoist, aman dipakai render pertama */
 async function runSelftest(){
   const menit=clamp(+(QS.get('menit')||13)||13,1,60), jam=['siang','pagi','sore','malam','cycle'].includes(QS.get('jam'))?QS.get('jam'):'siang';
   SIM_PAUSED=true; stopCine(); select(null);

@@ -1,5 +1,19 @@
 # Changelog
 
+## v31 · 19 Okt 2026
+- **Kinerja khas per gudang**: panel gudang kini punya bagian "Kinerja khas" dengan grafik yang dihitung dari simulasi, bukan rumus tampilan:
+  - Gudang Dingin Cileungsi: suhu ruang 24 jam. Suhu naik ±0,54 °C untuk tiap pintu dock yang terbuka dan pulih ke −19 °C saat pintu tertutup; pita hijau menandai batas aman −20 s/d −17 °C.
+  - Cross-Dock Sentul: waktu transit tiap palet, dari dibongkar di bay inbound sampai dimuat di bay outbound (16 palet terakhir + garis median).
+  - DC Cikarang: paket keluar per jam dari isi palet yang benar-benar dimuat, 24 jam terakhir.
+  - Hub Robotik Depok: peta panas pergerakan AGV (sel 1 × 1 m) dan utilisasi AGV rata-rata 2 menit.
+  - Hub Cibinong: waktu truk di dock untuk 12 truk terakhir.
+- Riwayat jam sebelum aplikasi dibuka ditampilkan sebagai perkiraan (biru muda, garis putus) supaya jelas beda dengan data terukur.
+- Arahkan kursor ke batang, titik jam, atau sel peta panas untuk melihat angka persisnya. Tooltip di tepi kanan layar kini membuka ke kiri.
+- Ringkasan KPI ikut di data mentah gudang (`kpi` di record `sites`), siap dipakai backend nanti.
+- Di ponsel, ketuk gedung untuk membuka ringkasan gudang beserta grafiknya.
+- Uji mandiri bertambah satu pemeriksaan: angka KPI harus terhingga dan masuk akal. Pengukuran KPI tidak memakai RNG simulasi, jadi sidik jari simulasi sama persis dengan v30 (`d15e868a` untuk seed 7, 2 menit, siang).
+- Semua 9 skenario regresi v30 lulus penuh.
+
 ## v30 · 19 Okt 2026
 - **Simulasi ber-seed**: `?seed=123` membuat keputusan acak simulator bisa diulang. Seed tampil di menu Waktu & Cuaca dengan tombol salin tautan.
 - **Uji mandiri `?selftest`** (opsional `&menit=13&jam=malam`): simulasi dipercepat lalu muncul laporan 16 pemeriksaan keselamatan. Hasil juga ada di `window.__selftest` untuk otomasi.

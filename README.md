@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v30** · oleh PT Fusionify Digital
+**Lumbung v31** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -74,7 +74,7 @@ Pusat peringatan memantau operasi terus-menerus dan setiap peringatan punya **to
 Peringatan selesai otomatis saat kondisinya pulih, dan semuanya tercatat di riwayat.
 
 ### 📊 Panel & KPI
-Kartu KPI dengan grafik tren mini, panel detail per objek, pelacakan pengiriman, notifikasi toast, tooltip saat hover, mode gelap, dan tata letak responsif dari ponsel sampai layar lebar.
+Kartu KPI dengan grafik tren mini, grafik **Kinerja khas** per jenis gudang (suhu ruang 24 jam, waktu transit cross-dock, paket per jam, peta panas AGV, waktu truk di dock) yang dihitung langsung dari simulasi, panel detail per objek, pelacakan pengiriman, notifikasi toast, tooltip saat hover, mode gelap, dan tata letak responsif dari ponsel sampai layar lebar.
 
 ---
 
@@ -237,7 +237,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 
 Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
 
-- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 16 pemeriksaan keselamatan.
+- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 17 pemeriksaan keselamatan (termasuk validitas angka KPI).
 - **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
 - **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 
@@ -279,8 +279,8 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 
 ## Peta Jalan
 
-- [ ] KPI & grafik khas per jenis gudang (suhu 24 jam, waktu transit, peta panas AGV)
-- [ ] Simulasi dengan *seed* + mode uji mandiri (`?selftest`)
+- [x] KPI & grafik khas per jenis gudang (suhu 24 jam, waktu transit, peta panas AGV) · v31
+- [x] Simulasi dengan *seed* + mode uji mandiri (`?selftest`) · v30
 - [ ] Check-in gerbang & area tunggu truk
 - [ ] Pengiriman antar-gudang
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT

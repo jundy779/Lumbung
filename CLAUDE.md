@@ -1,10 +1,20 @@
-# CLAUDE.md · Peta Teknis Lumbung v30
+# CLAUDE.md · Peta Teknis Lumbung v31
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v31 (19 Okt 2026), Tahap 3 KPI khas per gudang**:
+- `c_sim.js` (sebelum `simSite`): `KPI_COLD`, `kpiAct(h)`, `initMetrics(site)`, `metricsTick(site,dt)` (dipanggil di akhir `simSite`), hook `kpiOnDock` (reverse→docked), `kpiOnPull` (docked→pull), `kpiOnLoad` (palet masuk trailer), `kpiOnUnload` (palet masuk slot, set `pallet.inT`), `kpiHourVal`, `median`, `kpiSummary(site)`.
+- Data: `site.t` (detik simulasi per site) dan `site.metrics` (hidden). Isi per profil: cold `temp/open/hours[24]`, dc `recent/hours[24]`, crossdock `transit[≤16]`, robotic `heat{g:Float32Array,cols,rows,x0,z0}` + `util` (EMA 2 menit), semua profil `dwell[≤12]`. Bucket jam `{s,w,seed}`; `seed:true` = perkiraan riwayat dari `rng(SEED^strHash(site.id))`, **bukan RAND**, supaya sidik jari simulasi tidak berubah (tetap `d15e868a`).
+- Model suhu: `dT/dt = -(T+19)/150 + 0.0036·pintuTerbuka`. Batas aman −20 s/d −17 °C.
+- `SCHEMA.sites` punya field `kpi` (dari `kpiSummary`). Pemeriksa ke-16 `kpi` di `makeSafetyChecker`. Harness Node mencetak `kpi` per site.
+- `e_ui.js`: `profileLine` memakai `kpiSummary`; `kpiBlock(s)` (bagian "Kinerja khas" di panel gudang, setelah grid2), helper `kBars`, `kAxisY`, `barD`, `kCard`, `kLegend`, `drawHeat(s)` (kanvas, dipanggil setelah `renderDetail` mengisi innerHTML). Tooltip grafik: atribut `data-tip="judul|keterangan"` + listener delegasi di `#detail` yang memakai `#hoverTip`; kelas `.flip` membuka ke kiri di tepi kanan.
+- `esc()` kini deklarasi fungsi (ter-hoist), karena render pertama terjadi sebelum baris definisinya.
+- Ponsel: ketuk gedung → kelas body `site-sheet` menampilkan panel gudang (sebelumnya panel gudang tidak pernah tampil di ponsel).
+- CSS grafik: `.kcard`, `.kchart` (`.kb`, `.kb.sd`, `.kl`, `.kband`, `.kref`, `.khit`), `.klg`, `.kheat`, `.kempty` di shell.html.
 
 **Perubahan v30 (19 Okt 2026)**:
 - `a_core.js`: `QS` (parameter URL), `SEED`, `SEEDED`, `RAND = rng(SEED)`. **Aturan: semua keputusan acak di b_layout & c_sim wajib lewat `RAND()`**, bukan `Math.random()` (View/UI boleh `Math.random`). `pick()` memakai `RAND` sebagai default. Di Node, seed dari global `__LUMBUNG_SEED`.
@@ -472,7 +482,7 @@ Catatan: `vercel.json` sekarang memakai `outputDirectory: public` untuk file sta
 ### 16.1 Fitur yang sudah disepakati, belum dikerjakan
 Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, supaya fitur berikutnya tidak diam-diam merusak simulator.
 
-**A. Tahap 3: KPI & grafik khas per gudang**
+**A. Tahap 3: KPI & grafik khas per gudang** ✅ selesai di v31 (lihat catatan v31 di atas)
 - Sekarang: hanya satu baris `profileLine()` (e_ui.js:256), dan angkanya formula kosmetik (suhu = sinus + jumlah pintu terbuka, paket/jam = rumus dari stok).
 - Butuh data riwayat: tambahkan ring buffer `site.metrics` yang diisi di `simSite()` tiap N detik simulasi, lalu grafik SVG di panel detail (pola `sparkPath` bisa dipakai ulang).
 - Gudang Dingin: suhu ruang 24 jam, dihitung dari pintu dock yang terbuka (`doorState`) dan pemulihan pendingin.

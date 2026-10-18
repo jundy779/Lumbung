@@ -296,6 +296,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v31):** Tahap 3 KPI & grafik khas per gudang. `site.metrics` diisi `metricsTick()` di akhir `simSite()` (tanpa RAND, sidik jari tidak berubah), hook `kpiOnDock/kpiOnPull/kpiOnLoad/kpiOnUnload`, ringkasan `kpiSummary()` ikut `SCHEMA.sites.kpi`, grafik SVG + kanvas peta panas di `kpiBlock()`/`drawHeat()` (e_ui.js), pemeriksaan ke-16 "KPI gudang tidak valid".
+
 **Selesai (v30):** simulasi ber-seed (`?seed=`), uji mandiri `?selftest` + `tests/headless-sim.mjs` dengan 15 pemeriksaan invariant, perbaikan lalu lintas (mobil melepas kunci persimpangan karena lampu merah di persimpangan berikutnya, keputusan kuning/merah yang konsisten dengan pengereman, aturan "jangan menutup persimpangan"), sopir bisa memutari truk yang menghalangi di ruas panjang, crash pekerja di mode siklus cepat.
 
 **Selesai (v29):** mode sinematik bercerita (ikuti satu truk tanpa potong), kamera awal lebih dekat, tilt-shift ikut zoom, operator gudang & properti halaman, data demo milik sendiri, ID kiriman berurutan, `tests/headless-sim.mjs`.
@@ -304,10 +306,9 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 **Belum dikerjakan (urutan disarankan):**
 
-1. Tahap 3: KPI & grafik khas per gudang (suhu 24 jam, waktu transit, peta panas AGV, paket/jam).
-2. Check-in gerbang & area tunggu truk.
-3. Pengiriman antar-gudang; arahkan truk yang sedang datang.
-4. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
-5. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
+1. Check-in gerbang & area tunggu truk.
+2. Pengiriman antar-gudang; arahkan truk yang sedang datang.
+3. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
+4. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
 **Batasan yang diketahui:** data masih simulasi; tujuan pengiriman 2 toko + luar kota; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).

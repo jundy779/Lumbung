@@ -28,6 +28,7 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
   const R = C.report();
   globalThis.__report = { seed: SEED, jam: ${JSON.stringify(JAM)}, pass: R.pass && dups.length === 0, fingerprint: simFingerprint(),
     ...R.metrics, shipmentIdCollisions: dups.length,
+    kpi: Object.fromEntries(SITES().map(s => [s.id, kpiSummary(s)])),
     failed: R.rows.filter(r => !r.ok).map(r => ({ cek: r.label, jumlah: r.count, contoh: r.examples })),
     passed: R.rows.filter(r => r.ok).map(r => r.label) };
 })();`;

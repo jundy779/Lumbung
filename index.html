@@ -224,7 +224,7 @@ svg{display:block}
   .kpis{padding-right:18px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
   .mapctl{right:10px;top:calc(env(safe-area-inset-top,0px) + 166px)}
   .detail{left:8px;right:8px;width:auto;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);max-height:52%;display:none}
-  body.has-sel .detail{display:block}
+  body.has-sel .detail,body.site-sheet .detail{display:block}
   .track{display:none}
   .ops{left:8px;right:8px;width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);display:none;max-height:50%;overflow:auto}
   body.ops-open .ops{display:block}
@@ -370,6 +370,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outl
 .vignette{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(130% 95% at 50% 42%,transparent 62%,rgba(28,38,92,.10) 100%)}
 body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 55%,rgba(10,15,40,.28) 100%)}
 #hoverTip{position:fixed;left:0;top:0;z-index:8;pointer-events:none;background:rgba(20,28,66,.94);color:#fff;border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.35;box-shadow:0 8px 24px rgba(10,15,40,.25);opacity:0;transform:translate(16px,14px);transition:opacity .12s;max-width:260px}
+#hoverTip.flip{transform:translate(-14px,14px)}
 #hoverTip.show{opacity:1}#hoverTip b{display:block;font-weight:700;font-size:12.5px}#hoverTip span{color:#C9D3FF}
 #toasts{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:7;pointer-events:none;width:min(420px,calc(100vw - 32px))}
 .toast{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid rgba(214,220,238,.85);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:12.5px;color:var(--ink);cursor:pointer;animation:tin .35s ease}
@@ -435,6 +436,35 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 @media (prefers-color-scheme:dark){ .live.sim{background:rgba(124,116,255,.2);color:#C4C0FF} .live.sim i{background:#A39CFF} .shiftbar{background:rgba(242,107,29,.16);color:#FFB487} .shiftbar.malam{background:rgba(139,209,42,.16);color:#C6EE8B} }
 :root[data-theme="dark"] .live.sim{background:rgba(124,116,255,.2);color:#C4C0FF}
 .profline{display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding:7px 10px;border-radius:10px;background:var(--panel-2);font-size:12px;color:var(--ink-2);font-weight:600}.profline span{font-size:14px}
+/* v31 · grafik Kinerja khas per gudang */
+.kcard{background:var(--panel-2);border-radius:12px;padding:10px 10px 8px}
+.kcard .kh{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 8px;margin-bottom:4px}
+.kcard .kh small{color:var(--ink-2);font-size:11px;font-weight:600}
+.kcard .kh b{grid-row:span 2;font-size:19px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kcard .kh b span{font-size:11px;font-weight:600;color:var(--ink-3)}
+.kcard .kh em{font-style:normal;color:var(--ink-3);font-size:10.5px;line-height:1.35}
+.kchart{display:block;width:100%;height:auto;overflow:visible}
+.kchart .kg{stroke:var(--line);stroke-width:1}
+.kchart .kt{fill:var(--ink-3);font-size:9.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.kchart .kb{fill:var(--blue)}
+.kchart .kb.sd{fill:#9ec5f4}
+.kchart .kl{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.kchart .kl.sd{stroke:#9ec5f4;stroke-dasharray:4 3}
+.kchart .kdot{fill:var(--blue);stroke:var(--panel-2);stroke-width:2}
+.kchart .kband{fill:var(--green-soft)}
+.kchart .kref{stroke:var(--ink-2);stroke-width:1.2;stroke-dasharray:4 3}
+.kchart :not(.khit){pointer-events:none}
+.kchart .khit{fill:transparent;cursor:default;pointer-events:all}
+.kchart .khit:hover{fill:rgba(46,91,255,.07)}
+.klg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:10.5px;color:var(--ink-2)}
+.klg span{display:inline-flex;align-items:center;gap:5px}
+.klg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.klg i.m{background:var(--blue)} .klg i.s{background:#9ec5f4} .klg i.b{background:var(--green-soft);border:1px solid var(--green)}
+.klg .kramp{margin-left:auto} .klg .kramp i{width:42px;background:linear-gradient(90deg,#cde2fb,#6da7ec,#256abf,#0d366b)}
+.kheatw{border-radius:8px;overflow:hidden}
+@media (prefers-color-scheme:dark){.klg .kramp i{background:linear-gradient(90deg,#0d366b,#256abf,#6da7ec,#cde2fb)}}
+.kheat{display:block;width:100%}
+.kempty{padding:18px 6px;text-align:center;color:var(--ink-3);font-size:11.5px}
 .dest{margin:10px 0 4px;padding:10px;border-radius:12px;background:var(--panel-2)}
 .dest .dh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}.dest .dh b{font-size:12.5px}.dest .dh span{font-size:11px;color:var(--ink-3)}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
@@ -661,7 +691,7 @@ function hidden(obj,key,val){ Object.defineProperty(obj,key,{value:val,writable:
 const r2=v=>Math.round(v*100)/100;
 const SCHEMA={
   stores:    r=>({id:r.id,name:r.name,type:r.type,address:r.address,dockId:r.bays[0].id,dockTruckId:r.bays[0].truckId,receivingSlots:r.slots.map(s=>({code:s.code,palletId:s.palletId})),receivedToday:r.receivedToday,returnsToday:r.returnsToday}),
-  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
+  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,kpi:kpiSummary(r),inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
   docks:     r=>({id:r.id,siteId:r.siteId,label:r.label,truckId:r.truckId,doorState:r.doorState,trucksToday:r.today}),
   slots:     r=>({id:r.id,siteId:r.siteId,code:r.code,palletId:r.palletId,reserved:r.reserved}),
   pallets:   r=>({id:r.id,siteId:r.siteId,item:r.item,qty:r.qty,kg:r.kg,lot:r.lot,received:r.recv,packing:r.packing,hold:!!r.hold,location:r.location}),
@@ -1206,7 +1236,7 @@ function truckStep(site,t,dt){
       t.wait-=dt; if(t.wait<=0&&driverStep(t,dt,1)){ t.state='reverse'; setPath(t,reversePath(site,t.bay),true,2.1,1.6); }
       break;
     case 'reverse':
-      if(moveStep(t,dt,lookAheadTruck(t,site))){ t.state='docked'; t.wait=0; release(site,t); t.bay.today++; site.arrivals++; if(site.profile==='cold'){ hidden(t,'coldCheck',5.5+RAND()*2); logEvent(site,`${t.id} · cek suhu muatan di ${t.bay.label}`,'#0EA5E9',t); } hidden(t,'restPlan',RAND()<0.85);
+      if(moveStep(t,dt,lookAheadTruck(t,site))){ t.state='docked'; t.wait=0; release(site,t); kpiOnDock(site,t); t.bay.today++; site.arrivals++; if(site.profile==='cold'){ hidden(t,'coldCheck',5.5+RAND()*2); logEvent(site,`${t.id} · cek suhu muatan di ${t.bay.label}`,'#0EA5E9',t); } hidden(t,'restPlan',RAND()<0.85);
         if(t.shipment) t.shipment.status=t.mode==='load'?'loading':'unloading';
         logEvent(site,`${t.id} tiba di ${t.bay.label} · ${t.mode==='load'?'muat':'bongkar'} ${t.total} palet`,'#2E5BFF',t); }
       break;
@@ -1216,7 +1246,7 @@ function truckStep(site,t,dt){
       if(t.mode==='load'&&t.done+t.pending<t.total&&!t.assigned&&!site.slots.some(x=>x.occupied&&!x.reserved)){ t.starve=(t.starve||0)+dt;
         if(t.starve>25){ t.total=t.done+t.pending; t.starve=0; if(t.shipment) t.shipment.total=t.total; logEvent(site,`${t.id} berangkat dengan muatan parsial (${t.total} palet) · stok habis`,'#C2410C',t); } } else t.starve=0;
       if(t.done>=t.total&&t.pending===0&&!t.assigned&&inCab){ t.wait+=dt;
-        if(t.wait>2 && canAcquire(site,t,regionOf(site,t.bay),false)){ acquire(site,t,regionOf(site,t.bay)); t.state='pull'; setPath(t,finalize(linePts(t.bay.x,site.zDock,t.bay.x,site.zDock+4,0.5)),false,1.6,1.6); } }
+        if(t.wait>2 && canAcquire(site,t,regionOf(site,t.bay),false)){ acquire(site,t,regionOf(site,t.bay)); kpiOnPull(site,t); t.state='pull'; setPath(t,finalize(linePts(t.bay.x,site.zDock,t.bay.x,site.zDock+4,0.5)),false,1.6,1.6); } }
       else t.wait=0;
       break; }
     case 'pull':
@@ -1338,7 +1368,7 @@ function startJob(site,f,job,onExit){
     travel(f,slot.spot,onExit);
     f.q.push({t:'lift',h:0},{t:'wait',d:0.25},{t:'do',fn:()=>{ const pid=slot.palletId; slot.palletId=null; f.carryingPalletId=pid; setPalletLocation(pid,{type:'fork',id:f.id}); f.task=`Muat ${t.id} di ${t.bay.label}`; }},{t:'lift',h:0.2});
     travel(f,trailerSpot(site,t,k));
-    f.q.push({t:'lift',h:0},{t:'wait',d:0.2},{t:'do',fn:()=>{ const pid=f.carryingPalletId; f.carryingPalletId=null; if(pid){ t.cargo[k]=pid; setPalletLocation(pid,{type:'truck',id:t.id,index:k}); }
+    f.q.push({t:'lift',h:0},{t:'wait',d:0.2},{t:'do',fn:()=>{ const pid=f.carryingPalletId; f.carryingPalletId=null; if(pid){ t.cargo[k]=pid; setPalletLocation(pid,{type:'truck',id:t.id,index:k}); kpiOnLoad(site,pid); }
         t.done++; t.pending--; slot.reserved=false; site.stockDelta-=1; f.moves++; f.battery-=1.5; decide(site,f,()=>rel()); }},{t:'lift',h:0.03});
   } else {
     const k=t.total-t.done-t.pending;
@@ -1347,7 +1377,7 @@ function startJob(site,f,job,onExit){
     f.q.push({t:'lift',h:0},{t:'wait',d:0.25},{t:'do',fn:()=>{ const pid=t.cargo[k]; t.cargo[k]=null; f.carryingPalletId=pid; if(pid) setPalletLocation(pid,{type:'fork',id:f.id});
         t.done++; t.pending--; f.task=`Simpan ke slot ${slot.code}`; }},{t:'lift',h:0.2});
     travel(f,slot.spot,rel);
-    f.q.push({t:'lift',h:0},{t:'wait',d:0.2},{t:'do',fn:()=>{ const pid=f.carryingPalletId; f.carryingPalletId=null; if(pid){ slot.palletId=pid; setPalletLocation(pid,{type:'slot',id:slot.id}); }
+    f.q.push({t:'lift',h:0},{t:'wait',d:0.2},{t:'do',fn:()=>{ const pid=f.carryingPalletId; f.carryingPalletId=null; if(pid){ slot.palletId=pid; setPalletLocation(pid,{type:'slot',id:slot.id}); kpiOnUnload(site,pid); }
         slot.reserved=false; site.stockDelta+=1; site.putToday++; f.moves++; f.battery-=1.5; decide(site,f,null); }},{t:'lift',h:0.03});
   }
 }
@@ -1470,6 +1500,50 @@ function shiftTick(site,dt){
     if(f.task.startsWith('Siaga')||f.charging||f.shiftWait>120){ f.shiftNow=want; f.shiftWait=0; } }
 }
 /* ---------- site tick ---------- */
+/* ---------- KPI khas per gudang (v31): diukur dari simulasi, bukan rumus kosmetik ----------
+   Hanya membaca keadaan simulasi dan tidak memakai RAND, jadi sidik jari simulasi tidak berubah.
+   Riwayat jam sebelum aplikasi dibuka adalah perkiraan ber-seed (ditandai seed:true), jam setelahnya terukur. */
+const KPI_COLD={set:-19,tau:150,door:0.0036,lo:-20,hi:-17};   /* tiap pintu dock terbuka menaikkan suhu setimbang ±0,54 °C */
+const kpiAct=h=>h<5?0.35:h<7?0.6:h<17?1:h<21?0.8:0.5;   /* profil kesibukan gudang per jam untuk riwayat perkiraan */
+function initMetrics(site){
+  const r=rng((SEED^strHash(site.id))>>>0), m={h:-1,hours:null}; hidden(site,'metrics',m); if(site.t==null) hidden(site,'t',0);
+  const p=site.profile;
+  if(p==='cold'){ m.temp=-18.4; m.open=0; m.hours=Array.from({length:24},(_,h)=>({s:-19+1.3*kpiAct(h)+(r()-0.5)*0.3,w:1,seed:true})); }
+  else if(p==='dc'){ m.recent=[]; m.hours=Array.from({length:24},(_,h)=>({s:Math.round(2800*kpiAct(h)*(0.9+r()*0.2)),w:3600,seed:true})); }
+  else if(p==='crossdock'){ m.transit=[]; }
+  else if(p==='robotic'){ const x0=site.xs0-0.5, x1=site.xs1+0.5, z0=site.fz-3.5, z1=site.fz+8;
+    m.heat={x0,z0,cols:Math.ceil(x1-x0),rows:Math.ceil(z1-z0),acc:0}; m.heat.g=new Float32Array(m.heat.cols*m.heat.rows); m.util=null; }
+  m.dwell=[];
+  return m; }
+function metricsTick(site,dt){
+  const m=site.metrics||initMetrics(site); site.t+=dt;
+  const H=Math.floor(Store.clock.hour)%24; if(H!==m.h){ m.h=H; if(m.hours) m.hours[H]={s:0,w:0,seed:false}; }
+  const b=m.hours&&m.hours[H];
+  if(site.profile==='cold'){ const open=site.bays.filter(x=>x.doorState==='open').length; m.open=open;
+    m.temp+=(-(m.temp-KPI_COLD.set)/KPI_COLD.tau+KPI_COLD.door*open)*dt; b.s+=m.temp*dt; b.w+=dt; }
+  else if(site.profile==='dc'){ b.w+=dt; while(m.recent.length&&site.t-m.recent[0].t>600) m.recent.shift(); }
+  else if(site.profile==='robotic'){ const g=m.heat; g.acc+=dt;
+    if(g.acc>=0.5){ g.acc-=0.5; const k=0.9995; for(let i=0;i<g.g.length;i++) g.g[i]*=k;
+      let w=0; for(const f of site.forks){ if(forkWorking(f)) w++; const cx=Math.floor(f.pos.x-g.x0), cz=Math.floor(f.pos.z-g.z0);
+        for(let dz=-1;dz<=1;dz++) for(let dx=-1;dx<=1;dx++){ const X=cx+dx, Z=cz+dz; if(X>=0&&Z>=0&&X<g.cols&&Z<g.rows) g.g[Z*g.cols+X]+=(dx?0.5:1)*(dz?0.5:1); } }   /* kernel 3×3 supaya jejak terbaca sebagai area, bukan titik */
+      const u=w/Math.max(1,site.forks.length); m.util=m.util==null?u:m.util+(u-m.util)*(1-Math.exp(-0.5/120)); } }
+}
+function kpiOnUnload(site,pid){ const P=pid&&Store.get('pallets',pid); if(P) P.inT=site.t||0; }
+function kpiOnLoad(site,pid){ const m=site.metrics; if(!m) return; const P=pid&&Store.get('pallets',pid); if(!P) return;
+  if(site.profile==='crossdock'&&P.inT!=null){ m.transit.push({id:P.id,min:(site.t-P.inT)/60}); if(m.transit.length>16) m.transit.shift(); }
+  if(site.profile==='dc'){ m.recent.push({t:site.t,q:P.qty}); if(m.hours&&m.hours[m.h]) m.hours[m.h].s+=P.qty; } }
+function kpiOnDock(site,t){ hidden(t,'dockT',site.t||0); }
+function kpiOnPull(site,t){ const m=site.metrics; if(!m||t.dockT==null) return; m.dwell.push({id:t.id,mode:t.mode,n:t.done,min:(site.t-t.dockT)/60}); if(m.dwell.length>12) m.dwell.shift(); t.dockT=null; }
+const kpiHourVal=(site,b)=>!b?null:site.profile==='dc'?(b.w>=(Store.clock.mode==='cycle'?8:30)?b.s/b.w*3600:null):(b.w>0?b.s/b.w:null);
+const median=a=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=s.length>>1; return s.length%2?s[k]:(s[k-1]+s[k])/2; };
+/* ringkasan publik (ikut SCHEMA.sites → kpi) */
+function kpiSummary(site){ const m=site.metrics; if(!m) return null; const r1=v=>v==null?null:Math.round(v*10)/10;
+  switch(site.profile){
+    case 'cold': return {roomTempC:r1(m.temp),doorsOpen:m.open,targetMaxC:KPI_COLD.hi};
+    case 'crossdock': return {medianTransitMin:r1(median(m.transit.map(x=>x.min))),samples:m.transit.length};
+    case 'dc': { const q=m.recent.reduce((a,x)=>a+x.q,0), span=Math.min(600,Math.max(60,site.t)); return {packagesPerHour:Math.round(q/span*3600),windowMin:Math.round(span/60)}; }
+    case 'robotic': return {agvUtilPct:m.util==null?null:Math.round(m.util*100)};
+    default: return {avgDockDwellMin:r1(m.dwell.length?m.dwell.reduce((a,x)=>a+x.min,0)/m.dwell.length:null),samples:m.dwell.length}; } }
 function simSite(site,dt){
   if(site.bias){ site.bias.t-=dt; if(site.bias.t<=0) site.bias=null; }
   refreshCircles(site.trucks); refreshTruckWorld(site); refreshCircles(site.forks); refreshCircles(site.people);
@@ -1478,6 +1552,7 @@ function simSite(site,dt){
   shiftTick(site,dt);
   for(const p of site.people) personStep(site,p,dt);
   for(const b of site.bays){ const t=b.truck; b.doorState=t&&t.state==='docked'?'open':'closed'; }
+  metricsTick(site,dt);
 }
 
 /* ---------- lalu lintas kota (data) ---------- */
@@ -1757,7 +1832,7 @@ const SAFETY_LABELS={
   personHit:'Orang tertabrak truk/forklift', crewTouch:'Sopir menyentuh badan truk lain', zebra:'Kendaraan berhenti di atas zebra cross',
   doorsRoad:'Pintu truk dibuka di jalan raya', crossdock:'Cross-dock: truk di dock arah yang salah', cold:'Gudang dingin: palet dipindah sebelum cek suhu',
   redirect:'Truk tiba di tujuan yang salah', crewStall:'Sopir tidak mendekat ke tujuannya > 20 dtk', stuck:'Truk tertahan > 120 dtk',
-  teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m'};
+  teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m', kpi:'KPI gudang tidak valid (NaN / di luar batas)'};
 function makeSafetyChecker(){
   const V={}; for(const k in SAFETY_LABELS) V[k]={n:0,ex:[]};
   const bad=(k,msg)=>{ const v=V[k]; v.n++; if(v.ex.length<3&&!v.ex.includes(msg)) v.ex.push(msg); };
@@ -1812,6 +1887,14 @@ function makeSafetyChecker(){
         if(t.dockId!==(Store.get('stores',t.dest)||{bays:[{}]}).bays[0].id||(sh&&sh.storeId&&sh.storeId!==t.dest)) bad('redirect',`${t.id} tiba di ${t.dockId}, seharusnya ${sh&&sh.storeId}`); } }
     }
     for(const c of cars) if(c.v<0.05){ const k='c'+c.id, st=(stopT.get(k)||0)+dt; stopT.set(k,st); if(st>=1&&body(c.x,c.z,c.heading,C_OFF).some(p=>onZebra(p.x,p.z))) bad('zebra',`${c.id}`); } else stopT.delete('c'+c.id);
+    /* KPI khas gudang: angka harus terhingga dan masuk akal */
+    for(const s of Store.all('sites')){ const m=s.metrics; if(!m) continue; const fin=v=>typeof v==='number'&&isFinite(v);
+      if(m.hours) for(let h=0;h<24;h++){ const v=kpiHourVal(s,m.hours[h]); if(v!=null&&(!fin(v)||v<(s.profile==='cold'?-25:0)||(s.profile==='cold'&&v>-10))) bad('kpi',`${s.id} jam ${h}: ${v}`); }
+      if(s.profile==='cold'&&(!fin(m.temp)||m.temp<-25||m.temp>-10)) bad('kpi',`${s.id} suhu ${m.temp}`);
+      if(m.transit) for(const x of m.transit) if(!fin(x.min)||x.min<0) bad('kpi',`${s.id} transit ${x.id} ${x.min}`);
+      for(const x of m.dwell) if(!fin(x.min)||x.min<=0) bad('kpi',`${s.id} dwell ${x.id} ${x.min}`);
+      if(m.heat){ for(const v of m.heat.g) if(!fin(v)||v<0){ bad('kpi',`${s.id} peta panas`); break; } if(m.util!=null&&!(m.util>=0&&m.util<=1)) bad('kpi',`${s.id} utilisasi ${m.util}`); }
+      const k=kpiSummary(s); for(const key in k) if(k[key]!=null&&!fin(k[key])) bad('kpi',`${s.id} ${key}`); }
     /* jarak antre: truk diam beruntun di jalan */
     const q=solid.filter(t=>t.v<0.05&&ROADST.includes(t.state)&&!TIGHT_STATES.includes(t.state));
     for(let i=0;i<q.length;i++) for(let j=0;j<q.length;j++){ if(i===j) continue; const a=q[i], b=q[j]; if(Math.abs(angDiff(a.heading,b.heading))>0.35) continue;
@@ -3108,7 +3191,7 @@ function palletWhere(p){ const L=p.location||{}; if(L.type==='slot'){ const sl=S
   if(L.type==='truck') return `Di dalam ${L.id}`; return '—'; }
 function header(icon,cls,small,title,sub,extra=''){
   return `<div class="dh"><div class="dic ${cls}">${icon}</div><div><small>${small}</small><h2>${title}</h2><p>${sub}</p></div>
-  <div class="acts">${extra}<button data-act="data" aria-pressed="${showData}" aria-label="Lihat data mentah" title="Data mentah (JSON)" class="${showData?'on':''}">${IC.code}</button><button data-act="focus" aria-label="Fokus" title="Fokus">${IC.focus}</button>${sel?`<button data-act="close" aria-label="Tutup" title="Tutup">${IC.close}</button>`:''}</div></div>`;
+  <div class="acts">${extra}<button data-act="data" aria-pressed="${showData}" aria-label="Lihat data mentah" title="Data mentah (JSON)" class="${showData?'on':''}">${IC.code}</button><button data-act="focus" aria-label="Fokus" title="Fokus">${IC.focus}</button>${sel||document.body.classList.contains('site-sheet')?`<button data-act="close" aria-label="Tutup" title="Tutup">${IC.close}</button>`:''}</div></div>`;
 }
 const dataBlock=rec=>showData?`<div class="rawdata"><div class="rawh"><b>Store.${Store.tableOf(rec)}</b><small>record yang dibaca tampilan 3D &amp; panel ini</small></div><pre>${JSON.stringify(publicRecord(rec),null,2).replace(/</g,'&lt;')}</pre></div>`:'';
 function renderDetail(){
@@ -3124,6 +3207,7 @@ function renderDetail(){
         <div class="stat"><small>Keluar hari ini</small><b>${s.outToday} <span>truk</span></b></div>
         <div class="stat"><small>Put-away hari ini</small><b>${s.putToday} <span>palet</span></b></div>
       </div>
+      ${kpiBlock(s)}
       <div class="sec"><h3>Inventaris</h3><small>unit</small></div>
       <ul class="inv">${s.inv.map(i=>`<li>${img3(ICON3D.item(i.name))}<span class="n">${i.name}</span><span class="q">${fmt(i.qty)}</span>${chip(i.qty<STOCK_LOW?['Stok menipis','warn']:['Tersedia','ok'])}</li>`).join('')}</ul>
       <div class="sec"><h3>Armada forklift</h3><small>${n.working}/${s.forks.length} bekerja</small></div>
@@ -3180,8 +3264,12 @@ function renderDetail(){
       `<div class="chips">${chip([{scheduled:'Dijadwalkan',loading:'Dimuat',unloading:'Dibongkar',in_transit:'Dalam perjalanan',delivered:'Terkirim',completed:'Selesai'}[e.status]||e.status,'info'])}<span>${e.customer}</span></div>
       <dl class="kv"><dt>Truk</dt><dd>${t?link(t.id,t.id):'—'}</dd><dt>Asal</dt><dd>${e.origin}</dd><dt>Tujuan</dt><dd>${e.destination}</dd><dt>Palet</dt><dd>${e.total}</dd><dt>Dibuat</dt><dd>${e.createdAt}</dd></dl>`;
   }
-  el.innerHTML=h;
+  el.innerHTML=h; if(!e) drawHeat(s);
 }
+/* tooltip grafik KPI: elemen ber-data-tip di panel detail memakai #hoverTip yang sama dengan kanvas 3D */
+{ const tip=$('#hoverTip'), show=ev=>{ const t=ev.target.closest&&ev.target.closest('[data-tip]'); if(!t||!t.dataset.tip){ tip.classList.remove('show'); return; }
+    const [a,b]=t.dataset.tip.split('|'); tip.firstChild.textContent=a; tip.lastChild.textContent=b||''; const fl=ev.clientX>innerWidth-280; tip.style.left=fl?'auto':ev.clientX+'px'; tip.style.right=fl?(innerWidth-ev.clientX)+'px':'auto'; tip.style.top=ev.clientY+'px'; tip.classList.toggle('flip',fl); tip.classList.add('show'); };
+  $('#detail').addEventListener('pointermove',show); $('#detail').addEventListener('pointerdown',show); $('#detail').addEventListener('pointerleave',()=>tip.classList.remove('show','flip')); }
 $('#detail').addEventListener('click',ev=>{
   const l=ev.target.closest('[data-sel]'); if(l){ select(Store.find(l.dataset.sel),true); return; }
   const b=ev.target.closest('[data-act]'); if(!b) return;
@@ -3254,13 +3342,75 @@ function renderKPIs(){
 function destBlock(t){ const o=destOptions(t); if(!o) return '';
   const btn=x=>`<button class="dopt${x.cur?' on':''}" data-dest="${x.id}"${x.busy?' disabled':''}><b>${x.name}</b><small>${x.busy?'Dipakai '+x.by:x.cur?(t.pendingDest===x.id?'Menunggu keluar persimpangan…':'Tujuan saat ini'):x.type}</small></button>`;
   return `<div class="dest"><div class="dh"><b>Arahkan pengiriman</b><span>${o.enroute?'Ubah rute saat di perjalanan':'Pilih tujuan sebelum berangkat'}</span></div><div class="dgrid">${o.list.map(btn).join('')}${o.toll?`<button class="dopt${!t.dest?' on':''}" data-dest="toll"><b>Luar kota</b><small>${!t.dest?'Tujuan saat ini':'via Tol Jagorawi'}</small></button>`:''}</div></div>`; }
-function profileLine(s){ const p=s.profile||'general', nb=s.bays.length, busy=s.bays.filter(b=>b.truck&&b.truck.state==='docked').length;
-  let ic='🏬', t='Gudang umum · penyimpanan rak';
-  if(p==='cold'){ const open=s.bays.filter(b=>b.doorState==='open').length, temp=-18.6+0.4*Math.sin(performance.now()/40000)+open*0.35; ic='❄️'; t=`Suhu ruang ${temp.toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})}°C · ${open}/${nb} pintu terbuka`; }
-  else if(p==='crossdock'){ const h=Math.ceil(nb/2), ib=s.bays.filter(b=>b.i<h&&b.truck&&b.truck.state==='docked').length, ob=busy-ib; ic='🔀'; t=`Transit rata-rata ${34+busy*3} mnt · Inbound ${ib}/${h} · Outbound ${ob}/${nb-h}`; }
-  else if(p==='dc'){ ic='📦'; t=`${(980+busy*140+Math.round(siteNumbers(s).stock/12)).toLocaleString('id-ID')} paket/jam · armada kurir siap`; }
-  else if(p==='robotic'){ const w=s.forks.filter(f=>forkWorking(f)).length; ic='🤖'; t=`Utilisasi AGV ${Math.round(w/Math.max(1,s.forks.length)*100)}% · ${w}/${s.forks.length} AGV bekerja`; }
+function profileLine(s){ const p=s.profile||'general', nb=s.bays.length, busy=s.bays.filter(b=>b.truck&&b.truck.state==='docked').length, k=kpiSummary(s)||{};
+  let ic='🏬', t=`Gudang umum · ${k.avgDockDwellMin!=null?`rata-rata ${n1(k.avgDockDwellMin)} mnt per truk di dock`:'penyimpanan rak'}`;
+  if(p==='cold'){ ic='❄️'; t=`Suhu ruang ${n1(k.roomTempC)}°C · ${k.doorsOpen}/${nb} pintu terbuka`; }
+  else if(p==='crossdock'){ const h=Math.ceil(nb/2), ib=s.bays.filter(b=>b.i<h&&b.truck&&b.truck.state==='docked').length, ob=busy-ib; ic='🔀'; t=`${k.medianTransitMin!=null?`Transit median ${n1(k.medianTransitMin)} mnt`:'Transit: menunggu palet pertama'} · Inbound ${ib}/${h} · Outbound ${ob}/${nb-h}`; }
+  else if(p==='dc'){ ic='📦'; t=`${fmt(k.packagesPerHour||0)} paket/jam · ${k.windowMin||0} menit terakhir`; }
+  else if(p==='robotic'){ const w=s.forks.filter(f=>forkWorking(f)).length; ic='🤖'; t=`Utilisasi AGV ${k.agvUtilPct??Math.round(w/Math.max(1,s.forks.length)*100)}% · ${w}/${s.forks.length} AGV bekerja`; }
   return `<div class="profline"><span>${ic}</span>${t}</div>`; }
+
+/* ---------- Kinerja khas per gudang (v31): grafik SVG dari site.metrics ----------
+   Satu seri per grafik, warna merek biru; riwayat perkiraan (sebelum aplikasi dibuka) memakai biru muda.
+   Setiap batang/titik punya area hover lebar dengan data-tip "judul|keterangan". */
+const n1=(v,d=1)=>v==null?'–':v.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const hh=h=>String(h).padStart(2,'0')+'.00';
+const kTip=(a,b)=>` data-tip="${esc(a)}|${esc(b)}"`;
+function barD(x,y,w,h){ const r=Math.min(4,w/2,h); if(h<=0.5) return ''; return `M${x.toFixed(1)} ${(y+h).toFixed(1)}V${(y+r).toFixed(1)}A${r} ${r} 0 0 1 ${(x+r).toFixed(1)} ${y.toFixed(1)}H${(x+w-r).toFixed(1)}A${r} ${r} 0 0 1 ${(x+w).toFixed(1)} ${(y+r).toFixed(1)}V${(y+h).toFixed(1)}Z`; }
+const KC={W:300,H:118,L:34,R:6,T:8,B:18};
+function kAxisY(ticks,y,fmtv){ return ticks.map(v=>`<line class="kg" x1="${KC.L}" x2="${KC.W-KC.R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="kt" x="${KC.L-5}" y="${(y(v)+3.5).toFixed(1)}" text-anchor="end">${fmtv(v)}</text>`).join(''); }
+/* grafik batang: items [{v, seed, tip:[a,b], lab}] */
+function kBars(items,{max,ticks,fmtv,ref,cap}={}){ const n=Math.max(items.length,cap||1), pw=KC.W-KC.L-KC.R, ph=KC.H-KC.T-KC.B, slot=pw/n, bw=Math.min(24,slot*0.72);
+  const mx=max||Math.max(1,...items.map(i=>i.v||0))*1.12, y=v=>KC.T+ph-(v/mx)*ph;
+  const tk=ticks||[0,mx/2,mx].map(v=>Math.round(v)), out=[kAxisY(tk,y,fmtv||fmt)];
+  if(ref!=null) out.push(`<line class="kref" x1="${KC.L}" x2="${KC.W-KC.R}" y1="${y(ref).toFixed(1)}" y2="${y(ref).toFixed(1)}"/>`);
+  items.forEach((it,i)=>{ const x=KC.L+i*slot+(slot-bw)/2, v=Math.max(0,it.v||0), top=y(v);
+    out.push(`<path class="kb${it.seed?' sd':''}${it.cur?' cur':''}" d="${barD(x,top,bw,KC.T+ph-top)}"/>`);
+    if(it.lab) out.push(`<text class="kt" x="${(x+bw/2).toFixed(1)}" y="${KC.H-5}" text-anchor="middle">${it.lab}</text>`);
+    out.push(`<rect class="khit" x="${(KC.L+i*slot).toFixed(1)}" y="${KC.T}" width="${slot.toFixed(1)}" height="${ph}"${kTip(...it.tip)}/>`); });
+  return `<svg class="kchart" viewBox="0 0 ${KC.W} ${KC.H}" role="img">${out.join('')}</svg>`; }
+function kCard(title,big,unit,note,body,legend){ return `<div class="kcard"><div class="kh"><small>${title}</small><b>${big}<span> ${unit}</span></b><em>${note}</em></div>${body}${legend||''}</div>`; }
+const kLegend=(a,b)=>`<div class="klg"><span><i class="m"></i>${a}</span>${b?`<span><i class="s"></i>${b}</span>`:''}</div>`;
+function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s), p=s.profile, H=m.h<0?Math.floor(Store.clock.hour):m.h;
+  const order=Array.from({length:24},(_,i)=>(H+1+i)%24); let card='';
+  if(p==='cold'){ const lo=-20.5, hi=-15.5, pw=KC.W-KC.L-KC.R, ph=KC.H-KC.T-KC.B, x=i=>KC.L+i/23*pw, y=v=>KC.T+(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo)*ph;
+    const pts=order.map((h,i)=>{ const b=m.hours[h], v=kpiHourVal(s,b); return {h,i,v,seed:b&&b.seed}; });
+    const seg=(f)=>{ let d='', on=false; pts.forEach(q=>{ if(q.v==null||!f(q)){ on=false; return; } d+=(on?'L':'M')+x(q.i).toFixed(1)+' '+y(q.v).toFixed(1); on=true; }); return d; };
+    const firstLive=pts.findIndex(q=>!q.seed&&q.v!=null);
+    const out=[`<rect class="kband" x="${KC.L}" y="${y(KPI_COLD.hi).toFixed(1)}" width="${pw}" height="${(y(KPI_COLD.lo)-y(KPI_COLD.hi)).toFixed(1)}"/>`, kAxisY([-20,-18,-16],y,v=>'−'+Math.abs(v)+'°'),
+      `<path class="kl sd" d="${seg(q=>q.seed||q.i===firstLive)}"/>`, `<path class="kl" d="${seg(q=>!q.seed)}"/>`];
+    pts.forEach(q=>{ if(q.i%6===5||q.i===23) out.push(`<text class="kt" x="${x(q.i).toFixed(1)}" y="${KC.H-5}" text-anchor="${q.i===23?'end':'middle'}">${q.i===23?'kini':hh(q.h)}</text>`);
+      const w=pw/23; out.push(`<rect class="khit" x="${(x(q.i)-w/2).toFixed(1)}" y="${KC.T}" width="${w.toFixed(1)}" height="${ph}"${kTip(`${hh(q.h)}${q.i===23?' · jam berjalan':''}`,q.v==null?'belum ada data':`${n1(q.v)} °C rata-rata · ${q.seed?'perkiraan riwayat':'terukur'}`)}/>`); });
+    const last=pts[23]; if(last.v!=null) out.push(`<circle class="kdot" cx="${x(23).toFixed(1)}" cy="${y(k.roomTempC).toFixed(1)}" r="4"/>`);
+    const ok=k.roomTempC<=KPI_COLD.hi;
+    card=kCard('Suhu ruang · 24 jam',`${n1(k.roomTempC)}°C`,'',`${ok?'dalam':'di atas'} batas aman ≤ ${KPI_COLD.hi} °C · ${k.doorsOpen}/${s.bays.length} pintu dock terbuka`,
+      `<svg class="kchart" viewBox="0 0 ${KC.W} ${KC.H}" role="img" aria-label="Suhu ruang 24 jam terakhir">${out.join('')}</svg>`,kLegend('Terukur','Perkiraan sebelum dibuka')+`<div class="klg"><span><i class="b"></i>Batas aman −20 s/d −17 °C</span></div>`); }
+  else if(p==='dc'){ const items=order.map((h,i)=>{ const b=m.hours[h], v=kpiHourVal(s,b); return {v:v||0,seed:b&&b.seed,cur:i===23,lab:i===23?'kini':i%6===5?hh(h):'',tip:[`${hh(h)}${i===23?' · jam berjalan':''}`,v==null?'belum cukup data':`${fmt(Math.round(v))} paket/jam · ${b.seed?'perkiraan riwayat':'terukur'}`]}; });
+    card=kCard('Paket keluar per jam',fmt(k.packagesPerHour),'paket/jam',`laju ${k.windowMin} menit terakhir dari palet yang dimuat`,kBars(items,{fmtv:v=>v>=1000?n1(v/1000,1)+'rb':fmt(v)}),kLegend('Terukur','Perkiraan sebelum dibuka')); }
+  else if(p==='crossdock'){ const T=m.transit;
+    if(!T.length) card=kCard('Waktu transit palet','–','mnt','menunggu palet pertama yang masuk lalu keluar',`<div class="kempty">Belum ada palet yang selesai transit${(()=>{ const w=s.slots.map(x=>x.palletId&&Store.get('pallets',x.palletId)).filter(P=>P&&P.inT!=null); return w.length?`<br>${w.length} palet sedang menunggu outbound · tertua ${n1((s.t-Math.min(...w.map(P=>P.inT)))/60)} mnt`:''; })()}</div>`);
+    else { const med=k.medianTransitMin, items=T.map((x,i)=>({v:x.min,lab:'',tip:[x.id,`${n1(x.min)} mnt dari bongkar (inbound) sampai dimuat (outbound)`]}));
+      card=kCard('Waktu transit palet',n1(med),'mnt median',`${T.length} palet terakhir · garis putus = median`,kBars(items,{ref:med,fmtv:v=>n1(v,0),cap:16}),''); } }
+  else if(p==='robotic'){ const u=k.agvUtilPct;
+    card=kCard('Peta panas pergerakan AGV',u==null?'–':u+'%','utilisasi',`rata-rata 2 menit · ${s.forks.length} AGV`,`<div class="kheatw"><canvas class="kheat" id="kHeat" aria-label="Peta panas pergerakan AGV"></canvas></div>`,
+      `<div class="klg"><span>Gudang di atas, dock di bawah</span><span class="kramp"><i></i>jarang → padat</span></div>`); }
+  else { const D=m.dwell;
+    if(!D.length) card=kCard('Waktu truk di dock','–','mnt','menunggu truk pertama selesai',`<div class="kempty">Belum ada truk yang selesai di dock${(()=>{ const d=s.trucks.filter(t=>t.state==='docked'), w=d.filter(t=>t.dockT!=null); return d.length?`<br>${d.length} truk sedang di dock${w.length?` · terlama ${n1((s.t-Math.min(...w.map(t=>t.dockT)))/60)} mnt`:''}`:''; })()}</div>`);
+    else { const items=D.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt di dock · ${x.mode==='load'?'muat':'bongkar'} ${x.n} palet`]}));
+      card=kCard('Waktu truk di dock',n1(k.avgDockDwellMin),'mnt rata-rata',`${D.length} truk terakhir · dari dock sampai keluar`,kBars(items,{fmtv:v=>n1(v,0),cap:12}),''); } }
+  return `<div class="sec"><h3>Kinerja khas</h3><small>dihitung dari simulasi</small></div>${card}`; }
+const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
+function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  c.fillStyle=dark?'#222A52':'#F4F6FD'; c.fillRect(0,0,W,Hh);
+  for(let r=0;r<g.rows;r++) for(let q=0;q<g.cols;q++){ const v=g.g[r*g.cols+q]; if(v<=mx*0.02||!mx) continue; const t=Math.sqrt(v/mx), k=Math.min(HEAT_RAMP.length-1,Math.floor(t*HEAT_RAMP.length)); c.fillStyle=dark?HEAT_RAMP[HEAT_RAMP.length-1-k]:HEAT_RAMP[k];   /* mode gelap: jarang = dekat latar, padat = terang */ c.fillRect(q*cs+0.5,r*cs+0.5,cs-1,cs-1); }
+  const X=x=>(x-g.x0)*cs, Z=z=>(z-g.z0)*cs; c.strokeStyle=dark?'#AEB6DA':'#56608A'; c.lineWidth=1.2; c.setLineDash([]);
+  c.strokeRect(X(-s.W/2),Z(g.z0)-1,s.W*cs,Z(s.fz)+1);   /* muka gedung (sisi dock) */
+  c.setLineDash([3,3]); for(const b of s.bays) c.strokeRect(X(b.x-1.3),Z(s.zDock-1.6),2.6*cs,3.2*cs); c.setLineDash([]);
+  c.fillStyle=dark?'#AEB6DA':'#56608A'; c.font='600 10px "Plus Jakarta Sans",system-ui,sans-serif'; c.textBaseline='top'; c.fillText('Gudang',X(-s.W/2)+4,2); c.textBaseline='bottom'; c.fillText('Dock',X(s.bays[0].x-1.3),Hh-2); c.fillText('Staging & charger',3,Hh-2);
+  cv.onpointermove=ev=>{ const rc=cv.getBoundingClientRect(), q=Math.floor((ev.clientX-rc.left)/cs), r=Math.floor((ev.clientY-rc.top)/cs); if(q<0||r<0||q>=g.cols||r>=g.rows) return;
+    const v=g.g[r*g.cols+q]; cv.dataset.tip=`Sel ${q},${r} (1 × 1 m)|${mx?Math.round(v/mx*100):0}% dari sel terpadat`; }; }
 const hhmm=h=>{ const H=Math.floor(h)%24, M=Math.floor((h-Math.floor(h))*60); return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0'); };
 const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3?'Senja':'Malam';
 function renderEnvMenu(){
@@ -3331,12 +3481,13 @@ function select(e,fly){
   if(sid){ const i=SITES().findIndex(s=>s.id===sid); if(i>=0) active=i; }
   sel=(e&&e.kind!=='site')?e:null;
   document.body.classList.toggle('has-sel',!!sel);
+  document.body.classList.toggle('site-sheet',!!(e&&e.kind==='site'));   /* ponsel: ketuk gedung = buka ringkasan gudang + Kinerja khas */
   applySelVis(sel);
   follow=!!(sel&&fly&&((sel.kind==='truck'&&sel.state!=='parked')||sel.kind==='forklift'||sel.kind==='person'));
   if(fly&&e&&e.kind!=='shipment'&&!(e.kind==='truck'&&e.state==='away')) flyTo(e.kind==='site'?siteHome(e.idx):worldPos(e),Math.max(cam.zoomGoal,e.kind==='site'?1.12:e.kind==='store'?1.25:1.45));
   refreshUI(true);
 }
-function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
+function switchSite(i){ active=i; sel=null; clearSelVis(); document.body.classList.remove('has-sel','site-sheet'); flyTo(siteHome(i),HOME_ZOOM(),1.7); refreshUI(true); }
 function home(){ cam.thetaGoal=Math.round((cam.thetaGoal+Math.PI/4)/(Math.PI*2))*Math.PI*2-Math.PI/4; flyTo(siteHome(active),HOME_ZOOM()); }
 const ptrs=new Map(); let drag=null, pinch=null;
 canvas.addEventListener('pointerdown',e=>{ canvas.classList.add('grabbing'); canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); closeMenus();
@@ -3517,7 +3668,7 @@ function hoverInfo(r){ if(!r) return null; switch(r.kind){
 canvas.addEventListener('pointermove',ev=>{ if(ptrs.size||cine.on||ev.pointerType==='touch'){ tipEl.classList.remove('show'); return; }
   const now=performance.now(); if(now-tipT<70) return; tipT=now;
   let info=null; try{ info=hoverInfo(recordAt(ev.clientX,ev.clientY)); }catch(_){}
-  if(info){ tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
+  if(info){ tipEl.classList.remove('flip'); tipEl.style.right='auto'; tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
   else { tipEl.classList.remove('show'); canvas.style.cursor=''; } });
 canvas.addEventListener('pointerleave',()=>{ tipEl.classList.remove('show'); canvas.style.cursor=''; });
 /* ---- toast untuk peringatan kritis baru ---- */
@@ -3604,7 +3755,7 @@ syncView(0,performance.now());
    Simulasi dipercepat dengan langkah tetap 1/15 dtk, diperiksa makeSafetyChecker (sama dengan tests/headless-sim.mjs).
    Hasil juga tersedia di window.__selftest untuk otomasi (Playwright). */
 let SIM_PAUSED=QS.has('selftest'); /* mode uji: simulasi normal ditahan sejak awal supaya hasilnya sama persis dengan tests/headless-sim.mjs */
-const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function esc(v){ return String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }   /* deklarasi fungsi: ter-hoist, aman dipakai render pertama */
 async function runSelftest(){
   const menit=clamp(+(QS.get('menit')||13)||13,1,60), jam=['siang','pagi','sore','malam','cycle'].includes(QS.get('jam'))?QS.get('jam'):'siang';
   SIM_PAUSED=true; stopCine(); select(null);
