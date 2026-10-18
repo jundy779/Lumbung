@@ -176,6 +176,7 @@ Lumbung/
 ├── vercel.json        # konfigurasi Vercel
 ├── _headers           # konfigurasi Cloudflare Pages / Netlify
 ├── CARA-DEPLOY.md     # panduan deploy ke lumbung.fusionify.id
+├── KONTEKS-PROYEK.md  # rujukan lengkap untuk pengembangan (arsitektur, aturan, backlog)
 ├── CHANGELOG.md
 └── README.md
 ```
