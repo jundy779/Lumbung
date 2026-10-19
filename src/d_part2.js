@@ -286,7 +286,7 @@ function bindEntities(){
   /* v37: satu mekanik per gudang (hanya tampilan), muncul saat aksi "Kirim mekanik" */
   View.mech=new Map(); for(const s of Store.all('sites')){ const look={vest:0x24305E,hat:0xE0393E,clip:false,civ:false,skin:[0xF0C29C,0xD9A57B,0xB9825A][strHash(s.id)%3],pants:0x24305E,seed:strHash(s.id+'m')%997/97};
     const rig=makePerson(look); View.sites.get(s.id).g.add(rig.g); updatePerson(rig,false); View.mech.set(s.id,{rig,look,phase:look.seed,ww:0,poseT:0,lx:0,lz:0,lh:0,on:false,x:0,z:0,h:0,v:0,pose:null,route:null,truck:null}); }
-  initStaffMotos(); /* v41 */
+  initStaffMotos(); /* v41 */ initBirds(); /* v42 */
   for(const p of Store.all('people')){ const m=makePerson(p.look); (p.siteId?View.sites.get(p.siteId).g:scene).add(m.g); if(p.siteId) tagRef(m.g,'people',p.id);
     View.people.set(p.id,{rig:m,phase:p.look.seed,ww:0,poseT:0,lx:p.pos.x,lz:p.pos.z,lh:p.heading}); }
   const CP=carPools(Store.tables.cars.size); for(const c of Store.all('cars')){ const i=CP.body.alloc(); CP.detail.alloc(); CP.body.color(i,'#'+new THREE.Color(c.color).getHexString()); View.cars.set(c.id,i); }
@@ -303,39 +303,72 @@ function palletTarget(p){
   return null;
 }
 const jl=(o,k,v,r)=>{ o.rotation[k]+=(v-o.rotation[k])*r; };
+/* ---------- v42: animasi manusia yang mengalir ----------
+   1) Posisi & arah tampilan dihaluskan (langkah simulasi yang jarang di perangkat hemat daya dan belokan tajam tidak lagi patah).
+   2) Sendi memakai pegas teredam kritis (solusi tertutup, stabil untuk dt berapa pun): lengan/kepala bergerak dengan percepatan & perlambatan alami.
+   3) Jalan: pinggul berayun & miring, badan berputar berlawanan, kepala tetap menatap ke depan, ayunan ikut kecepatan.
+   4) Diam: memindah tumpuan berat badan, bernapas, sesekali menoleh. 5) Gerakan khas per aktivitas (menulis, menunjuk, menelepon, mengobrol, memasak, makan). */
+function spr(o,k,target,w,dt){ const S=o.userData.sv||(o.userData.sv={}), v0=S[k]||0, e=o.rotation[k]-target, ex=Math.exp(-w*dt), tmp=(v0+w*e)*dt;
+  o.rotation[k]=target+(e+tmp)*ex; S[k]=(v0-w*tmp)*ex; }
+const sstep=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
+const nz=(t,a)=>Math.sin(t*0.71+a)*0.5+Math.sin(t*1.37+a*2.3)*0.3+Math.sin(t*0.23+a*4.1)*0.2; /* derau halus per orang */
 function animPerson(p,v,dt){
-  const m=v.rig, dx=p.pos.x-v.lx, dz=p.pos.z-v.lz, ds=Math.hypot(dx,dz), turnV=angDiff(v.lh,p.heading)/Math.max(dt,1e-4);
-  v.lx=p.pos.x; v.lz=p.pos.z; v.lh=p.heading;
+  const m=v.rig; dt=Math.min(dt,0.1);
+  if(v.rx==null||Math.hypot(p.pos.x-v.rx,p.pos.z-v.rz)>2.5){ v.rx=p.pos.x; v.rz=p.pos.z; v.rh=p.heading; v.lx=v.rx; v.lz=v.rz; v.lh=v.rh; v.ww=clamp((p.v||0)/0.85,0,1); }
+  const kp=1-Math.exp(-dt*16); v.rx+=(p.pos.x-v.rx)*kp; v.rz+=(p.pos.z-v.rz)*kp;
+  const dH=angDiff(v.rh,p.heading), maxT=((p.v||0)>0.25?6.5:4.2)*dt; v.rh+=clamp(dH*(1-Math.exp(-dt*10)),-maxT,maxT);
+  const dx=v.rx-v.lx, dz=v.rz-v.lz, ds=Math.hypot(dx,dz), turnV=angDiff(v.lh,v.rh)/Math.max(dt,1e-4);
+  v.lx=v.rx; v.lz=v.rz; v.lh=v.rh;
   v.phase+=ds/1.3*Math.PI*2+Math.min(Math.abs(turnV),3)*dt*1.4;
-  const moving=clamp(p.v/0.85,0,1), stepTurn=clamp(Math.abs(turnV)/2.2,0,1)*0.45;
-  v.ww=lerp(v.ww,Math.max(moving,stepTurn),Math.min(1,dt*7));
-  const w=v.ww, ph=v.phase, t=performance.now()/1000+p.look.seed, r=Math.min(1,dt*11);
-  const pose=p.pose; v.poseT=lerp(v.poseT,pose&&w<0.3?1:0,Math.min(1,dt*5)); const q=v.poseT;
-  m.g.position.set(p.pos.x,p.y,p.pos.z); m.g.rotation.y=p.heading;
-  const sitQ=(pose==='sit'||pose==='sitchat')?q:0;
-  m.hips.position.y=lerp(0.95+(-0.03+0.04*Math.abs(Math.sin(ph)))*w,0.5,sitQ);
-  jl(m.hips,'y',0.08*Math.sin(ph)*w,r); jl(m.hips,'z',0.035*Math.cos(ph)*w+0.02*Math.sin(t*0.6)*(1-w),r);
-  jl(m.torso,'y',-0.15*Math.sin(ph)*w,r); jl(m.torso,'x',0.06*w+(pose==='clipboard'?0.06:pose==='push'?0.18:0)*q,r);
-  m.torso.scale.y=1+0.012*Math.sin(t*2.3)*(1-w);
-  let hy=0.12*Math.sin(ph)*w, hx=0;
-  if(pose==='look') hy+=Math.sin(t*0.85)*0.75*q; if(pose==='clipboard') hx=0.38*q; if(pose==='point') hx=-0.05*q;
-  if(pose==='chat'||pose==='sitchat'){ hy+=Math.sin(t*0.7)*0.25*q; hx+=Math.max(0,Math.sin(t*2.6))*0.12*q; } if(pose==='phone'){ hy+=0.25*q; hx+=0.1*q; } if(pose==='drink') hx+=-0.2*Math.max(0,Math.sin(t*0.9))*q;
-  if(!pose) hy+=Math.sin(t*0.4)*0.15*(1-w);
-  jl(m.head,'y',hy,r*0.7); jl(m.head,'x',hx,r*0.7);
+  const moving=clamp((p.v||0)/0.85,0,1), stepTurn=clamp(Math.abs(turnV)/2.2,0,1)*0.45;
+  v.ww=lerp(v.ww,Math.max(moving,stepTurn),1-Math.exp(-dt*6));
+  const w=v.ww, ph=v.phase, sd=p.look.seed||0, t=performance.now()/1000+sd*7, amp=clamp((p.v||0)/1.15,0.55,1.2)*w;
+  const pose=p.pose; v.poseT=lerp(v.poseT,pose&&w<0.3?1:0,1-Math.exp(-dt*3.5)); const q=sstep(v.poseT), P=v.poseT>0.02?(pose||v.lastPose):null; if(pose) v.lastPose=pose;
+  const eat=P==='sitchat'&&p.lunch&&p.lunch.phase==='eat';
+  m.g.position.set(v.rx,p.y,v.rz); m.g.rotation.y=v.rh;
+  const sitQ=(P==='sit'||P==='sitchat')?q:0, idle=(1-w)*(1-sitQ), free=idle*(1-q);
+  const ws=nz(t*0.35,sd)*idle, gl=nz(t*0.42,sd+3), breath=Math.sin(t*1.9);
+  const Wt=lerp(7,14,w), Wa=lerp(7.5,17,w), Wl=lerp(9,26,w), Wh=6;
+  /* pinggul & badan */
+  m.hips.position.y=lerp(0.95+(-0.03+0.04*Math.abs(Math.sin(ph)))*w-0.012*Math.abs(ws),0.5,sitQ); m.hips.position.x=ws*0.035;
+  let hipY=0.1*Math.sin(ph)*amp, hipZ=0.05*Math.sin(ph)*w+ws*0.06;
+  let toY=-0.16*Math.sin(ph)*amp, toX=0.04*w+0.05*amp+0.012*breath*(1-w), toZ=-hipZ*0.6;
+  if(P==='clipboard') toX+=0.07*q; if(P==='push') toX+=0.2*q; if(P==='point') toY+=0.16*q;
+  if(P==='look'){ const sc=Math.sin(t*0.55+sd)*q; toY+=0.2*sc; }
+  if(P==='chat') toY+=0.1*Math.sin(t*0.5+sd)*q; if(eat) toX+=0.12*q;
+  spr(m.hips,'y',hipY,Wt,dt); spr(m.hips,'z',hipZ,Wt,dt); spr(m.torso,'y',toY,Wt,dt); spr(m.torso,'x',toX,Wt,dt); spr(m.torso,'z',toZ,Wt,dt);
+  m.torso.scale.y=1+0.013*breath*(1-w);
+  /* kepala: menahan pandangan ke depan saat berjalan, menoleh santai saat diam */
+  let hy=-(toY+hipY)*0.75+gl*0.5*free, hx=0.03*Math.sin(ph*2)*w+0.05*nz(t*0.6,sd+7)*free, hz=0.04*nz(t*0.3,sd+5)*idle;
+  let wr=0; /* menulis di clipboard bergantian dengan melihat sekitar */
+  if(P==='clipboard'){ wr=sstep((Math.sin(t*0.8+sd)+0.3)*1.6); hx+=lerp(0.12,0.42,wr)*q; hy+=(1-wr)*0.3*Math.sin(t*0.5)*q; }
+  if(P==='look') hy+=Math.sin(t*0.55+sd)*0.6*q;
+  if(P==='point') hx+=-0.06*q;
+  if(P==='chat'||(P==='sitchat'&&!eat)){ hy+=Math.sin(t*0.7+sd)*0.22*q; hx+=Math.max(0,Math.sin(t*2.6))*0.1*q; }
+  if(P==='phone'){ hy+=0.22*q; hx+=0.12*q; hz+=0.16*q; }
+  if(P==='drink') hx+=-0.22*Math.max(0,Math.sin(t*0.9))*q;
+  if(P==='push') hx+=0.32*q;
+  let bite=0; if(eat){ const e=((t*0.38+sd)%1+1)%1; bite=e<0.32?sstep(e/0.32):e<0.5?1:e<0.8?1-sstep((e-0.5)/0.3):0; hx+=(0.24-0.12*bite)*q+0.04*Math.sin(t*13)*bite*q; hy*=1-0.6*q; }
+  if(P==='sit') hx+=0.1*q;
+  spr(m.head,'y',hy,Wh,dt); spr(m.head,'x',hx,Wh,dt); spr(m.head,'z',hz,Wh,dt);
+  /* kaki & lengan */
   for(let i=0;i<2;i++){
-    const pi=ph+i*Math.PI, side=i?1:-1;
-    const thigh=-0.5*Math.sin(pi)*w, knee=(0.08+0.8*Math.max(0,Math.cos(pi))*Math.max(0,Math.sin(pi+1.2)))*w+0.03;
-    jl(m.th[i],'x',lerp(thigh,-1.48,sitQ),r); jl(m.kn[i],'x',lerp(knee,1.5,sitQ),r); jl(m.an[i],'x',lerp(-(thigh+knee)*0.8,0,sitQ),r);
-    let shx=0.45*Math.sin(pi)*w+0.04*(1-w), elx=-(0.18+0.42*Math.max(0,-Math.sin(pi)))*w-0.14*(1-w), shz=side*0.05;
-    if(pose==='clipboard'){ shx=lerp(shx,i?-0.75:-0.55,q); elx=lerp(elx,i?-1.35:-1.25,q); shz=lerp(shz,side*-0.12,q); }
-    if(pose==='point'&&i===1){ shx=lerp(shx,-1.4,q); elx=lerp(elx,-0.1,q); shz=lerp(shz,0.15,q); }
-    if(pose==='sit'||pose==='sitchat'){ shx=lerp(shx,-0.35,q); elx=lerp(elx,-0.75,q); }
-    if(pose==='sitchat'&&i===1){ const g=Math.max(0,Math.sin(t*1.7)); shx=lerp(shx,-0.6-0.35*g,q); elx=lerp(elx,-1.2,q); shz=lerp(shz,side*-0.25*g,q); }
-    if(pose==='chat'&&i===1){ const g=Math.max(0,Math.sin(t*1.9)); shx=lerp(shx,-0.5-0.45*g,q); elx=lerp(elx,-1.0-0.3*g,q); shz=lerp(shz,side*-0.2*g,q); }
-    if(pose==='phone'&&i===1){ shx=lerp(shx,-0.45,q); elx=lerp(elx,-2.55,q); shz=lerp(shz,side*-0.35,q); }
-    if(pose==='drink'&&i===1){ const g=Math.max(0,Math.sin(t*0.9)); shx=lerp(shx,-0.55-0.6*g,q); elx=lerp(elx,-1.5-0.85*g,q); shz=lerp(shz,side*-0.3,q); }
-    if(pose==='push'){ const sw=Math.sin(t*3.2+i*0.6)*0.08; shx=lerp(shx,-1.25+sw,q); elx=lerp(elx,-0.35,q); shz=lerp(shz,side*-0.05,q); }
-    jl(m.sh[i],'x',shx,r); jl(m.sh[i],'z',shz,r); jl(m.el[i],'x',elx,r);
+    const pi=ph+i*Math.PI, side=i?1:-1, rest=Math.max(0,ws*(i?1:-1))*idle;
+    const thigh=-0.5*Math.sin(pi)*amp-0.08*rest, knee=(0.06+0.85*Math.max(0,Math.cos(pi))*Math.max(0,Math.sin(pi+1.2)))*amp+0.03+0.22*rest;
+    spr(m.th[i],'x',lerp(thigh,-1.48,sitQ),Wl,dt); spr(m.kn[i],'x',lerp(knee,1.5,sitQ),Wl,dt); spr(m.an[i],'x',lerp(-(thigh+knee)*0.8,0,sitQ),Wl,dt);
+    let shx=0.42*Math.sin(pi)*amp+0.05*free, elx=-(0.15+0.4*Math.max(0,-Math.sin(pi)))*amp-0.2*(1-w), shz=side*(0.06+0.03*free);
+    const L=(x,e,z)=>{ shx=lerp(shx,x,q); elx=lerp(elx,e,q); shz=lerp(shz,side*z,q); };
+    if(P==='clipboard'){ if(i===0) L(-0.55,-1.3,-0.12); else L(-0.7,-1.45+0.09*Math.sin(t*9)*wr,-0.2); }
+    if(P==='point'){ if(i===1) L(-1.4+0.07*Math.sin(t*2.4),-0.12,0.15); else L(0.08,-0.3,0.06); }
+    if(P==='look') L(0.42,-0.95,-0.04); /* tangan di belakang punggung */
+    if(P==='sit') L(-0.35,-0.75,0.04);
+    if(P==='sitchat'){ if(eat){ if(i===1) L(lerp(-0.55,-1.0,bite),lerp(-0.9,-2.35,bite),-0.14*bite-0.02); else L(-0.55,-0.95,-0.06); }
+      else if(i===1){ const g=Math.max(0,Math.sin(t*1.7)); L(-0.6-0.35*g,-1.2,-0.25*g); } else L(-0.4,-0.8,0.04); }
+    if(P==='chat'){ const g=Math.max(0,Math.sin(t*1.9+i*2.1)), k=i?1:0.6; L(-0.25-0.5*g*k,-0.8-0.45*g*k,-0.18*g*k); }
+    if(P==='phone'){ if(i===1) L(-0.45,-2.55,-0.35); else L(0.12,-1.45,0.36); /* tangan di pinggang */ }
+    if(P==='drink'&&i===1){ const g=Math.max(0,Math.sin(t*0.9)); L(-0.55-0.6*g,-1.5-0.85*g,-0.3); }
+    if(P==='push'){ const c=i?0.22*Math.sin(t*7.5):0.05*Math.sin(t*3.1); L(-0.95+c*0.3,-0.85+c,-0.08); } /* bekerja dengan tangan: memotong, mengaduk, mendorong */
+    spr(m.sh[i],'x',shx,Wa,dt); spr(m.sh[i],'z',shz,Wa,dt); spr(m.el[i],'x',elx,Wa*1.1,dt);
   }
 }
 /* ---------- sinkron tiap frame: baca Store → ubah objek 3D ---------- */
@@ -355,7 +388,7 @@ function syncView(dt,now){
     m.g.visible=o>0.01;
     m.cabPiv.rotation.y=ease(t.cabDoor||0)*1.2;
     const dv=t.crew, D=v.drv, on=!!(dv&&dv.on); { const w=(ENV.rain||0)>0.35; if(D.wet!==w){ D.wet=w; recolorPerson(D.rig,w?coatLook(D.look,t.id):D.look); } }
-    if(on){ if(!D.wasOn){ D.lx=dv.x; D.lz=dv.z; D.lh=dv.h; } animPerson({pos:{x:dv.x,z:dv.z},y:0.05+(dv.y||0),heading:dv.h,v:dv.v,pose:dv.pose,look:D.look},D,dt); }
+    if(on){ if(!D.wasOn){ D.lx=dv.x; D.lz=dv.z; D.lh=dv.h; D.rx=null; } animPerson({pos:{x:dv.x,z:dv.z},y:0.05+(dv.y||0),heading:dv.h,v:dv.v,pose:dv.pose,look:D.look},D,dt); }
     if(on||D.wasOn) updatePerson(D.rig,on); D.wasOn=on;
   }
   if(!View.agvDots){ const dg=new THREE.CircleGeometry(0.13,14); dg.rotateX(-Math.PI/2); View.agvDots=new InstPool(dg,new THREE.MeshBasicMaterial({color:C(0x4D8BFF),transparent:true,opacity:0.85,depthWrite:false}),160,{cast:false,receive:false,order:2}); for(let i=0;i<156;i++) View.agvDots.alloc(); }
@@ -407,7 +440,7 @@ function syncView(dt,now){
     updatePallet(v.mesh,false);
   }
   for(const [id,v] of View.pallets){ if(!seen.has(id)){ freePallet(v.mesh); v.mesh.parent&&v.mesh.parent.remove(v.mesh); View.pallets.delete(id); } }
-  syncRail(dt); syncBreakdowns(dt,now); syncPedSignals(now); syncStaffMotos(dt);
+  syncRail(dt); syncBreakdowns(dt,now); syncPedSignals(now); syncStaffMotos(dt); syncBirds(dt);
   flushPools();
 }
 /* ---------- posisi dunia & picking ---------- */
@@ -687,6 +720,90 @@ function syncStaffMotos(dt){ if(!SM.on) return; const h=Store.clock.hour; let dh
     if(O.an){ _pe.set(0,O.h,0); _pq.setFromEuler(_pe); _pm.compose(_pv.set(O.x+ox,GY,O.z+oz),_pq,_ps.set(1,1,1)); SM.opool.set(O.i,_pm); } else SM.opool.set(O.i,_hide); } }
 /* status untuk UI & sinematik */
 function staffMotoInfo(s){ const S=SM.sites.find(x=>x.s===s); if(!S) return null; return {parked:S.bikes.filter(b=>b.st==='parked').length,moving:S.bikes.filter(b=>b.an).length,ojol:!!S.ob.an,ojolGive:S.ob.an&&S.ob.an.k==='give',S}; }
+/* ---------- v42: burung (hanya tampilan) ----------
+   Kawanan burung terbang berputar di atas kota (lintasan angka delapan, kepak & melayang bergantian, miring saat berbelok)
+   dan merpati di halaman tiap gudang: berjalan sambil mematuk dekat kantin dan Pos Sopir, bertengger di balok kanopi kantin,
+   lalu kabur beterbangan bila orang, sopir, forklift, truk, atau motor mendekat. Malam & hujan: kawanan kota pulang, merpati bertengger. */
+const BIRD={on:false,t:0,pool:null,wing:null,flocks:[],groups:[],n:0};
+const PIGEON=[0x8E96A8,0x9AA0AE,0x7A8193,0xD9DCE4,0x8B7563,0x6E7486], SWIFT=[0x3A3F4F,0x4A4038,0x2E3242];
+const _bm=new THREE.Matrix4(), _wm=new THREE.Matrix4(), _wq=new THREE.Quaternion(), _we=new THREE.Euler(0,0,0,'YXZ'), _wv=new THREE.Vector3(), _wo=new THREE.Vector3(), _w1=new THREE.Vector3(1,1,1);
+function birdPools(N){ if(BIRD.pool) return; const B=new Parts();
+  B.add(gSph(1,10),0xFFFFFF,0,0,0,0,0.11,0.1,0.2); B.add(gSph(0.07,8),0xFFFFFF,0,0.085,0.15); B.add(gSph(0.05,6),0x6E9C8C,0,0.05,0.12);
+  B.add(gCone(0.022,0.07,6),0x5B5550,0,0.075,0.23,0,1,1,1,Math.PI/2,0); B.box(0.1,0.02,0.13,0.01,0xFFFFFF,0,0.02,-0.22);
+  for(const x of [-0.035,0.035]){ B.add(gSph(0.012,5),0x1B1E27,x+Math.sign(x)*0.025,0.1,0.18); B.box(0.015,0.07,0.015,0,0xC86A6A,x,-0.11,0.02); }
+  const W=new Parts(); W.box(0.27,0.018,0.15,0.008,0xFFFFFF,0.135,0,0); W.box(0.12,0.012,0.11,0.006,0xFFFFFF,0.3,0,-0.03); W.box(0.2,0.02,0.03,0,0x3A3F4F,0.16,0.005,-0.055);
+  BIRD.pool=new InstPool(B.geometry(),gloss(stdMat(.75,true),0.2,0.85),N,{color:true,cast:false});
+  const wm=gloss(stdMat(.8,true),0.2,0.85); wm.side=THREE.DoubleSide; BIRD.wing=new InstPool(W.geometry(),wm,N*2,{color:true,cast:false}); }
+function mkBird(col,scale){ const i=BIRD.pool.alloc(), w0=BIRD.wing.alloc(), w1=BIRD.wing.alloc(), hex='#'+new THREE.Color(col).getHexString(); BIRD.pool.color(i,hex); BIRD.wing.color(w0,hex); BIRD.wing.color(w1,hex);
+  return {i,w0,w1,sc:scale,x:0,y:0,z:0,h:0,pitch:0,roll:0,flap:0,fp:Math.random()*6,glide:Math.random()*9,peck:0,vis:false}; }
+function drawBird(b,wingA){ if(!b.vis){ BIRD.pool.set(b.i,_hide); BIRD.wing.set(b.w0,_hide); BIRD.wing.set(b.w1,_hide); return; }
+  _we.set(b.pitch,b.h,b.roll); _wq.setFromEuler(_we); _bm.compose(_wv.set(b.x,b.y,b.z),_wq,_wo.set(b.sc,b.sc,b.sc)); BIRD.pool.set(b.i,_bm);
+  const fo=1-clamp(b.open??1,0,1); for(const k of [0,1]){ const sd=k?1:-1; _we.set(0,sd*fo*1.35,sd*wingA*(1-fo*0.85),'YZX'); _wq.setFromEuler(_we); /* sayap terlipat ke belakang saat tidak terbang */ _wm.compose(_wv.set(sd*0.07,0.06,0.03),_wq,_wo.set(sd,1,1)); _wm.premultiply(_bm); BIRD.wing.set(k?b.w1:b.w0,_wm); } _we.order='YXZ'; }
+/* sudut sayap: kepak cepat saat terbang naik/turun, sesekali melayang dengan sayap sedikit terangkat */
+function wingOf(b,dt,flapping,hz){ b.open=lerp(b.open??1,1,1-Math.exp(-dt*10)); b.fp+=dt*hz*Math.PI*2; b.flap=lerp(b.flap,flapping?1:0,1-Math.exp(-dt*6)); return b.flap*(0.25+0.85*Math.sin(b.fp))+(1-b.flap)*0.18; }
+function birdSpots(s){ const C=canteen(s), L=s.lounge, X=s.W/2, cz1=C.z+2.75, perch=[]; for(let k=0;k<6;k++) perch.push({x:C.x-3.4+k*1.1,y:3.14,z:cz1-0.15,h:0}); /* di atas balok depan kanopi kantin */
+  const g=[{x:X+18.2,y:GY,z:C.z+5.6,r:1.8}]; if(L) g.push({x:L.x-0.8,y:GY,z:L.z+3.9,r:1.6}); return {ground:g,perch}; }
+function initBirds(){ const sites=Store.all('sites'); birdPools(sites.length*7+4*9+4);
+  BIRD.groups=sites.map((s,si)=>{ const sp=birdSpots(s), h=strHash(s.id), birds=[]; for(let k=0;k<6;k++) birds.push({...mkBird(PIGEON[(h+k*5)%PIGEON.length],1.25),open:0,ox:0,oz:0,tx:0,tz:0,wt:Math.random()*2,from:null,to:null,ft:0,fd:1,delay:0});
+    const G={s,sp,birds,st:'ground',spot:sp.ground[0],timer:20+(h%30),cool:2}; for(const b of birds) birdPlace(G,b,true); return G; });
+  /* kawanan kota: merpati abu-abu dan burung walet gelap */
+  const F=[[ -60,-60,120,60,0.050,15,0],[160,40,100,70,0.060,19,1],[-160,120,90,55,0.045,22,0],[330,-150,110,45,0.055,17,1]];
+  BIRD.flocks=F.map(([cx,cz,ax,az,w,alt,sw],fi)=>{ const n=sw?9:7, birds=[]; for(let k=0;k<n;k++){ const b=mkBird((sw?SWIFT:PIGEON)[(fi*3+k)%(sw?3:6)],sw?1.3:1.55); b.ofx=(Math.random()-0.5)*9; b.ofz=(Math.random()-0.5)*9; b.ofy=(Math.random()-0.5)*3; b.ph=Math.random()*6; b.lx=null; birds.push(b); }
+    return {cx,cz,ax,az,w,alt,sw,ph:fi*1.7,birds,show:1}; });
+  BIRD.on=true; }
+function birdPlace(G,b,init){ const S=G.st==='perch'?null:G.spot; if(G.st==='perch'){ const k=G.birds.indexOf(b), P=G.sp.perch[k%G.sp.perch.length]; Object.assign(b,{x:P.x,y:P.y,z:P.z,h:P.h+(Math.random()-0.5)*0.6,pitch:0,roll:0}); }
+  else { const a=Math.random()*6.28, r=Math.sqrt(Math.random())*S.r; Object.assign(b,{x:S.x+Math.cos(a)*r,y:S.y+0.12*b.sc,z:S.z+Math.sin(a)*r,h:Math.random()*6.28,pitch:0,roll:0}); b.tx=b.x; b.tz=b.z; } }
+/* ancaman di dekat kawanan merpati (koordinat lokal gudang) */
+function birdThreat(s,x,z,R){ const R2=R*R, near=(px,pz)=>(px-x)*(px-x)+(pz-z)*(pz-z)<R2;
+  for(const p of s.people) if(near(p.pos.x,p.pos.z)) return true;
+  for(const f of s.forks) if(near(f.pos.x,f.pos.z)) return true;
+  for(const t of s.trucks){ if(t.state==='away') continue; if(near(t.pos.x,t.pos.z)) return true; const d=t.crew; if(d&&d.on&&near(d.x,d.z)) return true; }
+  const S=SM.sites&&SM.sites.find(q=>q.s===s); if(S){ for(const b of S.bikes) if(b.an&&near(b.p?b.p.x:b.x,b.p?b.p.z:b.z)) return true; if(S.ob.an&&near(S.ob.x,S.ob.z)) return true; }
+  return false; }
+function birdTakeoff(G,target,perch){ const sp=G.sp; G.st='fly'; G.next=perch?'perch':'ground'; G.spot=target; let k=0; G.timer=perch?10+Math.random()*15:35+Math.random()*45;
+  for(const b of G.birds){ const P=perch?sp.perch[k%sp.perch.length]:null; const a=Math.random()*6.28, r=Math.sqrt(Math.random())*(target.r||0.5);
+    b.from={x:b.x,y:b.y,z:b.z}; b.to=P?{x:P.x,y:P.y,z:P.z,h:P.h}:{x:target.x+Math.cos(a)*r,y:target.y+0.12*b.sc,z:target.z+Math.sin(a)*r,h:Math.random()*6.28};
+    const d=Math.hypot(b.to.x-b.from.x,b.to.z-b.from.z); b.fd=Math.max(1.6,d/6.5); b.ft=0; b.delay=Math.random()*0.45; b.arc=3.5+d*0.22; k++; }
+  if(typeof sndOneShot==='function'&&SND.ctx&&SND.want){ const sx=G.s.ox+G.birds[0].x, sz=G.s.oz+G.birds[0].z, dd=Math.hypot(sx-cam_x(),sz-cam_z()); if(dd<70) sndOneShot('flutter',Math.max(0.15,1-dd/70)); } }
+const cam_x=()=>cam.target.x, cam_z=()=>cam.target.z;
+function syncBirds(dt){ if(!BIRD.on) return; BIRD.t+=dt; const t=BIRD.t, E=ENV.cur, night=E?E.n:0, wx=Store.weather.condition, wet=wx==='rain'||wx==='storm', dust=wx==='sandstorm';
+  /* kawanan kota */
+  const fShow=(night>0.55||wet||dust)?0:1;
+  for(const F of BIRD.flocks){ F.show=lerp(F.show,fShow,1-Math.exp(-dt*0.8)); const vis=F.show>0.05;
+    const u=t*F.w+F.ph, Lx=F.cx+F.ax*Math.sin(u), Lz=F.cz+F.az*Math.sin(2*u), Ly=F.alt+3*Math.sin(u*0.7)+ (1-F.show)*25;
+    for(const b of F.birds){ const wob=t*0.6+b.ph; const x=Lx+b.ofx+2.2*Math.sin(wob*1.3), z=Lz+b.ofz+2.2*Math.cos(wob), y=Ly+b.ofy+0.8*Math.sin(wob*2.1);
+      if(b.lx!=null){ const vx=x-b.lx, vz=z-b.lz, vy=y-b.ly, sp=Math.hypot(vx,vz); if(sp>1e-4){ const h=Math.atan2(vx,vz), dh=angDiff(b.h,h); b.h=h; b.roll=lerp(b.roll,clamp(-dh/Math.max(dt,1e-3)*0.35,-0.7,0.7),1-Math.exp(-dt*4)); b.pitch=lerp(b.pitch,clamp(-vy/Math.max(sp,1e-3),-0.5,0.5),1-Math.exp(-dt*4)); } }
+      b.lx=x; b.ly=y; b.lz=z; b.x=x; b.y=y; b.z=z; b.vis=vis;
+      b.glide+=dt; const cyc=(b.glide%(F.sw?2.4:3.6))/(F.sw?2.4:3.6); const wa=wingOf(b,dt,cyc<(F.sw?0.45:0.6)||b.pitch<-0.15,F.sw?9:6.5);
+      drawBird(b,wa); } }
+  /* merpati di halaman gudang */
+  for(const G of BIRD.groups){ const s=G.s, ox=s.ox, oz=s.oz; G.timer-=dt; G.cool-=dt;
+    const wantPerch=night>0.5||wet;
+    if(G.st==='ground'){
+      if(G.cool<=0&&birdThreat(s,G.spot.x,G.spot.z,3.4)){ const alt=G.sp.ground.filter(q=>q!==G.spot); const pr=Math.random()<0.45||!alt.length; birdTakeoff(G,pr?G.sp.perch[0]:alt[Math.floor(Math.random()*alt.length)],pr); G.cool=4; }
+      else if(wantPerch||G.timer<=0){ birdTakeoff(G,G.sp.perch[0],true); } }
+    else if(G.st==='perch'){ if(!wantPerch&&G.timer<=0){ const g=G.sp.ground; let tgt=g[Math.floor(Math.random()*g.length)]; if(birdThreat(s,tgt.x,tgt.z,4)) tgt=g.find(q=>!birdThreat(s,q.x,q.z,4)); if(tgt) birdTakeoff(G,tgt,false); else G.timer=5; } }
+    let landed=0;
+    for(const b of G.birds){ let wa=0.05;
+      if(G.st==='fly'){ if(b.delay>0){ b.delay-=dt; wa=wingOf(b,dt,true,9)*0.4; }
+        else { b.ft+=dt; const k=clamp(b.ft/b.fd,0,1), e=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2, A=b.from, B=b.to;
+          const nx=lerp(A.x,B.x,e), nz=lerp(A.z,B.z,e), ny=lerp(A.y,B.y,e)+Math.sin(k*Math.PI)*b.arc, vx=nx-b.x, vz=nz-b.z, vy=ny-b.y, sp=Math.hypot(vx,vz);
+          if(sp>1e-4){ const h=Math.atan2(vx,vz); b.roll=lerp(b.roll,clamp(-angDiff(b.h,h)*4,-0.6,0.6),1-Math.exp(-dt*5)); b.h=h; } b.pitch=lerp(b.pitch,clamp(-vy/Math.max(sp,1e-3),-0.6,0.6),1-Math.exp(-dt*5));
+          b.x=nx; b.y=ny; b.z=nz; wa=wingOf(b,dt,k<0.35||k>0.8,k>0.8?11:8);
+          if(k>=1){ b.y=B.y; b.h=B.h??b.h; b.pitch=0; b.roll=0; b.tx=b.x; b.tz=b.z; landed++; wa=0.05; } } }
+      else if(G.st==='ground'){ /* berjalan pelan, berhenti, mematuk; kepala mengangguk saat berjalan */
+        b.wt-=dt; if(b.wt<=0){ const S=G.spot, a=Math.random()*6.28, r=Math.sqrt(Math.random())*S.r; b.tx=S.x+Math.cos(a)*r; b.tz=S.z+Math.sin(a)*r; b.wt=1.5+Math.random()*3.5; b.peck=Math.random()<0.55?1.2+Math.random()*1.4:0; }
+        const dx=b.tx-b.x, dz=b.tz-b.z, d=Math.hypot(dx,dz);
+        if(d>0.06&&b.peck<=0){ const h=Math.atan2(dx,dz); b.h+=clamp(angDiff(b.h,h),-dt*5,dt*5); const st=Math.min(d,dt*0.35); b.x+=Math.sin(b.h)*st; b.z+=Math.cos(b.h)*st; b.pitch=0.12*Math.max(0,Math.sin(t*14+b.fp)); }
+        else if(b.peck>0){ b.peck-=dt; b.pitch=0.55*Math.max(0,Math.sin(t*9+b.fp))**2; } else b.pitch=lerp(b.pitch,0,1-Math.exp(-dt*6));
+        b.y=G.spot.y+0.12*b.sc; b.roll=0; b.flap=0; }
+      else { b.pitch=0.06*Math.sin(t*0.7+b.fp)*Math.max(0,Math.sin(t*0.13+b.fp*3)); }  /* bertengger: sesekali merapikan bulu */
+      if(!(G.st==='fly'&&b.delay<=0&&b.ft<b.fd)) b.open=lerp(b.open??0,0,1-Math.exp(-dt*7)); /* hinggap / menunggu: sayap dilipat */
+      b.vis=true; const lx=b.x, lz=b.z; b.x+=ox; b.z+=oz; drawBird(b,wa); b.x=lx; b.z=lz; }
+    if(G.st==='fly'&&landed===G.birds.length){ G.st=G.next; if(G.st==='ground') for(const b of G.birds){ b.wt=Math.random()*1.5; b.peck=0; } } }
+}
+/* status untuk sinematik */
+function birdInfo(){ return BIRD.groups.filter(G=>G.st==='fly').map(G=>G.s.id); }
 /* ---------- v34: lampu sinyal kendaraan ----------
    Rem (merah terang), mundur (putih), sein & hazard (oranye berkedip) untuk truk, plus lampu rem mobil.
    Semua dihitung di View dari keadaan Store (kecepatan, status, jalur di depan), jadi simulasi dan sidik jarinya tidak berubah.

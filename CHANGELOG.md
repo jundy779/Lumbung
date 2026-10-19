@@ -1,5 +1,12 @@
 # Changelog
 
+## v42 · 20 Okt 2026
+- **Gerak manusia lebih alami**: semua figur (staf, sopir, warga, penyeberang, mekanik, pengendara motor) kini digerakkan sendi berpegas teredam, jadi lengan, kepala, dan badan bergerak dengan percepatan dan perlambatan seperti orang sungguhan, tidak lagi "klik" pindah posisi. Posisi dan arah badan di layar dihaluskan, sehingga belokan tidak patah dan gerak tetap mulus di HP yang menyimulasikan gudang lain selang-seling. Terukur: lompatan arah hadap per frame turun dari 122 kali per 40 detik menjadi 0.
+- Saat berjalan: pinggul berayun dan miring, badan berputar berlawanan arah langkah, kepala tetap menatap ke depan, panjang ayunan ikut kecepatan. Saat diam: memindah tumpuan berat badan, bernapas, sesekali menoleh.
+- Gerakan sesuai kegiatan: menulis di clipboard sambil sesekali mengangkat kepala, menunjuk dengan badan ikut berputar, mengawasi dengan tangan di belakang punggung, menelepon sambil bertolak pinggang, mengobrol dengan dua tangan dan anggukan, petugas kantin memotong dan mengaduk, dan pekerja di kantin benar-benar menyuap makanan lalu mengunyah.
+- **Burung**: merpati di halaman tiap gudang berjalan sambil mematuk di dekat kantin dan Pos Sopir, sesekali terbang dan bertengger berjajar di atas kanopi kantin dengan sayap terlipat, lalu kabur beterbangan saat staf, sopir, forklift, truk, atau motor mendekat (dengan suara kepak sayap bila suara dinyalakan). Empat kawanan merpati dan burung walet terbang berputar di atas kota dengan kepak dan melayang bergantian, miring saat berbelok. Malam hari dan saat hujan, kawanan kota pulang dan merpati bertengger.
+- Semua di lapis tampilan, simulasi dan sidik jarinya tidak berubah.
+
 ## v41 · 20 Okt 2026
 - **Pekerja datang dan pulang naik motor**: tiap gudang punya pintu belakang staf di pagar belakang sisi timur, parkir motor beratap polikarbonat untuk 8 motor di belakang kantin, dan pintu staf di dinding belakang gedung. Menjelang ganti shift (sekitar 05.42 dan 17.42) empat pekerja shift berikutnya masuk lewat pintu belakang, memarkir motor, turun, lalu berjalan ke pintu staf. Setelah ganti shift (sekitar 06.04 dan 18.04) pekerja shift sebelumnya keluar dari pintu staf, menyalakan motor, dan pulang. Selama shift, motor mereka tetap terparkir.
 - **Ojol antar makanan**: di awal tiap gelombang istirahat (12.00, 12.30, 00.00, 00.30) satu pengemudi ojol berjaket hijau dengan tas makanan masuk lewat pintu belakang, berhenti di sisi timur kantin, menyerahkan pesanan, lalu pergi.

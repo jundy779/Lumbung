@@ -1,10 +1,17 @@
-# CLAUDE.md · Peta Teknis Lumbung v41
+# CLAUDE.md · Peta Teknis Lumbung v42
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v42 (20 Okt 2026), gerak manusia alami & burung (hanya tampilan)**:
+- `animPerson` (d_part2) ditulis ulang. `spr(o,k,target,w,dt)` = pegas teredam kritis bentuk tertutup (state kecepatan di `o.userData.sv`), menggantikan `jl` (masih ada, tidak dipakai). Kekakuan per kelompok: kaki `lerp(9,26,w)`, lengan `lerp(7.5,17,w)`, badan `lerp(7,14,w)`, kepala 6. Posisi & arah tampilan `v.rx/v.rz/v.rh` dihaluskan (posisi `1-e^(-16dt)`, arah maks 6,5 rad/dtk saat berjalan, 4,2 saat diam; lompat >2,5 m langsung disamakan). **Rig yang dipakai ulang di tempat jauh harus `v.rx=null`** (sudah di rig sopir saat muncul).
+- `P` = pose aktif atau pose terakhir saat memudar (`v.lastPose`), jadi lengan tidak meloncat saat pose berakhir. Pose: clipboard (menulis `wr` bergantian dengan melihat), point, look (tangan di belakang punggung + memindai), phone (tangan lain di pinggang, kepala miring), chat (dua tangan + angguk), sitchat, makan (`eat` = `sitchat` + `p.lunch.phase==='eat'`: siklus suap `bite`), drink, push (petugas kantin memotong/mengaduk), sit. Diam: `nz()` untuk memindah tumpuan (`ws`) dan menoleh (`gl`), napas.
+- Burung: blok "v42" sebelum "v34: lampu sinyal". `BIRD`, `birdPools` (badan & sayap InstPool dengan `instanceColor`, sayap DoubleSide dicerminkan skala −x), `mkBird`, `drawBird(b,wingA)` (sayap: Euler `YZX` = lipat ke belakang `b.open` lalu kepak), `wingOf` (kepak/melayang), `birdSpots(s)` (tanah: timur-selatan kantin & depan Pos Sopir; tengger: 6 titik di atas balok depan kanopi kantin, y 3,14), `initBirds` (dipanggil di `bindEntities` setelah `initStaffMotos`), `birdThreat` (orang, forklift, truk, sopir, motor staf, ojol dalam 3,4 m), `birdTakeoff` (busur parabola, jeda acak, suara `flutter` bila dekat kamera), `syncBirds(dt)` (akhir `syncView`). Kawanan kota: 4 lintasan Lissajous angka delapan 15–22 m, pulang saat malam (`ENV.cur.n>0,55`)/hujan/badai pasir. Merpati bertengger saat malam/hujan. Waktu burung = waktu tampilan (`BIRD.t`).
+- e_ui `sndOneShot('flutter')`: noise bandpass 1,1 kHz berdenyut 9 kali.
+- Catatan uji Playwright: mode jam bawaan `live` memakai jam WIB nyata; tes subuh/malam membuat burung bertengger. Set `setTimeMode('pagi')` dulu.
 
 **Perubahan v41 (20 Okt 2026), motor staf & ojol (hanya tampilan, simulasi tidak berubah)**:
 - d_part2.js awal: `LOTS` + `staffLot(s)` → `{X,fz,CZ,GX,zg,rows,slots[8],out,door,walkX,walkZ,ojol}` (lokal site). Pintu belakang di `GX=W/2+17,8` (jauh dari tiang lampu x=21,75), slot parkir `x=X+12,2..15,8` di baris `CZ-4,8` & `CZ-7,0` (utara kantin), pintu staf `(X-2, -fz)`. `buildSiteView`: tiang & papan pintu belakang, jalur bermarka, area parkir beratap (atap `GLS` tembus pandang), pintu staf; pagar utara dipotong `GX±1,7`; pohon dan semak baris pagar dilewati di celah itu.

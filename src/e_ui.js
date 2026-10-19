@@ -902,6 +902,8 @@ function sndOneShot(kind,vol=1,delay=0){ const c=SND.ctx; if(!c||vol<0.01) retur
       g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.09*vol,t0+0.05); g.gain.setValueAtTime(0.09*vol,t0+0.9); g.gain.linearRampToValueAtTime(0,t0+1.15); o.connect(f); f.connect(g); g.connect(SND.master); o.start(t0); o.stop(t0+1.2); } }
   else if(kind==='chime'){ [659,523,587,392].forEach((fr,i)=>{ const o=c.createOscillator(); o.type='sine'; o.frequency.value=fr; const g=c.createGain(), t=t0+i*0.42;
       g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12*vol,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+1.1); o.connect(g); g.connect(SND.master); o.start(t); o.stop(t+1.2); }); }
+  else if(kind==='flutter'){ /* v42: kepak sayap merpati yang kabur */ const sr=c.createBufferSource(); sr.buffer=SND.noise; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1100; f.Q.value=0.7; const g=c.createGain(); g.gain.setValueAtTime(0,t0);
+    for(let i=0;i<9;i++){ const tt=t0+i*0.085, a=0.16*vol*(1-i/10); g.gain.linearRampToValueAtTime(a,tt+0.02); g.gain.linearRampToValueAtTime(a*0.15,tt+0.07); } g.gain.linearRampToValueAtTime(0,t0+0.85); sr.connect(f); f.connect(g); g.connect(SND.master); sr.start(t0); sr.stop(t0+0.9); }
   else if(kind==='bird'){ const o=c.createOscillator(); o.type='sine'; const g=c.createGain(), f0=2600+Math.random()*1400, n=2+Math.floor(Math.random()*3);
     for(let i=0;i<n;i++){ const t=t0+i*0.13; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f0*1.35,t+0.07); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.035*vol,t+0.015); g.gain.linearRampToValueAtTime(0,t+0.09); }
     o.connect(g); g.connect(SND.master); o.start(t0); o.stop(t0+n*0.13+0.1); } }

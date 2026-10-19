@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v41** · oleh PT Fusionify Digital
+**Lumbung v42** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -48,7 +48,7 @@ Truk datang lewat tol, **check-in di gerbang gudang** (petugas mengecek surat ja
 Forklift memindahkan palet antara slot dan truk dengan antrean tugas, anti-kebuntuan, dan stasiun pengisian. Di Hub Robotik, **AGV otonom** memproyeksikan jalurnya di lantai.
 
 ### 👷 Pekerja & Shift
-Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir; operator gudang berkeliling memeriksa rak, palet masuk, dan tumpukan krat. Jam makan (12.00 dan 00.00) dibagi dua gelombang: pekerja berjalan ke kantin di belakang gudang, mengambil makanan, lalu makan bersama, sementara operator forklift istirahat bergiliran satu per gudang supaya dock tetap terlayani. Menjelang dan sesudah ganti shift, pekerja datang dan pulang naik motor lewat pintu belakang staf, dan saat jam makan ojol mengantar pesanan ke kantin.
+Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir; operator gudang berkeliling memeriksa rak, palet masuk, dan tumpukan krat. Jam makan (12.00 dan 00.00) dibagi dua gelombang: pekerja berjalan ke kantin di belakang gudang, mengambil makanan, lalu makan bersama, sementara operator forklift istirahat bergiliran satu per gudang supaya dock tetap terlayani. Menjelang dan sesudah ganti shift, pekerja datang dan pulang naik motor lewat pintu belakang staf, dan saat jam makan ojol mengantar pesanan ke kantin. Semua figur bergerak luwes (sendi berpegas, pinggul berayun, gerakan sesuai kegiatan), dan merpati mematuk di halaman lalu kabur saat didekati.
 
 ### 🌦️ Waktu & Cuaca
 Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, berawan, hujan, badai petir, kabut, dan badai pasir. Cuaca memengaruhi kecepatan truk, forklift, dan jarak pandang.
@@ -303,6 +303,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Istirahat makan bergiliran & kantin pekerja · v39
 - [x] Tema gelap manual & tur perkenalan · v40
 - [x] Pekerja naik motor saat ganti shift & ojol antar makanan · v41
+- [x] Gerak manusia alami & burung merpati · v42
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

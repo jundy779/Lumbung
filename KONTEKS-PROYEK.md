@@ -309,6 +309,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v42):** animasi manusia (`spr` pegas teredam kritis per sendi, `nz` derau halus, posisi & arah tampilan `v.rx/v.rz/v.rh` dihaluskan di `animPerson`, gerak khas per pose termasuk makan `eat` saat `p.lunch.phase==='eat'`) dan burung (`BIRD`, `initBirds`, `syncBirds`: merpati per gudang dengan spot tanah + tengger kanopi kantin, kabur oleh `birdThreat`; 4 kawanan kota; suara `flutter`). Hanya tampilan.
+
 **Selesai (v41):** motor staf & ojol (hanya tampilan, d_part2): `staffLot(s)` (pintu belakang `GX=W/2+17,8`, 8 slot parkir di belakang kantin, pintu staf `X-2`, jalur `walkX/walkZ`), dibangun di `buildSiteView` (pagar belakang dipotong, pohon/semak di celah dilewati), `SM`/`initStaffMotos`/`syncStaffMotos` (jadwal `SM_IN`/`SM_OUT` dari jam simulasi, rig pengendara 4 per gudang + 1 ojol, deteksi lompatan jam), `staffMotoInfo(s)` untuk panel & sinematik. Pool orang `+36`.
 
 **Selesai (v40):** tema gelap manual (`THEME`, `isDark()`, `MQ_DARK` di a_core; skrip `<head>` memasang `data-theme`; `applyTheme(pref)` di e_ui; token CSS baru untuk semua warna yang dulu hardcode; scene 3D: `THEME_U.uDark` di shader global `cloudShader` memetakan warna netral terang ke biru tua, `THEMED`/`themedMat` untuk material bertoken, `noTheme()` untuk marka), tombol `#themeBtn`, tur perkenalan (`TOUR_STEPS`, `startTour`/`tourGo`/`tourPlace`/`endTour`, `localStorage['lumbung.tour']`, tombol `?`, `?notour`). Sidik jari simulasi tidak berubah.
