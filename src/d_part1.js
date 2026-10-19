@@ -349,7 +349,7 @@ function peoplePools(n){ if(PPL) return PPL; const G=(f)=>{const P=new Parts(); 
   return PPL; }
 const _I=new THREE.Matrix4();
 function makePerson(look){
-  const P=peoplePools(120), {vest,hat,clip,civ,skin,pants}=look, shoe=0x22252E;
+  const P=peoplePools(150), {vest,hat,clip,civ,skin,pants}=look, shoe=0x22252E;
   const g=new THREE.Group(), hips=new THREE.Group(); hips.position.y=0.95; g.add(hips);
   const parts=[]; const put=(joint,pool,col,show=true)=>{ const i=pool.alloc(); if(i<0&&!window.__poolWarned){ window.__poolWarned=1; console.warn('[Lumbung] people pool full — body parts dropped'); } if(col!=null) pool.color(i,'#'+new THREE.Color(col).getHexString()); const key=col==null?null:col===vest?'vest':col===hat?'hat':col===skin?'skin':col===pants?'pants':null; parts.push({joint,pool,i,show,key}); };
   const torso=new THREE.Group(); hips.add(torso);

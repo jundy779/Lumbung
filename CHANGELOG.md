@@ -1,5 +1,12 @@
 # Changelog
 
+## v41 · 20 Okt 2026
+- **Pekerja datang dan pulang naik motor**: tiap gudang punya pintu belakang staf di pagar belakang sisi timur, parkir motor beratap polikarbonat untuk 8 motor di belakang kantin, dan pintu staf di dinding belakang gedung. Menjelang ganti shift (sekitar 05.42 dan 17.42) empat pekerja shift berikutnya masuk lewat pintu belakang, memarkir motor, turun, lalu berjalan ke pintu staf. Setelah ganti shift (sekitar 06.04 dan 18.04) pekerja shift sebelumnya keluar dari pintu staf, menyalakan motor, dan pulang. Selama shift, motor mereka tetap terparkir.
+- **Ojol antar makanan**: di awal tiap gelombang istirahat (12.00, 12.30, 00.00, 00.30) satu pengemudi ojol berjaket hijau dengan tas makanan masuk lewat pintu belakang, berhenti di sisi timur kantin, menyerahkan pesanan, lalu pergi.
+- Panel gudang menampilkan baris **Ganti shift** (berapa motor staf datang atau pulang) dan keterangan "ojol mengantar makanan" di baris jam makan. Motor yang datang atau pulang dan ojol di kantin juga jadi shot di mode sinematik.
+- Semuanya di lapis tampilan dan dijadwalkan dari jam simulasi, jadi simulasi dan sidik jarinya tidak berubah. Saat jam melompat (ganti mode waktu, putar ulang) motor langsung menyesuaikan tanpa animasi. Di mode Siklus cepat, motor yang belum kebagian pengendara menunggu giliran, tidak muncul atau hilang tiba-tiba.
+- Kapasitas pool figur orang dinaikkan supaya rig pengendara baru tidak membuat bagian tubuh figur lain hilang.
+
 ## v40 · 20 Okt 2026
 - **Tema gelap manual**: pilih **Ikuti sistem**, **Terang**, atau **Gelap** di menu Waktu & cuaca, atau pakai tombol bulan di kontrol peta untuk ganti cepat. Pilihan disimpan di browser dan dipasang sebelum halaman tampil, jadi tidak ada kedipan terang saat dibuka.
 - Scene 3D ikut gelap: tanah halaman, apron, dinding, platform dock, dan trailer berubah ke biru tua sesuai terangnya, sementara atap, rompi, palet, lampu, dan marka jalan tetap jelas. Pergantian tema dianimasikan halus tanpa memuat ulang peta, dan tetap menyatu dengan siklus siang-malam.

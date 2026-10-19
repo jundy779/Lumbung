@@ -1,10 +1,17 @@
-# CLAUDE.md · Peta Teknis Lumbung v40
+# CLAUDE.md · Peta Teknis Lumbung v41
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v41 (20 Okt 2026), motor staf & ojol (hanya tampilan, simulasi tidak berubah)**:
+- d_part2.js awal: `LOTS` + `staffLot(s)` → `{X,fz,CZ,GX,zg,rows,slots[8],out,door,walkX,walkZ,ojol}` (lokal site). Pintu belakang di `GX=W/2+17,8` (jauh dari tiang lampu x=21,75), slot parkir `x=X+12,2..15,8` di baris `CZ-4,8` & `CZ-7,0` (utara kantin), pintu staf `(X-2, -fz)`. `buildSiteView`: tiang & papan pintu belakang, jalur bermarka, area parkir beratap (atap `GLS` tembus pandang), pintu staf; pagar utara dipotong `GX±1,7`; pohon dan semak baris pagar dilewati di celah itu.
+- Blok "v41" setelah `syncBreakdowns`: `SM` (state), `SM_IN={pagi:5.70,malam:17.70}`, `SM_OUT={pagi:18.06,malam:6.06}`, warna jaket/helm/motor, `smPools()` (InstPool motor dengan `instanceColor` + pool ojol dengan tas), `initStaffMotos()` (dipanggil di `bindEntities`; 8 motor/gudang, 4 rig pengendara + 1 rig ojol), `smMove`, `smArrivePath`, `smWalkPath`, `syncStaffMotos(dt)` (di akhir `syncView`). Status motor: `away`/`arrive`/`parked`/`leave` dengan sub-animasi `ride`→`off`→`walk` (datang) atau `walk`→`on`→`ride` (pulang). Bila tidak ada rig bebas, motor menunggu giliran (tidak teleport). Lompatan jam (`dh<0` atau `>0,2` jam) → keadaan disamakan tanpa animasi. Ojol dipicu saat jam melewati 12.00/12.30/00.00/00.30.
+- `peoplePools(people+trucks+36)` di `bindEntities` (dua tempat). Tanpa ini pool penuh dan bagian tubuh figur hilang (`window.__poolWarned`).
+- UI: `staffMotoInfo(s)` → baris chip "Ganti shift" di panel gudang, "ojol mengantar makanan" di `lunchInfo`, shot sinematik `motor<site>`/`ojol<site>` dengan `rec` getter posisi live.
+- Gunung Salak tidak dibuat: kamera selalu menunduk ≥25° (phi 0,66, FOV 26), jadi cakrawala tidak pernah terlihat dan gunung sejauh apa pun tertutup tanah.
 
 **Perubahan v40 (20 Okt 2026), tema gelap manual & tur perkenalan (hanya tampilan, sidik jari simulasi sama dengan v39)**:
 - Tema: `THEME.pref` (`auto`/`light`/`dark`, `localStorage['lumbung.theme']`), `MQ_DARK`, `isDark()` di a_core.js (setelah `cssVar`). Skrip kecil di `<head>` shell.html memasang `data-theme` sebelum CSS dibaca. CSS memakai pola lama (blok `@media (prefers-color-scheme:dark){:root:not([data-theme="light"])…}` + `:root[data-theme="dark"]`), sekarang dengan token baru: `--sim-*`, `--shift-*`, `--shiftn-*`, `--dicy-*`, `--dict-*`, `--storm-*`, `--neg`, `--toggle-off`, `--kic-a/b`, `--load-a/b`, `--lbar`, `--bad-bg/ink`, `--sd`, `--al-line`, `--panel-line`, `--ok-ink`, `--kramp`, dan `color-scheme`. **Jangan menulis warna terang langsung di CSS komponen**; tambahkan token di ketiga blok.
@@ -602,8 +609,8 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 ### 16.2 Ide yang pernah diusulkan, belum dipilih
 - Bisnis: ~~garis waktu & putar ulang~~ (selesai v35), laporan & ekspor PDF/Excel, analitik dock.
 - UX: tombol mode gelap manual (token CSS sudah ada, tapi warna hardcode perlu dibereskan dulu, lihat temuan #12), tur perkenalan, pintasan keyboard lengkap, versi bahasa Inggris (semua teks sekarang hardcode di template).
-- Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), ~~KRL, suara ambien, mode foto~~ (selesai v36), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
-- Kehidupan: pekerja datang naik motor, istirahat siang, jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).
+- Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), ~~KRL, suara ambien, mode foto~~ (selesai v36), siluet Gunung Salak (tidak bisa terlihat dengan sudut kamera sekarang, lihat v41), KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
+- Kehidupan: ~~pekerja datang naik motor~~ (v41), ~~istirahat siang~~ (v39), jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).
 - Sinematik: shot bercerita mengikuti satu truk dari gerbang sampai dock, mode foto untuk materi promosi.
 
 ### 16.3 Batasan yang masih ada

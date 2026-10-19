@@ -92,7 +92,7 @@ function truckStatus(t){
 const forkStatus=f=>f.charging?['Mengisi daya','warn']:forkWorking(f)?['Bekerja','ok']:f.lunch?['Istirahat','info']:['Siaga','mut'];
 /* v39: ringkasan istirahat makan per gudang */
 function lunchInfo(s){ const ln=s&&s.kind!=='store'?lunchNow():null; if(!ln) return null; const eat=s.people.filter(p=>p.lunch&&p.lunch.phase==='eat').length, walk=s.people.filter(p=>p.lunch&&p.lunch.phase!=='eat').length, fk=s.forks.filter(f=>f.lunch).length;
-  return {ln,eat,walk,fk,text:`${ln.L.label} · gelombang ${ln.wave+1}${eat?` · ${eat} makan di kantin`:''}${walk?` · ${walk} di jalan`:''}${fk?` · ${fk} forklift jeda`:''}`}; }
+  return {ln,eat,walk,fk,text:`${ln.L.label} · gelombang ${ln.wave+1}${eat?` · ${eat} makan di kantin`:''}${walk?` · ${walk} di jalan`:''}${fk?` · ${fk} forklift jeda`:''}${(staffMotoInfo(s)||{}).ojol?' · ojol mengantar makanan':''}`}; }
 const dockStatus=b=>{const t=b.truck; if(!t) return ['Tersedia','mut']; if(t.state==='approach'||t.state==='gate') return ['Dijadwalkan','info']; if(t.state==='prep'||t.state==='reverse') return ['Truk tiba','warn']; if(t.state==='docked') return [t.mode==='load'?'Memuat':'Membongkar','ok']; return ['Berangkat','mut'];};
 const chip=([t,c])=>`<span class="chip ${c}">${t}</span>`;
 const bar=(p,cls='')=>`<div class="bar ${cls}"><i style="width:${clamp(p,0,100).toFixed(0)}%"></i></div>`;
@@ -126,7 +126,7 @@ function renderDetail(){
   const s=(e&&e.siteId&&Store.get('stores',e.siteId))||S_();
   if(!e){
     const n=siteNumbers(s);
-    const shNow=s.shiftNow||'pagi'; h=header(img3(ICON3D.depot(),'hd3'),'',`${s.type} · ${s.id}`,s.name,s.address)+dataBlock(s)+`<div class="shiftbar ${shNow}"><i></i><b>${SHIFTS[shNow].label}</b><span>${SHIFTS[shNow].hours} · ${s.people.length+s.forks.length} petugas bertugas</span></div>`+(()=>{ const li=lunchInfo(s); return li?`<div class="chips lunch">${chip(['Jam makan','ok'])}<span>${li.text}</span></div>`:''; })()+profileLine(s)+
+    const shNow=s.shiftNow||'pagi'; h=header(img3(ICON3D.depot(),'hd3'),'',`${s.type} · ${s.id}`,s.name,s.address)+dataBlock(s)+`<div class="shiftbar ${shNow}"><i></i><b>${SHIFTS[shNow].label}</b><span>${SHIFTS[shNow].hours} · ${s.people.length+s.forks.length} petugas bertugas</span></div>`+(()=>{ const li=lunchInfo(s); return li?`<div class="chips lunch">${chip(['Jam makan','ok'])}<span>${li.text}</span></div>`:''; })()+(()=>{ const mi=staffMotoInfo(s); if(!mi||!mi.moving) return ''; const a=mi.S.bikes.filter(b=>b.st==='arrive').length, l=mi.S.bikes.filter(b=>b.st==='leave').length; return `<div class="chips">${chip(['Ganti shift','info'])}<span>${a?`${a} motor staf datang`:''}${a&&l?' · ':''}${l?`${l} motor staf pulang`:''} lewat pintu belakang</span></div>`; })()+profileLine(s)+
       `<div class="chips">${chip(['Beroperasi','ok'])}<span>${n.docked} di dock · ${n.arriving} tiba${n.waiting?` · ${n.waiting} di gerbang/area tunggu`:''} · ${n.staged} palet disiapkan</span></div>
       <div class="grid2">
         <div class="stat"><small>Stok tersedia</small><b>${fmt(n.stock)} <span>/ ${fmt(s.capacity)}</span></b>${bar(n.stock/s.capacity*100)}</div>
@@ -544,6 +544,10 @@ function cineCandidates(){
       else if(t.state==='to_store'&&t.presence>0.9){ const st=Store.get('stores',t.dest); if(st) c.push({key:t.id+'t',score:5,rec:t,zoom:1.5,phi:0.48,title:`${t.id} mengantar ke ${st.name}`,sub:`dari ${s.name}`}); } }
     for(const f of s.forks) if(f.carryingPalletId) c.push({key:f.id,score:7,rec:f,zoom:2.5,phi:0.55,title:`${f.short} membawa palet`,sub:`${s.name} · ${f.task}`});
     { const li=lunchInfo(s), ea=li&&s.people.filter(p=>p.lunch&&p.lunch.phase==='eat'); if(ea&&ea.length) c.push({key:'kantin'+s.id,score:4+ea.length,rec:ea[0],zoom:3.0,phi:0.5,title:`Kantin ${s.name}`,sub:`${ea.length} pekerja ${li.ln.L.meal.toLowerCase()} · ${li.fk?'forklift bergiliran istirahat':'operasi tetap jalan'}`}); }
+    /* v41: motor staf datang/pulang dan ojol di kantin (objek tampilan, posisi dibaca langsung dari keadaan animasinya) */
+    { const mi=staffMotoInfo(s); if(mi){ const mv=mi.S.bikes.find(b=>b.an&&b.an.k==='ride'), O=mi.S.ob;
+      if(mv) c.push({key:'motor'+s.id,score:5,rec:{siteId:s.id,get pos(){ return {x:mv.x,z:mv.z}; }},zoom:2.4,phi:0.5,title:mv.st==='arrive'?'Pekerja shift datang':'Pekerja shift pulang',sub:`${s.name} · lewat pintu belakang staf`});
+      if(mi.ojol) c.push({key:'ojol'+s.id,score:6,rec:{siteId:s.id,get pos(){ return {x:O.x,z:O.z}; }},zoom:2.6,phi:0.5,title:'Ojol antar makanan',sub:`ke kantin ${s.name}`}); } }
     const sup=s.people.find(p=>p.role==='Pengawas dock'); if(sup&&sup.pose) c.push({key:sup.id,score:3,rec:sup,zoom:3.1,phi:0.42,title:`${sup.name}`,sub:`${sup.doing} · ${s.name}`});
     c.push({key:s.id,score:2,rec:s,zoom:0.95,phi:0.72,title:s.name,sub:`${s.type} · ${siteNumbers(s).docked} truk di dock`});
   }
