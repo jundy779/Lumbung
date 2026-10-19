@@ -128,6 +128,8 @@ function truckJunctionBlock(site,t){
     /* kuning: berhenti hanya bila sempat mengerem; bila tidak, truk "berkomitmen" lewat dan tidak mengerem mendadak di atas zebra saat lampu jadi merah (sama dengan aturan mobil v30) */
     if(c.j.sig&&d>-0.2){ const st=(c.hIn&1)?c.j.sig.stateH:c.j.sig.stateV, canStop=d>t.v*t.v/(2*t.dec);
       if(st==='A'&&!canStop&&t.v>0.5) t._commit=c.j;
+      /* lampu bisa langsung merah tanpa kuning (akhir kuning berkedip pukul 05.00): truk yang sudah memegang persimpangan dan tidak sempat berhenti tetap lewat */
+      if(st==='R'&&!canStop&&t.v>0.5&&c.j.occ.has(t)) t._commit=c.j;
       if((st==='R'&&t._commit!==c.j)||(st==='A'&&canStop)){ if(c.j.occ.has(t)) jRelease(c.j,t); jDequeue(t); block=Math.min(block,d); break; } }
     if(c.j.occ.has(t)) continue;
     if(d>t.v*t.v/(2*t.dec)+9) break;
@@ -427,6 +429,21 @@ function crewStartReturn(site,t){ const d=crewOf(t), L=site.lounge, sp=L.spots[d
   const front=tLocal(t,-1.62,3.95); d.phase='toTruck'; d.pose=null; d.act=null;
   d.route=[L.entry,{x:site.walkX,z:site.walkZ},{x:front.x,z:site.walkZ},front,tLocal(t,CAB_DOOR.x,CAB_DOOR.z)]; }
 function crewStartWait(t){ const d=crewOut(t); d.task='wait'; d.phase='out'; d.safe=false; d.route=[tLocal(t,-2.4,2.9)]; }
+/* ---------- v37: truk mogok di dock ----------
+   Saat truk siap berangkat (muatan selesai, sopir di kabin), sekali per kunjungan dock ada peluang BK_CHANCE mesin tidak mau menyala.
+   Bay tetap terisi, sopir turun ke depan kabin dan menelepon bengkel. Tanpa tindakan, perbaikan butuh 3–5 menit; aksi peringatan
+   "Kirim mekanik" mempercepatnya (mekanik datang ±25 dtk, memperbaiki ±40 dtk). Truk mogok tidak memblokir jalur truk lain. */
+const BK_CHANCE=0.04, BK_SPOT={x:-1.62,z:3.95};
+function startBreakdown(site,t){ hidden(t,'broken',{t:0,need:180+RAND()*120,mech:false,mechAt:null,cause:pick(['Aki soak','Mesin tidak mau menyala','Selang radiator bocor','Kabel starter putus'])});
+  const d=crewOut(t); d.task='wait'; d.phase='out'; d.safe=false; d.route=[tLocal(t,BK_SPOT.x,BK_SPOT.z)]; d.brk=true;
+  logEvent(site,`${t.id} mogok di ${t.bay.label} · ${t.broken.cause.toLowerCase()}`,'#C2410C',t); }
+function sendMechanic(t){ const B=t.broken; if(!B) return 'Truk ini tidak sedang mogok'; if(B.mech) return 'Mekanik sudah dalam perjalanan';
+  B.mech=true; B.mechAt=B.t; B.need=Math.min(B.need,B.t+65); logEvent(t.site,`Mekanik dikirim ke ${t.id} (${t.bay?t.bay.label:'dock'})`,'#2E5BFF',t); return `Mekanik menuju ${t.id}`; }
+/* sopir truk mogok: berdiri di depan kabin sambil menelepon, kembali ke kabin setelah mesin hidup */
+function crewBreakLife(t){ const d=crewOf(t), B=t.broken;
+  if(d.task==='wait'&&d.phase==='waiting'){ d.h=t.heading+Math.atan2(1.62,-0.7); d.pose=B.mech&&B.t-B.mechAt>25?'look':'phone'; d.act='wait';
+    if(B.t>=B.need){ d.phase='back'; d.pose=null; d.brk=false; d.route=[tLocal(t,CAB_DOOR.x,CAB_DOOR.z)]; } }
+  return d.inCab; }
 function crewTick(site,t,dt){
   const d=t.crew; if(!d||(!d.on&&d.en!=='shut'&&d.ex!=='open')||d.task==='door') return;
   if(d.task==='rest'){ const L=site.lounge;
@@ -514,8 +531,11 @@ function truckStep(site,t,dt){
       const inCab=crewDockLife(site,t);
       if(t.mode==='load'&&t.done+t.pending<t.total&&!t.assigned&&!site.slots.some(x=>x.occupied&&!x.reserved)){ t.starve=(t.starve||0)+dt;
         if(t.starve>25){ t.total=t.done+t.pending; t.starve=0; if(t.shipment) t.shipment.total=t.total; logEvent(site,`${t.id} berangkat dengan muatan parsial (${t.total} palet) · stok habis`,'#C2410C',t); } } else t.starve=0;
-      if(t.done>=t.total&&t.pending===0&&!t.assigned&&inCab){ t.wait+=dt;
-        if(t.wait>2 && canAcquire(site,t,regionOf(site,t.bay),false)){ acquire(site,t,regionOf(site,t.bay)); kpiOnPull(site,t); t.state='pull'; setPath(t,finalize(linePts(t.bay.x,site.zDock,t.bay.x,site.zDock+4,0.5)),false,1.6,1.6); } }
+      if(t.broken){ const B=t.broken; B.t+=dt; const back=crewBreakLife(t);
+        if(B.t>=B.need&&back){ logEvent(site,`${t.id} sudah diperbaiki${B.mech?' mekanik':''} · siap berangkat`,'#178A55',t); t.broken=null; t.wait=0; } }
+      else if(t.done>=t.total&&t.pending===0&&!t.assigned&&inCab){ t.wait+=dt;
+        if(!t.bkRoll&&t.wait>1){ hidden(t,'bkRoll',true); if(RAND()<BK_CHANCE){ startBreakdown(site,t); break; } }
+        if(t.wait>2 && canAcquire(site,t,regionOf(site,t.bay),false)){ acquire(site,t,regionOf(site,t.bay)); kpiOnPull(site,t); t.state='pull'; t.bkRoll=false; setPath(t,finalize(linePts(t.bay.x,site.zDock,t.bay.x,site.zDock+4,0.5)),false,1.6,1.6); } }
       else t.wait=0;
       break; }
     case 'pull':
@@ -1020,6 +1040,10 @@ function alertsTick(dt){ alertAcc+=dt; if(alertAcc<1.2) return; alertAcc=0;
     const sid='stuck:'+t.id, stuck=!['docked','parked','away','store_docked'].includes(t.state)&&(t.stuck>60||(prev(sid)&&t.stuck>5));
     if(stuck){ const acts=[lookAct(t.id,'Lihat truk')]; const o=destOptions(t); if(o&&o.enroute){ const alt=o.list.find(x=>!x.busy&&!x.cur); if(alt) acts.unshift({id:'reroute',label:`Alihkan ke ${alt.name}`,primary:true,run:()=>setTruckDest(t,alt.id)==='ok'?`${t.id} dialihkan ke ${alt.name}`:'Gagal mengalihkan'}); }
       upAlert(sid,{sev:'crit',kind:'truck',title:`${t.id} tertahan ${Math.round(t.stuck)} detik`,detail:`${site.name} · menunggu jalur kosong`,siteId:site.id,ref:t.id,actions:acts}); }
+    if(t.broken&&t.state==='docked'){ const B=t.broken, left=Math.max(0,Math.ceil((B.need-B.t)/60*10)/10);
+      const a=upAlert('brk:'+t.id,{sev:'crit',kind:'truck',title:`${t.id} mogok di ${t.bay?t.bay.label:'dock'}`,detail:`${B.cause} · ${site.name} · bay tertahan, perkiraan ${left.toLocaleString('id-ID')} mnt lagi`,siteId:site.id,ref:t.id,
+        actions:[{id:'mech',label:'Kirim mekanik',primary:true,run:()=>sendMechanic(t)},lookAct(t.id,'Lihat truk')]});
+      if(B.mech&&a.state==='open'){ a.state='done'; a.doneLabel=B.t-B.mechAt>25?'Mekanik sedang memperbaiki':'Mekanik dalam perjalanan'; } }
     const vid='starve:'+t.id;
     if(t.state==='docked'&&t.mode==='load'&&(t.starve>10||(prev(vid)&&t.starve>0))){ const acts=[lookAct(t.id,'Lihat truk')];
       if(t.done+t.pending>=1) acts.unshift({id:'go',label:`Berangkatkan (${t.done+t.pending} palet)`,primary:true,run:()=>{ t.total=t.done+t.pending; t.starve=0; if(t.shipment) t.shipment.total=t.total; logEvent(site,`${t.id} diberangkatkan dengan muatan parsial (${t.total} palet)`,'#2E5BFF',t); return `${t.id} diberangkatkan dengan ${t.total} palet`; }});
@@ -1241,6 +1265,7 @@ function selftestInit(opt={}){ setTimeMode(opt.jam&&TIME_MODES[opt.jam]&&opt.jam
 /* operator uji: tiap ±12 dtk menjalankan perintah pengguna secara acak (pindah bay, alihkan truk datang ke gudang lain,
    kirim antar-gudang/toko/tol), supaya fitur pengarahan ikut teruji oleh pemeriksa keselamatan */
 function selftestOperator(C,dt){ const O=C.op; if(!O) return; O.acc+=dt; if(O.acc<12) return; O.acc=0; const R=O.R;
+  { const br=[...Store.tables.trucks.values()].filter(t=>t.broken&&!t.broken.mech); if(br.length&&R()<0.5){ sendMechanic(br[0]); O.n.mech=(O.n.mech||0)+1; return; } }
   const trucks=[...Store.tables.trucks.values()].filter(t=>t.state!=='away'&&t.state!=='parked'), cand=trucks.filter(t=>destOptions(t)); if(!cand.length) return;
   const t=cand[Math.floor(R()*cand.length)], o=destOptions(t), pool=[];
   for(const x of o.bays) if(!x.cur) pool.push(['bay',x.id]); for(const x of o.sites) if(!x.busy&&!x.cur) pool.push([o.before?'xfer':'incoming',x.id]);

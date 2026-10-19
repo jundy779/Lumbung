@@ -1,10 +1,17 @@
-# CLAUDE.md · Peta Teknis Lumbung v36
+# CLAUDE.md · Peta Teknis Lumbung v37
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v37 (19 Okt 2026), truk mogok & jas hujan**:
+- c_sim.js (setelah `crewStartWait`): `BK_CHANCE=0.04`, `startBreakdown(site,t)` (sekali per kunjungan dock lewat `t.bkRoll`, diundi saat `docked` siap tarik, 1 panggilan RAND + `need` + `pick` penyebab), `sendMechanic(t)` (`need=min(need,t+65)`), `crewBreakLife(t)` (sopir pakai task `wait` dengan rute ke `BK_SPOT` (-1,62; 3,95) lokal, pose phone/look; kembali ke kabin saat `t>=need`). Kasus `docked`: bila `t.broken` → hitung waktu, tidak menarik keluar; selesai saat sopir sudah di kabin. `t.bkRoll=false` saat `pull`.
+- Peringatan `brk:<truk>` (crit) dengan aksi `mech` di `alertsTick`; status `done` setelah mekanik dikirim. Operator uji: 50% per tick mengirim mekanik ke truk mogok pertama (`operatorActions.mech`).
+- Tampilan: `View.mech` (1 rig per gudang, dibuat di `bindEntities`, memakai slot cadangan pool orang), `syncBreakdowns(dt,now)` di akhir `syncView` (mekanik berjalan dari `walkX/walkZ` ke `tLocal(t,0.35,4.25)`, asap `Sprites` dari gril, kerucut segitiga). Hazard: `L.hazard` juga menyala bila `t.broken`. UI: `truckStatus` 'Mogok'/'Diperbaiki' (kelas `.chip.bad`), kartu `.brk` dengan tombol `[data-mech]` di panel truk, shot sinematik.
+- Jas hujan: `coatLook(look,id)` dipakai di `syncView` untuk orang (kunci `look.ver|wet`) dan rig sopir (`D.wet`) saat `ENV.rain>0.35`.
+- `truckJunctionBlock`: lampu merah tanpa kuning (F → R pukul 05.00) + truk memegang persimpangan + tidak sempat berhenti → `t._commit`.
 
 **Perubahan v36 (19 Okt 2026), suasana kota (semua di lapis tampilan, sidik jari simulasi tetap `cfcd7f0c` untuk `2 7 siang`)**:
 - KRL layang (d_part2.js akhir): `RAIL={z:-38,y:9.2,x0:-780,x1:780,v:16,acc:0.7,dwell:24,idle:40,...}`. Jalur di atas jalan horizontal z=−38 (median, pilar dilewati di dekat persimpangan `nearJ`). `railSchedule()` + `trainAt(t)` = profil jalan → melambat → berhenti → berangkat → jalan → luar; dua rangkaian (`R.trains`, arah ±1, selang setengah periode, lajur kiri). `syncRail(dt)` dipanggil di akhir `syncView`, menambah `RAIL.t` (waktu tampilan, tidak ikut putar ulang). Instanced: `R.mid` (badan), `R.cab` (ujung kabin, 4), `R.win` (jendela, `View.nightMats`). Shot sinematik `krl` di `cineCandidates`. Rangkaian tidak termasuk `View.clutter` (tetap tampil di Tampilan Bersih).

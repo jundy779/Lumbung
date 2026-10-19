@@ -302,6 +302,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v37):** truk mogok di dock (`BK_CHANCE` 4%, `startBreakdown`, `sendMechanic`, `crewBreakLife`, `t.broken={t,need,mech,mechAt,cause}`, peringatan `brk:<truk>`), mekanik & asap & segitiga di tampilan (`View.mech`, `syncBreakdowns`), jas hujan (`coatLook`), komit truk saat lampu langsung merah setelah kuning berkedip.
+
 **Selesai (v36):** suasana kota di lapis tampilan: KRL layang + Stasiun Cibinong (`RAIL`, `railSchedule`, `trainAt`, `buildRailView`, `syncRail` di d_part2.js; waktu kereta `RAIL.t` berjalan di View, bukan simulasi), bayangan awan (`CLOUD_U`, `cloudShader` dipasang di `MeshStandardMaterial.prototype.onBeforeCompile`, `initClouds`, `updateClouds`), suara WebAudio (`SND`, `sndTick`, `setSound`, tombol `#soundBtn`, tombol M), mode foto (`PHOTO`, `startPhoto`, `takePhoto`, tombol P).
 
 **Selesai (v35):** garis waktu & putar ulang (`REC`, `recordTick`, `capture`, `applyRec`, `rpBackup`, `enterReplay`/`exitReplay`, `rpSeek` di e_ui.js; `RP` di d_part2.js). Perekam hanya membaca Store; putar ulang menjeda simulasi dan mengembalikan nilai live persis saat keluar.

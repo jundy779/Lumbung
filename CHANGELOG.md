@@ -1,5 +1,13 @@
 # Changelog
 
+## v37 · 19 Okt 2026
+- **Truk mogok di dock**: saat truk selesai dimuat atau dibongkar dan siap berangkat, ada peluang 4% mesinnya bermasalah (aki soak, mesin tidak mau menyala, selang radiator bocor, atau kabel starter putus). Truk menyalakan hazard, sopir turun ke depan kabin sambil menelepon bengkel, asap tipis keluar dari gril, dan segitiga pengaman dipasang. Bay tetap terisi sampai truk diperbaiki (3 sampai 5 menit bila dibiarkan).
+- **Kirim mekanik**: peringatan kritis "TRK-xxxx mogok di Bay n" dan kartu merah di panel truk punya tombol "Kirim mekanik". Mekanik berseragam biru tua dan topi merah berjalan dari ujung halaman ke depan kabin, memeriksa mesin, lalu truk siap berangkat sekitar 1 menit kemudian. Status truk berubah "Mogok" → "Diperbaiki", dengan bilah progres dan perkiraan waktu.
+- Truk mogok juga muncul sebagai shot di mode sinematik, dan operator uji di `?selftest` ikut mengirim mekanik.
+- **Jas hujan**: saat hujan atau badai, staf gudang memakai jas hujan kuning, sopir memakai jas hujan biru tua, dan warga memakai jas hujan warna-warni.
+- Perbaikan: pukul 05.00, lampu lalu lintas berpindah dari kuning berkedip langsung ke merah tanpa fase kuning. Truk yang sudah memegang persimpangan dan tidak sempat mengerem dulu berhenti di atas zebra cross. Sekarang truk itu tetap lewat, sama seperti aturan kuning.
+- Catatan uji: 16 dari 16 skenario lulus. Tanpa mekanik pun (semua mogok dibiarkan 3 sampai 5 menit) uji 30 menit tetap lulus.
+
 ## v36 · 19 Okt 2026
 - **KRL layang & Stasiun Cibinong**: jalur kereta komuter layang membentang di atas Jl. z=−38 tepat di belakang deretan gudang BKS-01, BGR-01, dan BGR-02, lengkap dengan pilar di median, tiang listrik aliran atas, peron samping berkanopi, tangga ke trotoar, dan papan nama stasiun. Dua rangkaian 8 kereta (arah Jakarta Kota dan arah Bogor) berjalan bergantian: melambat, berhenti 24 detik di stasiun, lalu berangkat lagi. Jendela kereta menyala di malam hari dan muncul sebagai shot di mode sinematik. Murni tampilan, tidak ada perlintasan sebidang, jadi simulasi truk dan mobil tidak berubah.
 - **Bayangan awan berjalan**: bayangan awan lembut bergerak pelan di seluruh kota mengikuti angin saat cerah atau berawan, lalu menghilang saat hujan dan malam.

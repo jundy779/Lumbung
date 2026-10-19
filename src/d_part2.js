@@ -232,6 +232,9 @@ function bindEntities(){
     View.trucks.set(t.id,{...m,spin:0,steerA:0,o:-1,drv:{rig,phase:seed,ww:0,poseT:0,lx:0,lz:0,lh:0,look}}); }
   for(const f of Store.all('forklifts')){ const fs=Store.get('sites',f.siteId), m=makeForklift(fs?fs.profile:'general'); View.sites.get(f.siteId).g.add(m.g); tagRef(m.g,'forklifts',f.id); View.forks.set(f.id,{...m,spin:0,steerA:0}); }
   peoplePools(Store.tables.people.size+Store.tables.trucks.size+6);
+  /* v37: satu mekanik per gudang (hanya tampilan), muncul saat aksi "Kirim mekanik" */
+  View.mech=new Map(); for(const s of Store.all('sites')){ const look={vest:0x24305E,hat:0xE0393E,clip:false,civ:false,skin:[0xF0C29C,0xD9A57B,0xB9825A][strHash(s.id)%3],pants:0x24305E,seed:strHash(s.id+'m')%997/97};
+    const rig=makePerson(look); View.sites.get(s.id).g.add(rig.g); updatePerson(rig,false); View.mech.set(s.id,{rig,look,phase:look.seed,ww:0,poseT:0,lx:0,lz:0,lh:0,on:false,x:0,z:0,h:0,v:0,pose:null,route:null,truck:null}); }
   for(const p of Store.all('people')){ const m=makePerson(p.look); (p.siteId?View.sites.get(p.siteId).g:scene).add(m.g); if(p.siteId) tagRef(m.g,'people',p.id);
     View.people.set(p.id,{rig:m,phase:p.look.seed,ww:0,poseT:0,lx:p.pos.x,lz:p.pos.z,lh:p.heading}); }
   const CP=carPools(Store.tables.cars.size); for(const c of Store.all('cars')){ const i=CP.body.alloc(); CP.detail.alloc(); CP.body.color(i,'#'+new THREE.Color(c.color).getHexString()); View.cars.set(c.id,i); }
@@ -284,6 +287,9 @@ function animPerson(p,v,dt){
   }
 }
 /* ---------- sinkron tiap frame: baca Store → ubah objek 3D ---------- */
+/* v37: jas hujan saat hujan/badai. Staf gudang memakai jas hujan kuning keselamatan, sopir biru tua, warga warna acak; topi & kulit tetap */
+function coatLook(look,id){ id=id||''; const h=strHash(id), drv=id.startsWith('TRK-'), c=drv?0x2C4A8C:look.civ?[0x2E5BFF,0xE0573B,0x17A090,0xF2C230,0x7C3AED][h%5]:0xF2C230;
+  return {...look,vest:c,pants:c===0xF2C230?0xD9AE24:c}; }
 function syncView(dt,now){
   for(const t of Store.tables.trucks.values()){ const v=View.trucks.get(t.id), m=v;
     const vis=t.state!=='away'; if(!vis){ m.g.visible=false; if(v.drv.wasOn){ updatePerson(v.drv.rig,false); v.drv.wasOn=false; } continue; }
@@ -296,7 +302,7 @@ function syncView(dt,now){
     if(Math.abs(o-v.o)>0.004){ v.o=o; for(const mt of m.mats){ if(mt.userData.base==null){ mt.userData.base=mt.opacity; mt.userData.bt=mt.transparent; } mt.transparent=mt.userData.bt||o<0.999; mt.opacity=mt.userData.base*o; mt.needsUpdate=true; } }
     m.g.visible=o>0.01;
     m.cabPiv.rotation.y=ease(t.cabDoor||0)*1.2;
-    const dv=t.crew, D=v.drv, on=!!(dv&&dv.on);
+    const dv=t.crew, D=v.drv, on=!!(dv&&dv.on); { const w=(ENV.rain||0)>0.35; if(D.wet!==w){ D.wet=w; recolorPerson(D.rig,w?coatLook(D.look,t.id):D.look); } }
     if(on){ if(!D.wasOn){ D.lx=dv.x; D.lz=dv.z; D.lh=dv.h; } animPerson({pos:{x:dv.x,z:dv.z},y:0.05+(dv.y||0),heading:dv.h,v:dv.v,pose:dv.pose,look:D.look},D,dt); }
     if(on||D.wasOn) updatePerson(D.rig,on); D.wasOn=on;
   }
@@ -313,7 +319,8 @@ function syncView(dt,now){
     const ni=f.shiftNow==='malam'; if(m.night.visible!==ni){ m.night.visible=ni; m.day.visible=!ni; }
     m.beacon.material.emissiveIntensity=forkWorking(f)?0.35+0.65*Math.max(0,Math.sin(now/180+f.restIdx)):0.15;
   }
-  for(const p of Store.tables.people.values()){ const v=View.people.get(p.id); if(v.ver!==p.look.ver){ v.ver=p.look.ver; recolorPerson(v.rig,p.look); } animPerson(p,v,dt); updatePerson(v.rig,p.siteId?true:(!CLEAN&&(p.look.seed%1)<WX.density+0.15)); }
+  const wet=(ENV.rain||0)>0.35;
+  for(const p of Store.tables.people.values()){ const v=View.people.get(p.id), key=p.look.ver+'|'+wet; if(v.ver!==key){ v.ver=key; recolorPerson(v.rig,wet?coatLook(p.look,p.id):p.look); } animPerson(p,v,dt); updatePerson(v.rig,p.siteId?true:(!CLEAN&&(p.look.seed%1)<WX.density+0.15)); }
   for(const d of Store.tables.docks.values()){ const v=View.docks.get(d.id); const busy=d.doorState==='open', store=!!Store.get('stores',d.siteId), want=busy||(!store&&!WX.night)?1:0; v.open+=(want-v.open)*Math.min(1,dt*2.2);
     const k=1-0.92*v.open; v.door.scale.y=k; v.door.position.y=PH+2.7-1.35*k; v.lamp.material=LAMP[busy?1:0]; }
   for(const sl of Store.tables.slots.values()) View.slots.get(sl.id).visible=!!sl.palletId;
@@ -348,7 +355,7 @@ function syncView(dt,now){
     updatePallet(v.mesh,false);
   }
   for(const [id,v] of View.pallets){ if(!seen.has(id)){ freePallet(v.mesh); v.mesh.parent&&v.mesh.parent.remove(v.mesh); View.pallets.delete(id); } }
-  syncRail(dt);
+  syncRail(dt); syncBreakdowns(dt,now);
   flushPools();
 }
 /* ---------- posisi dunia & picking ---------- */
@@ -509,6 +516,29 @@ function updateVehicleLights(L){
   VLIGHT.update(n); VLIGHT.m.material.opacity=Math.min(1,0.45+L);
   for(let i=b;i<BEAMS.count;i++) BEAMS.setMatrixAt(i,_hide); BEAMS.instanceMatrix.needsUpdate=true; BEAMS.material.opacity=0.22*L;
 }
+
+/* ---------- v37: tampilan truk mogok: mekanik berjalan, asap dari gril, segitiga pengaman ---------- */
+let BKFX=null;
+function syncBreakdowns(dt,now){ if(!View.mech) return;
+  if(!BKFX){ BKFX={smoke:new Sprites(60,1.0,0x8E93A3,{additive:false,map:dustTex,order:6}),tri:new Map()}; }
+  let ns=0; const tk=now/1000;
+  for(const s of Store.all('sites')){ const M=View.mech.get(s.id), t=s.trucks.find(x=>x.broken&&x.state==='docked'), B=t&&t.broken;
+    /* segitiga pengaman di depan-kiri kabin */
+    let tri=BKFX.tri.get(s.id); if(t&&!tri){ tri=new THREE.Mesh(new THREE.ConeGeometry(0.32,0.5,3),new THREE.MeshStandardMaterial({color:0xE5484D,emissive:C(0x4A0A0A)})); View.sites.get(s.id).g.add(tri); BKFX.tri.set(s.id,tri); }
+    if(tri){ tri.visible=!!t; if(t){ const p=tLocal(t,1.55,4.5); tri.position.set(p.x,0.3,p.z); tri.rotation.y=t.heading; } }
+    /* asap tipis dari gril sampai mekanik mulai bekerja */
+    if(t&&!(B.mech&&B.t-B.mechAt>30)) for(let k=0;k<6&&ns<60;k++){ const life=((tk*0.35)+k/6)%1, g=tLocal(t,0.2*Math.sin(k*2.1),3.55+life*0.6);
+      BKFX.smoke.set(ns++,g.x+s.ox+Math.sin(tk+k)*0.25*life,1.25+life*2.6,g.z+s.oz,0.5+life*1.6); }
+    /* mekanik: berjalan dari ujung barat trotoar halaman ke depan kabin, memeriksa mesin, lalu pulang */
+    const want=!!(t&&B.mech);
+    if(want&&(!M.on||M.truck!==t)){ const st={x:s.walkX,z:s.walkZ}, f=tLocal(t,0.35,4.25); Object.assign(M,{on:true,truck:t,x:st.x,z:st.z,lx:st.x,lz:st.z,route:[{x:f.x,z:s.walkZ},f],pose:null,leaving:false}); }
+    if(!want&&M.on&&!M.leaving){ M.leaving=true; M.pose=null; M.route=[{x:M.x,z:s.walkZ},{x:s.walkX,z:s.walkZ}]; }
+    if(!M.on) continue;
+    if(M.route&&M.route.length){ const g=M.route[0], dx=g.x-M.x, dz=g.z-M.z, d=Math.hypot(dx,dz), sp=1.5*dt;
+      if(d<=sp){ M.x=g.x; M.z=g.z; M.route.shift(); } else { M.x+=dx/d*sp; M.z+=dz/d*sp; M.h=Math.atan2(dx,dz); } M.v=1.5; M.pose=null; }
+    else { M.v=0; if(M.leaving){ M.on=false; updatePerson(M.rig,false); continue; } M.h=t.heading+Math.PI; M.pose=B.t-B.mechAt>25?'look':'clipboard'; }
+    animPerson({pos:{x:M.x,z:M.z},y:0.05,heading:M.h,v:M.v,pose:M.pose,look:M.look},M,dt); updatePerson(M.rig,true); }
+  BKFX.smoke.m.visible=ns>0; if(ns){ BKFX.smoke.m.material.opacity=0.32; BKFX.smoke.update(ns); } }
 /* ---------- v34: lampu sinyal kendaraan ----------
    Rem (merah terang), mundur (putih), sein & hazard (oranye berkedip) untuk truk, plus lampu rem mobil.
    Semua dihitung di View dari keadaan Store (kecepatan, status, jalur di depan), jadi simulasi dan sidik jarinya tidak berubah.
@@ -550,7 +580,7 @@ function updateSignalLamps(dt,now){ if(!LAMPS) return; let n=0, nh=0, halo=0; co
     L.brake=L.bT>0||hold||(L.rev&&t.v<0.2);
     /* sein ditahan 0,6 dtk setelah belokan selesai supaya tidak berkedip putus-putus di tikungan halus */
     const tr=RP.on?(RP.turn.get(t)||0):turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
-    L.hazard=(t.stuck||0)>25;
+    L.hazard=(t.stuck||0)>25||!!(t.broken&&t.state==='docked');
     L.blinkOn=((tsec+L.ph)%0.75)<0.42;
     const s=t.site, x=t.pos.x+s.ox, z=t.pos.z+s.oz;
     for(const sp of TRUCK_LAMPS){ const k=sp[6];
