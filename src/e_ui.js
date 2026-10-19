@@ -71,6 +71,7 @@ function truckStatus(t){
     case 'away': return ['Dijadwalkan','mut'];
     case 'inbound': return ['Di jalan tol','info'];
     case 'to_store': return ['Menuju toko','info'];
+    case 'transfer': return ['Antar-gudang','info'];
     case 'store_prep': case 'store_reverse': return ['Docking di toko','warn'];
     case 'store_docked': return [t.storePhase==='load'?'Muat retur':'Bongkar di toko','ok'];
     case 'store_pull': case 'store_close': return ['Selesai di toko','mut'];
@@ -98,7 +99,7 @@ function crewLabel(t){ const d=t.crew; if(t.state==='away') return '—'; if(!d|
   if(d.task==='rest'){ if(d.phase==='out'||d.phase==='toLounge') return 'menuju Pos Sopir'; if(d.phase==='lounge') return ({sit:'istirahat',sitchat:'ngobrol',chat:'ngobrol dengan sopir lain',phone:'menelepon',drink:'ngopi'}[d.pose]||'istirahat')+' di Pos Sopir'; return 'kembali ke truk'; }
   if(d.task==='wait') return d.phase==='waiting'?'menunggu di samping truk':d.phase==='back'||d.phase==='in'?'kembali ke kabin':'turun dari kabin';
   return 'di luar kabin'; }
-const truckEta=t=>t.state==='away'?Math.max(2,Math.ceil(t.wait/20/WX.arrive)+2):['inbound','toll_in','approach'].includes(t.state)&&t.path?Math.max(1,Math.ceil((t.path.len-t.s)/(9*WX.speed)/60*4)):0;
+const truckEta=t=>t.state==='away'?Math.max(2,Math.ceil(t.wait/20/WX.arrive)+2):['inbound','toll_in','approach','transfer'].includes(t.state)&&t.path?Math.max(1,Math.ceil((t.path.len-t.s)/(9*WX.speed)/60*4)):0;
 const tons=t=>(t.total*0.32).toLocaleString('id-ID',{maximumFractionDigits:1});
 /* posisi truk di antrean gerbang/area tunggu (1 = berikutnya mendapat bay) */
 function queuePos(t){ const s=t.site, q=s.trucks.filter(o=>o.queued&&o.state!=='away').sort((a,b)=>(a.gq??1e9)-(b.gq??1e9)||(b.s||0)-(a.s||0)); return q.indexOf(t)+1; }
@@ -148,14 +149,14 @@ function renderDetail(){
       <dl class="kv"><dt>Dock</dt><dd>${link(d.id,d.label)}</dd><dt>Truk</dt><dd>${t?link(t.id,t.id+' · '+t.carrier.name):'—'}</dd><dt>Pemasok</dt><dd>${t?t.site.name:'Gudang Lumbung'}</dd><dt>Forklift</dt><dd>${link(e.forks[0].id,e.forks[0].short)} · ${e.forks[0].task}</dd></dl>`;
   } else if(e.kind==='truck'){
     const st=truckStatus(e), bay=e.bay||e.lastBay, atStore=e.bay&&Store.get('stores',e.bay.siteId), dst=e.dest&&Store.get('stores',e.dest);
-    const where=atStore?`${atStore.name} · ${e.done}/${e.total} palet`:e.state==='to_store'&&dst?`Menuju ${dst.name}`:e.bay?`${s.id} · ${e.bay.label} · ${e.done}/${e.total} palet`:e.state==='parked'?`Area parkir · ${s.id}`:e.state==='gate'||e.state==='yard_wait'?`${s.id} · ${qText(e)}`:`Tiba ±${truckEta(e)} mnt`;
+    const where=atStore?`${atStore.name} · ${e.done}/${e.total} palet`:e.state==='to_store'&&dst?`Menuju ${dst.name}`:e.state==='transfer'&&e.xfer?`Menuju ${Store.get('sites',e.xfer).name}`:e.bay?`${s.id} · ${e.bay.label} · ${e.done}/${e.total} palet`:e.state==='parked'?`Area parkir · ${s.id}`:e.state==='gate'||e.state==='yard_wait'?`${s.id} · ${qText(e)}`:`Tiba ±${truckEta(e)} mnt`;
     const eta=e.state==='yard_wait'?'Menunggu bay kosong':e.state==='gate'?'Check-in ±15 dtk':e.state==='docked'?`Selesai dalam ${Math.max(1,(e.total-e.done)*3)} mnt`:['away','approach'].includes(e.state)?minsFrom(truckEta(e)):e.state==='parked'?'—':'Sekarang';
     const sh=e.shipment;
     h=header(IC.truck,'',e.carrier.name,e.id,`${e.driver} · ${e.plate}`,e.bay?`<button data-act="bay" aria-label="Lihat bay" title="Lihat bay">${IC.open}</button>`:'')+dataBlock(e)+
       `<div class="chips">${chip(st)}<span>${where}</span></div>`+
       destBlock(e)+(['approach','prep','reverse','store_prep','store_reverse','to_store'].includes(e.state)&&e.path?(()=>{ const rem=Math.max(0,e.path.len-e.s)+(['approach','prep'].includes(e.state)&&e.bay?reversePath(e.site,e.bay).len:0); const near=rem<60; return near?`<div class="prog"><div class="h"><span>${e.state.includes('reverse')?'Mundur ke dock':'Docking'}</span><b>${Math.round(rem)} m lagi</b></div>${bar(100-rem/60*100,'b')}</div>`:''; })():'')+(e.total?`<div class="prog"><div class="h"><span>${e.storePhase==='load'&&atStore?'Retur dimuat':e.mode==='load'?'Palet dimuat':'Palet dibongkar'}</span><b>${e.done}/${e.total}</b></div>${bar(e.done/e.total*100,'g')}</div>`:'')+
       `<dl class="kv"><dt>Pengiriman</dt><dd>${sh?link(sh.id,sh.id):'—'}</dd><dt>Pelanggan</dt><dd>${e.customer}</dd><dt>Asal</dt><dd>${sh?sh.origin:'—'}</dd><dt>Tujuan</dt><dd>${sh?sh.destination:'—'}</dd>
-      ${e.coldCheck>0?`<dt>Suhu muatan</dt><dd>Sedang diperiksa…</dd>`:e.coldTemp?`<dt>Suhu muatan</dt><dd>${e.coldTemp.toLocaleString('id-ID',{maximumFractionDigits:1,minimumFractionDigits:1})}°C · lolos</dd>`:''}      <dt>Sopir</dt><dd>${e.driver} · ${crewLabel(e)}</dd><dt>Rute</dt><dd>${['gate','yard_wait'].includes(e.state)?`${e.state==='gate'?'Gerbang check-in':'Area tunggu'} ${s.id} → ${e.bay?e.bay.label:'bay berikutnya yang kosong'}`:dst?`${s.id} → jalan kota → ${dst.name}`:atStore?`Di ${atStore.name}`:e.shipment&&e.shipment.origin&&Store.all('stores').some(x=>x.name===e.shipment.origin)&&e.mode==='unload'?`${e.shipment.origin} → ${s.id} (retur)`:e.mode==='load'||['depart','toll_out','highway','leave'].includes(e.state)?'Jl. Lingkar → Gerbang Tol Jagorawi':'Gerbang Tol Jagorawi → Jl. Lingkar → '+s.id}</dd><dt>ETA</dt><dd>${eta}</dd><dt>Kecepatan</dt><dd>${Math.round((e.v||0)*5)} km/j</dd><dt>Bay</dt><dd>${e.bay?link(e.bay.id,e.bay.label+' · '+(atStore?atStore.name:s.id)):e.queued&&e.state!=='away'?`Menunggu bay · antrean ke-${queuePos(e)}`:'—'}</dd>
+      ${e.coldCheck>0?`<dt>Suhu muatan</dt><dd>Sedang diperiksa…</dd>`:e.coldTemp?`<dt>Suhu muatan</dt><dd>${e.coldTemp.toLocaleString('id-ID',{maximumFractionDigits:1,minimumFractionDigits:1})}°C · lolos</dd>`:''}      <dt>Sopir</dt><dd>${e.driver} · ${crewLabel(e)}</dd><dt>Rute</dt><dd>${e.state==='transfer'&&e.xfer?`${s.id} → ${Store.get('sites',e.xfer).name} (antar-gudang)`:e.xferFrom&&['approach','gate','yard_wait'].includes(e.state)?`${Store.get('sites',e.xferFrom).id} → ${s.id}${e.bay?' · '+e.bay.label:' · area tunggu'} (antar-gudang)`:['gate','yard_wait'].includes(e.state)?`${e.state==='gate'?'Gerbang check-in':'Area tunggu'} ${s.id} → ${e.bay?e.bay.label:'bay berikutnya yang kosong'}`:dst?`${s.id} → jalan kota → ${dst.name}`:atStore?`Di ${atStore.name}`:e.shipment&&e.shipment.origin&&Store.all('stores').some(x=>x.name===e.shipment.origin)&&e.mode==='unload'?`${e.shipment.origin} → ${s.id} (retur)`:e.mode==='load'||['depart','toll_out','highway','leave'].includes(e.state)?'Jl. Lingkar → Gerbang Tol Jagorawi':'Gerbang Tol Jagorawi → Jl. Lingkar → '+s.id}</dd><dt>ETA</dt><dd>${eta}</dd><dt>Kecepatan</dt><dd>${Math.round((e.v||0)*5)} km/j</dd><dt>Bay</dt><dd>${e.bay?link(e.bay.id,e.bay.label+' · '+(atStore?atStore.name:s.id)):e.queued&&e.state!=='away'?`Menunggu bay · antrean ke-${queuePos(e)}`:'—'}</dd>
       <dt>Muatan</dt><dd>${e.total?`${e.done}/${e.total} palet · ${tons(e)} t`:'Kosong'}</dd></dl>`;
   } else if(e.kind==='forklift'){
     const st=forkStatus(e), c=Store.get('pallets',e.carryingPalletId);
@@ -262,8 +263,11 @@ function renderKPIs(){
   if(!$('#envMenu').hidden) renderEnvMenu();
 }
 function destBlock(t){ const o=destOptions(t); if(!o) return '';
-  const btn=x=>`<button class="dopt${x.cur?' on':''}" data-dest="${x.id}"${x.busy?' disabled':''}><b>${x.name}</b><small>${x.busy?'Dipakai '+x.by:x.cur?(t.pendingDest===x.id?'Menunggu keluar persimpangan…':'Tujuan saat ini'):x.type}</small></button>`;
-  return `<div class="dest"><div class="dh"><b>Arahkan pengiriman</b><span>${o.enroute?'Ubah rute saat di perjalanan':'Pilih tujuan sebelum berangkat'}</span></div><div class="dgrid">${o.list.map(btn).join('')}${o.toll?`<button class="dopt${!t.dest?' on':''}" data-dest="toll"><b>Luar kota</b><small>${!t.dest?'Tujuan saat ini':'via Tol Jagorawi'}</small></button>`:''}</div></div>`; }
+  const btn=x=>`<button class="dopt${x.cur?' on':''}" data-dest="${esc(x.id)}"${x.busy?' disabled':''}><b>${esc(x.name)}</b><small>${esc(x.busy?x.by:x.cur?(t.pendingDest===x.id?'Menunggu keluar persimpangan…':'Tujuan saat ini'):x.type)}</small></button>`;
+  const sec=(title,items,extra='')=>items.length||extra?`<div class="dsec">${title}</div><div class="dgrid">${items.map(btn).join('')}${extra}</div>`:'';
+  const toll=o.toll?`<button class="dopt${!t.dest&&!t.xfer?' on':''}" data-dest="toll"><b>Luar kota</b><small>${!t.dest&&!t.xfer?'Tujuan saat ini':'via Tol Jagorawi'}</small></button>`:'';
+  const sub=o.enroute?'Ubah rute saat di perjalanan':o.incoming?'Truk masih di jalan tol, bisa dialihkan':o.before?'Pilih tujuan sebelum berangkat':'Pindah bay sebelum truk mendekat';
+  return `<div class="dest"><div class="dh"><b>Arahkan pengiriman</b><span>${sub}</span></div>${sec('Toko',o.list,toll)}${sec(o.incoming?'Alihkan ke gudang lain':'Antar ke gudang lain',o.sites)}${sec('Pindah bay',o.bays)}</div>`; }
 function profileLine(s){ const p=s.profile||'general', nb=s.bays.length, busy=s.bays.filter(b=>b.truck&&b.truck.state==='docked').length, k=kpiSummary(s)||{};
   let ic='🏬', t=`Gudang umum · ${k.avgDockDwellMin!=null?`rata-rata ${n1(k.avgDockDwellMin)} mnt per truk di dock`:'penyimpanan rak'}`;
   if(p==='cold'){ ic='❄️'; t=`Suhu ruang ${n1(k.roomTempC)}°C · ${k.doorsOpen}/${nb} pintu terbuka`; }
@@ -521,6 +525,7 @@ function cineCandidates(){
       else if(t.state==='gate') c.push({key:t.id,score:7,rec:t,zoom:2.0,phi:0.5,title:`${t.id} check-in di gerbang`,sub:`${s.name} · ${t.gateChecked?'palang dibuka':'petugas mengecek surat jalan'}`});
       else if(t.state==='approach'&&t.presence>0.95) c.push({key:t.id,score:4,rec:t,zoom:1.4,phi:0.5,title:`${t.id} menuju ${s.name}`,sub:`dari ${t.place}`}); }
     for(const t of s.trucks){ if(t.state==='store_docked'||t.state==='store_reverse'){ const st=Store.get('stores',t.dest); if(st) c.push({key:t.id+'s',score:8,rec:t,zoom:1.8,phi:0.5,title:`${t.id} ${t.state==='store_reverse'?'mundur ke dock':t.storePhase==='load'?'memuat retur di':'bongkar di'} ${st.name}`,sub:st.type+' · '+st.address}); }
+      else if(t.state==='transfer'&&t.presence>0.9){ const B=Store.get('sites',t.xfer); if(B) c.push({key:t.id+'x',score:6,rec:t,zoom:1.5,phi:0.48,title:`${t.id} antar-gudang ke ${B.name}`,sub:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`}); }
       else if(t.state==='to_store'&&t.presence>0.9){ const st=Store.get('stores',t.dest); if(st) c.push({key:t.id+'t',score:5,rec:t,zoom:1.5,phi:0.48,title:`${t.id} mengantar ke ${st.name}`,sub:`dari ${s.name}`}); } }
     for(const f of s.forks) if(f.carryingPalletId) c.push({key:f.id,score:7,rec:f,zoom:2.5,phi:0.55,title:`${f.short} membawa palet`,sub:`${s.name} · ${f.task}`});
     const sup=s.people.find(p=>p.role==='Pengawas dock'); if(sup&&sup.pose) c.push({key:sup.id,score:3,rec:sup,zoom:3.1,phi:0.42,title:`${sup.name}`,sub:`${sup.doing} · ${s.name}`});
@@ -540,7 +545,8 @@ function storyCandidates(){ const c=[];
     if(t.state==='inbound'&&t.path&&t.path.len-t.s<150) c.push({t,kind:'arrive',w:3});
     else if(t.state==='toll_in') c.push({t,kind:'arrive',w:3});
     else if(t.state==='approach'&&t.presence>0.95&&t.path&&t.path.len-t.s>60) c.push({t,kind:'arrive',w:2});
-    else if(t.state==='to_store'&&t.path&&t.s<40) c.push({t,kind:'deliver',w:2}); }
+    else if(t.state==='to_store'&&t.path&&t.s<40) c.push({t,kind:'deliver',w:2});
+    else if(t.state==='transfer'&&t.path&&t.s<40) c.push({t,kind:'deliver',w:2.5}); }
   return c.filter(x=>x.t.id!==cine.lastStory); }
 function pickShot(){
   const sc=storyCandidates();
@@ -570,6 +576,10 @@ function storyFrame(sh,dt){ const t=sh.rec, s=t.site; if(!s||t.state==='away') r
         return {sub:f&&!(t.coldCheck>0)?f:t,zoom:f?2.35:1.9,phi:0.55,title:ttl,cap:f?`${f.short} · ${f.task}`:`${s.name} · ${t.bay.label}`}; }
       default: return null; } }
   switch(t.state){
+    case 'transfer': { const B=Store.get('sites',t.xfer); return {sub:t,zoom:1.35,phi:0.55,title:`${t.id} antar-gudang ke ${B?B.name:'gudang lain'}`,cap:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`}; }
+    case 'approach': case 'gate': case 'yard_wait': if(!t.xferFrom) return null; return {sub:t,zoom:t.state==='approach'?1.4:1.9,phi:0.52,title:t.state==='gate'?`${t.id} check-in di ${s.name}`:t.state==='yard_wait'?`${t.id} menunggu bay di ${s.name}`:`${t.id} tiba di ${s.name}`,cap:`kiriman antar-gudang dari ${Store.get('sites',t.xferFrom).name}`};
+    case 'prep': case 'reverse': if(!t.xferFrom) return null; return {sub:t,zoom:2.0,phi:0.5,title:`${t.id} merapat di ${s.name}`,cap:t.bay?t.bay.label:''};
+    case 'docked': if(!t.xferFrom) return null; { sh.dock+=dt; if(sh.dock>26) return null; return {sub:t,zoom:1.9,phi:0.55,title:`Bongkar kiriman antar-gudang · ${t.done}/${t.total}`,cap:`${t.id} · ${s.name}`}; }
     case 'to_store': return {sub:t,zoom:1.35,phi:0.55,title:`${t.id} mengantar ke ${st?st.name:'toko'}`,cap:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`};
     case 'store_prep': case 'store_reverse': return {sub:t,zoom:1.95,phi:0.5,title:`${t.id} merapat di ${st?st.name:'toko'}`,cap:st?st.address:''};
     case 'store_docked': { sh.dock+=dt; if(sh.dock>26) return null; return {sub:t,zoom:1.9,phi:0.55,title:`${t.storePhase==='load'?'Memuat retur':'Bongkar'} di ${st?st.name:'toko'} · ${t.done}/${t.total}`,cap:`${t.id} · ${car}`}; }
@@ -585,7 +595,7 @@ function stepCine(dt){
   if(sh.story){
     const F=sh.t<170?storyFrame(sh,dt):null; if(!F){ pickShot(); return; }
     /* truk lama tertahan antrean/lampu merah → pindah ke cerita lain supaya shot tidak membosankan */
-    const tr=sh.rec; sh.idle=(['inbound','approach','to_store','yard_wait'].includes(tr.state)&&tr.v<0.3)?(sh.idle||0)+dt:0; if(sh.idle>10){ pickShot(); return; }
+    const tr=sh.rec; sh.idle=(['inbound','approach','to_store','yard_wait','transfer'].includes(tr.state)&&tr.v<0.3)?(sh.idle||0)+dt:0; if(sh.idle>10){ pickShot(); return; }
     setCap(F.title,F.cap);
     const r=F.sub, p=worldPos(r), ahead=r.v?Math.min(7,r.v*0.75):0; _look.set(p.x+Math.sin(r.heading||0)*ahead,0,p.z+Math.cos(r.heading||0)*ahead);
     const dist=glide(_look,dist0=>dist0>40?1.1:1.9,dt), zg=dist>40?Math.min(F.zoom,clamp(0.95-dist/600,0.5,0.75)):F.zoom;
@@ -623,7 +633,7 @@ function showToast(text,color='#2E5BFF',ref=null,when=new Date()){ const box=$('
   el.onclick=()=>{ const r=ref&&Store.find(ref); if(r) select(r,true); el.remove(); };
   box.appendChild(el); setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),380); },4600); }
 document.addEventListener('click',ev=>{ const b=ev.target.closest&&ev.target.closest('[data-dest]'); if(!b||b.disabled||!sel||sel.kind!=='truck') return;
-  const r=setTruckDest(sel,b.dataset.dest); if(r!=='ok') showToast(r,'#C2410C',sel.id); else { const st=Store.get('stores',b.dataset.dest); showToast(`${sel.id} diarahkan ke ${st?st.name:'luar kota via Tol Jagorawi'}`,'#2E5BFF',sel.id); }
+  const r=setTruckDest(sel,b.dataset.dest); if(r!=='ok') showToast(r,'#C2410C',sel.id); else { const id=b.dataset.dest, d=id.startsWith('bay:')?Store.get('docks',id.slice(4)):Store.get('stores',id)||Store.get('sites',id); showToast(`${sel.id} diarahkan ke ${d?(d.label||d.name):'luar kota via Tol Jagorawi'}`,'#2E5BFF',sel.id); }
   refreshUI(true); });
 Store.on(ev=>{ const s=S_(); if(!s||ev.siteId!==s.id) return; if(!(ev.color==='#C2410C'||ev.color==='#7C3AED'||/retur|shift|tiba di/i.test(ev.text))) return;
   const now=performance.now(); if(now-toastT<4000) return; toastT=now;
@@ -639,7 +649,12 @@ function updateRoute(){
   dots.count=0; destRing.visible=false; routeEnd=null;
   if(!sel||sel.kind!=='truck') return;
   const t=sel, site=t.site, pts=[]; const push=(P,s0)=>{ let s=s0; while(s<P.len&&pts.length<600){ pts.push(samplePath(P,s)); s+=pts.length<90?0.9:2.2; } P.ci=0; };
-  if(['inbound','toll_in','approach','prep','reverse'].includes(t.state)&&t.bay){
+  const xB=t.xfer&&Store.get('sites',t.xfer), gEnd=B=>{ const g=siteGate(B); return {x:B.ox+g.xc,z:B.oz+yardZ(B)}; };
+  if(t.state==='transfer'&&xB){ if(t.path) push(t.path,t.s+2); routeEnd={...gEnd(xB),text:`Ke ${xB.name}`,sub:`antar-gudang · ${t.cargo.filter(Boolean).length} palet`}; drawRoute(pts,site); return; }
+  if(xB&&['docked','pull','close'].includes(t.state)){ const P=siteTripPath(site,t,xB); if(P) push(P,0); routeEnd={...gEnd(xB),text:`Ke ${xB.name}`,sub:'antar-gudang · check-in di gerbang'}; drawRoute(pts,site); return; }
+  if(t.queued&&['inbound','toll_in','approach','gate','yard_wait'].includes(t.state)){ if(t.path) push(t.path,t.s+2); if(t.state==='inbound'||t.state==='toll_in') push(approachPath(site,gatePseudo(site)),0);
+    const g=siteGate(site); routeEnd={x:site.ox+g.headX,z:site.oz+yardZ(site),text:`Area tunggu ${site.name}`,sub:t.xferFrom?`dari ${Store.get('sites',t.xferFrom).name} · ${qText(t)}`:qText(t)}; drawRoute(pts,site); return; }
+  if(['inbound','toll_in','approach','gate','prep','reverse'].includes(t.state)&&t.bay){
     if(t.path) push(t.path,t.s+2);
     if(t.state==='inbound'||t.state==='toll_in') push(approachPath(site,t.bay),0);
     if(t.state!=='reverse') push(reversePath(site,t.bay),0);

@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v32** · oleh PT Fusionify Digital
+**Lumbung v33** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -42,7 +42,7 @@ Pantau dock, truk, forklift, stok, pekerja, dan pengiriman di lima gudang — da
 Setiap gudang punya bentuk bangunan, kendaraan, peralatan, seragam, dan **cara kerja** sendiri — dari gudang umum, cross-dock, pusat distribusi, rantai dingin, sampai hub robotik.
 
 ### 🚚 Truk & Pengiriman yang Bisa Diarahkan
-Truk datang lewat tol, **check-in di gerbang gudang** (petugas mengecek surat jalan lalu membuka palang), menunggu di **area tunggu** bila semua bay terisi, lalu sopir membuka pintu belakang dan mundur ke dock. Pilih truk dan **arahkan tujuannya** ke toko mana pun — bahkan saat truk sudah di perjalanan, rute dihitung ulang dari persimpangan berikutnya.
+Truk datang lewat tol, **check-in di gerbang gudang** (petugas mengecek surat jalan lalu membuka palang), menunggu di **area tunggu** bila semua bay terisi, lalu sopir membuka pintu belakang dan mundur ke dock. Pilih truk dan **arahkan tujuannya** ke toko mana pun — bahkan saat truk sudah di perjalanan, rute dihitung ulang dari persimpangan berikutnya. Truk muat juga bisa dikirim **antar-gudang**, truk yang masih di tol bisa dialihkan ke gudang lain, dan truk yang sedang menuju dock bisa dipindah ke bay lain.
 
 ### 🏗️ Forklift & AGV
 Forklift memindahkan palet antara slot dan truk dengan antrean tugas, anti-kebuntuan, dan stasiun pengisian. Di Hub Robotik, **AGV otonom** memproyeksikan jalurnya di lantai.
@@ -241,7 +241,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 
 Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
 
-- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 21 pemeriksaan keselamatan (termasuk validitas angka KPI dan gerbang check-in).
+- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 23 pemeriksaan keselamatan (termasuk validitas angka KPI, gerbang check-in, dan perpindahan truk antar-gudang). Selama uji, "operator uji" otomatis ikut memindah bay, mengalihkan truk, dan mengirim antar-gudang.
 - **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
 - **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 
@@ -278,8 +278,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 ## Batasan yang Diketahui
 
 - **Data masih simulasi** — belum terhubung ke WMS, GPS armada, atau sensor dock.
-- Pengiriman **antar-gudang** dan pengarahan truk yang **sedang datang** ke dock lain belum tersedia.
-- Tujuan pengiriman saat ini: dua toko dan luar kota via tol.
+- Tujuan pengiriman: dua toko, empat gudang lain, dan luar kota via tol.
 
 ---
 
@@ -288,7 +287,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] KPI & grafik khas per jenis gudang (suhu 24 jam, waktu transit, peta panas AGV) · v31
 - [x] Simulasi dengan *seed* + mode uji mandiri (`?selftest`) · v30
 - [x] Check-in gerbang & area tunggu truk · v32
-- [ ] Pengiriman antar-gudang
+- [x] Pengiriman antar-gudang & mengarahkan truk yang sedang datang · v33
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

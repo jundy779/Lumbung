@@ -286,6 +286,7 @@ function animPerson(p,v,dt){
 function syncView(dt,now){
   for(const t of Store.tables.trucks.values()){ const v=View.trucks.get(t.id), m=v;
     const vis=t.state!=='away'; if(!vis){ m.g.visible=false; if(v.drv.wasOn){ updatePerson(v.drv.rig,false); v.drv.wasOn=false; } continue; }
+    { const hg=View.sites.get(t.siteId).g; if(m.g.parent!==hg){ hg.add(m.g); hg.add(v.drv.rig.g); } }   /* v33: truk antar-gudang pindah ke grup gudang barunya */
     m.g.position.set(t.pos.x,GY,t.pos.z); m.g.rotation.y=t.heading;
     const a=ease(t.doorsT)*Math.PI*1.47; for(const d of m.doors) d.rotation.y=-d.userData.s*a;
     v.spin+=t.v*(t.rev?-1:1)*dt/0.42; for(const ax of m.axles) ax.userData.spin.rotation.x=v.spin;

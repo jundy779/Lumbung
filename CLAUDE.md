@@ -1,10 +1,23 @@
-# CLAUDE.md · Peta Teknis Lumbung v32
+# CLAUDE.md · Peta Teknis Lumbung v33
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v33 (19 Okt 2026), antar-gudang & mengarahkan truk datang (backlog D)**:
+- Prinsip: posisi truk tetap disimpan dalam koordinat lokal gudang pemiliknya (`t.siteId`). Pindah gudang = `rehome(t,A,B)`: geser `pos`, `crew`, dan titik `path` sebesar `A.o - B.o`, pindahkan dari `A.trucks` ke `B.trucks`, ubah `siteId` palet muatan. Dilakukan di `flushMoves(site)` setelah loop truk di `simSite` (jangan splice saat iterasi) lewat penanda hidden `t.moveTo`.
+- Antar-gudang: `t.xfer` (hidden, id gudang tujuan) dipilih lewat `setTruckDest` atau otomatis 18% di `close`. Di `close`: `xferCheck` + `siteTripPath(A,t,B)` (seperti `storeTripPath` tetapi `route` mulai dengan arah 'E' sehingga boleh belok kanan ke selatan, dan ekor `yardTail(B, gatePseudo(B))`), state `transfer`, `siteGate(B).incoming` (Map) menahan slot antrean B. Serah terima ke B ketika region di A sudah dilepas dan truk di jalan depan A; lalu state `approach`, `queued`, `mode='unload'`, `xferFrom`. Selesai bongkar → `depart` lewat tol B → `goAway` menandai `moveTo=homeId` (kembali ke pool asal).
+- `queuedCount` termasuk `incoming`. `expectedOcc` menambah muatan truk `incoming`; truk antrean muat tidak lagi dihitung mengurangi isi (mencegah kebuntuan staging penuh).
+- `xferCheck(t,B)`: area tunggu (`cap+1`, slot ekstra = menunggu di palang), staging (`slots - expectedOcc`), stok (truk datang mode muat), rute.
+- Truk datang (`inbound`/`toll_in`): `redirectIncoming(t,B)` langsung `rehome` (masih di jalan tol) dan masuk antrean B.
+- Pindah bay: `bayChangeOk` (inbound/toll_in/gate, atau approach tanpa `t.res` dan masih ≥8 m sebelum region baru; crossdock arah sesuai) + `changeBay` → `retargetLane(t,x)` mengganti ujung jalur di lajur halaman.
+- Serah bay di palang (`gateTick`): truk `gate` ber-bay yang tidak punya `laneRoom` menyerahkan bay ke truk `yard_wait` dengan `gq` terkecil; truk di palang jadi `queued` dan jalurnya dipotong ke `headX` (`cutLaneTo`).
+- `destOptions(t)` → `{enroute,incoming,before,list(toko),sites,bays,toll}`; `destBlock` (e_ui) menampilkan bagian Toko / Antar ke gudang lain / Pindah bay.
+- `laneTarget`: putar balik (den<0,6) tanpa miter.
+- Selftest: `selftestOperator` (RNG terpisah dari seed) tiap 12 dtk; metrik `transfers`, `operatorActions`. Pemeriksa `wrongSite`, `jump`.
+- View: `syncView` memindah mesh truk + rig sopir ke grup gudang baru bila `siteId` berubah.
 
 **Perubahan v32.1 (19 Okt 2026), pencarian ponsel**: markup `.search` kini `#qBack` + `.qfield` (ikon, `#q`, `#qClear`, kbd) + `#results`. Di ≤820 px `.search` = tombol 40 px; `openSearch()`/`closeSearch()` mengatur kelas body `search-open` (layar pencarian penuh, `.results` fixed). `renderResults()` menampilkan saran cepat `Q_SUGGEST` (dengan jumlah) + daftar gudang saat kosong, sorotan `hl()`, batas 8 (desktop) / 12 (ponsel). `closeMenus()` ikut menutup pencarian.
 
@@ -515,7 +528,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 - Perlu status baru, misalnya `gate_checkin` (berhenti di palang, satpam mendekat, palang naik) dan `yard_wait` (parkir di area tunggu bila belum ada bay), plus palang di pos satpam per site.
 - Hati-hati dengan sistem reservasi `canAcquire`/`resBlock`, klaim persimpangan, dan rute pejalan kaki satpam. Validasi dengan selftest dari B.
 
-**D. Pengiriman antar-gudang + mengarahkan truk yang sedang datang**
+**D. Pengiriman antar-gudang + mengarahkan truk yang sedang datang** ✅ selesai di v33 (lihat catatan v33 di atas)
 - Router sekarang hanya site ↔ toko ↔ tol. Pintu masuk site di `(gx*100-50, gz*76+38)` sudah dipakai `storeToHomePath`, jadi rute site→site bisa disusun dari `route()` yang sama.
 - **Hambatan terbesar**: posisi truk disimpan dalam koordinat lokal site asal, mesh-nya menempel di group site asal, dan forklift hanya melayani `site.trucks`. Kunjungan ke toko berhasil karena toko punya logika khusus (`st.trucks`, `simStore`). Untuk antar-gudang, pilihannya: (1) mekanisme "truk tamu" seperti toko, atau (2) refactor posisi truk ke koordinat dunia. Opsi 2 lebih bersih dan sekaligus membantu integrasi GPS (bagian 12).
 - Mengarahkan truk yang sedang datang ke dock lain: perlu melepas reservasi bay lama (`bay.truck`, `t.res`, klaim persimpangan) dan menghitung ulang `approachPath`. Perhatikan batasan penempatan gx di bagian 5.
@@ -530,5 +543,5 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 ### 16.3 Batasan yang masih ada
 - Data masih simulasi (bagian 12).
 - Pengaman truk di zebra cross sudah ada, tapi belum bisa dibuktikan 100% tanpa seed (B).
-- Tujuan pengiriman masih 2 toko + luar kota (D).
+- Antrean mobil di jalan ujung barat menuju Jalan Lingkar sesekali meluber sampai zebra cross saat jam sibuk (`20 13 pagi`, `20 14 sore` di v32).
 - Three.js masih r128 (bagian 13 poin 6).

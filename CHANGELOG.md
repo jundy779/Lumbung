@@ -1,5 +1,17 @@
 # Changelog
 
+## v33 · 19 Okt 2026
+- **Pengiriman antar-gudang**: truk muat bisa diarahkan ke gudang lain dari kartu "Arahkan pengiriman" (bagian baru "Antar ke gudang lain"). Setelah selesai dimuat, truk keluar halaman, menyeberang kota lewat rute terpendek tanpa putar balik, check-in di gerbang gudang tujuan, menunggu di area tunggu bila perlu, lalu dibongkar forklift gudang tujuan. Setelah itu truk keluar lewat tol dan kembali ke pool gudang asalnya.
+- Sekitar 18% truk muat yang tidak ke toko kini otomatis mengirim sebagian stok ke gudang lain, jadi pengiriman antar-gudang terlihat tanpa perlu diatur manual.
+- **Mengarahkan truk yang sedang datang**: truk yang masih di jalan tol bisa dialihkan ke gudang lain (masuk antrean gerbang gudang itu), dan truk yang sedang menuju dock bisa dipindah ke bay lain yang kosong selama belum mengunci area manuver.
+- Setiap pilihan gudang menampilkan alasan bila tidak bisa dipilih (area tunggu penuh, staging penuh, stok kosong, tidak ada rute).
+- Truk di palang yang sudah punya bay tetapi terhalang truk antrean di lajur kini menyerahkan bay-nya ke truk antrean paling depan, jadi urutan fisik di lajur selalu sama dengan urutan mendapat bay.
+- Perkiraan isi staging tidak lagi mengurangi stok untuk truk muat yang masih antre (belum pasti dapat bay). Sebelumnya, pada kasus langka, staging bisa penuh sementara semua bay terisi truk bongkar dan truk muat terjebak di antrean.
+- Perbaikan satpam: saat berbalik arah di ujung rute patroli atau saat pergantian shift, jalurnya bisa melenceng sampai ±4 m keluar pagar dan masuk ke lajur truk. Sekarang tidak lagi.
+- Status, rute bertitik di peta, panel truk (asal → tujuan antar-gudang), pelacakan, pencarian ("antar-gudang"), dan sinematik ikut mendukung pengiriman antar-gudang.
+- Uji mandiri kini punya "operator uji" yang tiap ±12 detik menjalankan perintah pengguna secara acak (pindah bay, alihkan truk datang, kirim antar-gudang/toko/tol), plus 2 pemeriksaan baru: truk merapat di bay gudang lain dan posisi truk melompat saat pindah gudang. Total 22 pemeriksaan di Node, 23 di browser.
+- Catatan uji: 15 dari 16 skenario lulus penuh (setiap skenario 30 menit berisi 12 sampai 22 pengiriman antar-gudang). Satu kasus sisa bukan dari truk: `node tests/headless-sim.mjs 20 13 pagi`, antrean mobil di jalan ujung barat menuju Jalan Lingkar meluber sampai zebra cross saat jam sibuk (kelas masalah yang sama dengan catatan v30 dan v32).
+
 ## v32.2 · 19 Okt 2026
 - KPI atas di HP kini tampil utuh bertiga dalam satu baris (Stok tersedia, Truk di lokasi, Tepat waktu). Sebelumnya deretan KPI harus digeser dan kartu ketiga terpotong dengan efek pudar di tepi kanan yang di mode gelap terlihat seperti bayangan rusak.
 - Di HP ikon kartu dan keterangan kecil disembunyikan supaya angka tetap besar; label "Pengiriman tepat waktu" disingkat jadi "Tepat waktu".
