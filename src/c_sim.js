@@ -892,8 +892,9 @@ function exitRoom(L,cs,i,jc){
   /* lampu kuning berkedip (malam): persimpangan berikutnya yang sedang terpakai dianggap titik berhenti */
   if(WX.flash) for(const jn of L.juncs){ const sp=jn.pIn-jn.j.pre-2.1; if(sp<=jc.pOut+1||sp>jc.pOut+70||sp+6.2>=stopAt) continue; if(jn.j.occ.size||jn.j.q.length) stopAt=sp+6.2; break; }
   if(stopAt===Infinity) return true;
-  let m=0; for(let k=i-1;k>=0;k--){ const o=cs[k]; if(o.wait<=0&&o.p>jc.pOut-6&&o.p<stopAt-0.5) m++; }
-  return stopAt-6.2*(m+1)-2.1>jc.pOut+2.6; }
+  /* semua mobil di depan (termasuk yang masih di dalam persimpangan) akan ikut antre di depan mobil ini; jarak antre nyata 6,5 m (6,2 + sisa rem 0,3) */
+  let m=0; for(let k=i-1;k>=0;k--){ const o=cs[k]; if(o.wait<=0&&o.p<stopAt-0.5) m++; }
+  return stopAt-6.5*(m+1)-2.1>jc.pOut+2.6; }
 function stepTraffic(dt){
   traffic.t+=dt;
   for(const s of Store.tables.signals.values()){ s.stateH=sigState(s,'H',traffic.t); s.stateV=sigState(s,'V',traffic.t); }

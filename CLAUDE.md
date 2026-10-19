@@ -1,10 +1,15 @@
-# CLAUDE.md · Peta Teknis Lumbung v33
+# CLAUDE.md · Peta Teknis Lumbung v33.1
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v33.1 (19 Okt 2026)**:
+- `exitRoom` (c_sim.js, lalu lintas mobil): jumlah mobil di depan `m` kini menghitung semua mobil aktif di depan yang posisinya sebelum `stopAt` (sebelumnya hanya yang sudah lewat `pOut-6`, sehingga mobil yang masih di dalam persimpangan terlewat), dan jarak per mobil 6,5 m (6,2 jarak ikut + 0,3 sisa rem). Ini menutup kasus mobil berhenti di zebra persimpangan `-2_-1` saat antre masuk Jalan Lingkar (lajur 7, x=-250).
+- Staging: `createSite` (b_layout.js) membuat baris A 5 slot (`c<5`) dan baris B 10 slot (`c<10`, x sampai `-W/2-18,35`, masih di dalam `xs0=-W/2-20,6`). Kode lain sudah memakai `s.slots.length`. Kode slot `B6`–`B10` baru. Charger tetap di sisi utara koridor (`z=fz-0,4`), jadi tidak berbenturan dengan baris B (`z=fz+5`).
+- Regresi 16 skenario (lihat `reg.sh` di bawah bagian 10) lulus semua.
 
 **Perubahan v33 (19 Okt 2026), antar-gudang & mengarahkan truk datang (backlog D)**:
 - Prinsip: posisi truk tetap disimpan dalam koordinat lokal gudang pemiliknya (`t.siteId`). Pindah gudang = `rehome(t,A,B)`: geser `pos`, `crew`, dan titik `path` sebesar `A.o - B.o`, pindahkan dari `A.trucks` ke `B.trucks`, ubah `siteId` palet muatan. Dilakukan di `flushMoves(site)` setelah loop truk di `simSite` (jangan splice saat iterasi) lewat penanda hidden `t.moveTo`.
@@ -180,7 +185,7 @@ Konstanta (a_core.js:34): `PX=100` (lebar blok kota), `PZ=76` (dalam blok), `ROA
   - Gedung berpusat di (0,0), muka dock menghadap +z di `z=fz`.
   - `zE = fz+3.4` tepi platform, `zDock = fz+6.6` posisi truk saat docked, `yardZ = zDock+6.4` jalur halaman tempat truk berhenti dan sopir membuka pintu belakang (pintu tidak pernah dibuka di jalan raya), `zc = fz+1.5` koridor forklift, `Zr = fz+19.6` jalan depan.
   - Bay ke-i: `x = (i-(n-1)/2)*3.6`.
-  - Slot staging 2 baris × 5 kolom di barat gedung: `x = -W/2-2.6-c*1.75`, baris A `z=fz-2.4`, baris B `z=fz+5.0`. **Hanya 10 slot per gudang** (toko 6 slot).
+  - Slot staging di barat gedung: `x = -W/2-2.6-c*1.75`, baris A `z=fz-2.4` (5 kolom), baris B `z=fz+5.0` (10 kolom sejak v33.1). **15 slot per gudang** (toko 6 slot).
   - Stasiun charger forklift: `x = -W/2-11.6-i*2.6`.
   - Pos Sopir (lounge 9 kursi/titik): `LX = -W/2-25.2`, `LZ = fz+4.2`.
   - Palet QC hold 2 buah di timur gedung, pos satpam di gerbang.
@@ -384,6 +389,8 @@ node tests/headless-sim.mjs 13 7 malam
 node tests/headless-sim.mjs 13 7 cycle
 node tests/headless-sim.mjs 30 11 siang   # ketahanan
 ```
+Regresi lengkap (16 skenario, dipakai sejak v33): `13 7` siang/malam/cycle/pagi/sore, `30 11 siang`, `30 12 malam`, `20 13 pagi`, `20 14 sore`, `20 21 cycle`, `15 3 siang`, `15 5 pagi`, `15 8 sore`, `15 9 malam`, `20 31 siang`, `20 42 cycle`. Semua harus LULUS sebelum push.
+
 Atau di browser: `index.html?selftest&menit=13&jam=malam&seed=7`. Untuk menyelidiki kegagalan, ulangi seed yang sama: hasilnya identik. Menambah invariant baru: tambahkan label di `SAFETY_LABELS` dan pemeriksaannya di `check()` dalam `makeSafetyChecker`.
 
 ---
@@ -543,5 +550,4 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 ### 16.3 Batasan yang masih ada
 - Data masih simulasi (bagian 12).
 - Pengaman truk di zebra cross sudah ada, tapi belum bisa dibuktikan 100% tanpa seed (B).
-- Antrean mobil di jalan ujung barat menuju Jalan Lingkar sesekali meluber sampai zebra cross saat jam sibuk (`20 13 pagi`, `20 14 sore` di v32).
 - Three.js masih r128 (bagian 13 poin 6).

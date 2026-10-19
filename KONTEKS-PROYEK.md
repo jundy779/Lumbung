@@ -302,6 +302,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v33.1):** aturan "jangan menutup persimpangan" untuk mobil menghitung semua mobil di depan termasuk yang masih di dalam persimpangan (`exitRoom`, jarak antre 6,5 m), staging 15 slot per gudang (baris A 5, baris B 10).
+
 **Selesai (v33):** pengiriman antar-gudang (`t.xfer`, state `transfer`, `siteTripPath`, `rehome` + `flushMoves` saat truk pindah pool, kembali ke pool asal `homeId`), alihkan truk di tol ke gudang lain (`redirectIncoming`), pindah bay (`changeBay`/`retargetLane`), serah bay di palang ke truk antrean terdepan, operator uji di selftest, pemeriksa `wrongSite` dan `jump`.
 
 **Selesai (v32):** check-in gerbang & area tunggu. State truk baru `gate` dan `yard_wait`; `siteGate(s)` (geometri palang/pos/area tunggu + kapasitas), `gateS`, `laneRoom`, `assignFromQueue` (FIFO urut check-in), `gateTick`, `PLANS.gatekeeper`, truk retur ikut antrean (`t.queued`, tidak lagi `homeBay`), aturan kuning truk `t._commit`. Pemeriksa baru: gateSkip, gateArm, roadQueue, queueLong.
@@ -319,4 +321,4 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 1. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
 2. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
-**Batasan yang diketahui:** data masih simulasi; antrean mobil di jalan ujung barat menuju Jalan Lingkar sesekali meluber sampai zebra cross saat jam sibuk; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).
+**Batasan yang diketahui:** data masih simulasi; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).

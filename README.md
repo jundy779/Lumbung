@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v33** · oleh PT Fusionify Digital
+**Lumbung v33.1** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -249,7 +249,7 @@ Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepa
 |---|---|
 | Tabrakan truk, mobil, forklift, sopir | **0** |
 | Kebuntuan / truk tertahan permanen | **0** |
-| Kendaraan berhenti di zebra cross | **0** (lihat catatan di CHANGELOG v30 untuk satu kasus sisa di mode siklus cepat malam) |
+| Kendaraan berhenti di zebra cross | **0** (16 skenario regresi lulus sejak v33.1) |
 | Pintu truk dibuka di jalan raya | **0** |
 | Cross-dock: truk di dock arah yang salah | **0** dari >8.000 pemeriksaan per 13 menit |
 | Gudang dingin: palet dipindah sebelum cek suhu | **0** |

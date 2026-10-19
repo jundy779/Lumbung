@@ -1,5 +1,10 @@
 # Changelog
 
+## v33.1 · 19 Okt 2026
+- **Antrean mobil tidak lagi meluber ke zebra cross.** Aturan "jangan menutup persimpangan" sebelumnya hanya menghitung mobil yang sudah keluar persimpangan, sehingga mobil yang masih melintas di dalam persimpangan tidak ikut dihitung. Saat lampu masuk Jalan Lingkar merah, mobil terakhir bisa ikut masuk lalu berhenti dengan badan di atas zebra. Sekarang semua mobil di depan ikut dihitung, dengan jarak antre nyata 6,5 m. Kasus `20 13 pagi` dan `20 14 sore` kini lulus.
+- **Staging gudang 50% lebih lega**: baris B diperpanjang ke barat sayap platform dari 5 jadi 10 slot, sehingga tiap gudang kini punya 15 slot (sebelumnya 10). Baris A tetap 5 slot karena berbagi lantai dengan charger forklift. Dalam uji 15 menit, waktu ketika gudang "staging penuh" (sisa < 4 slot) turun dari 76% jadi 18%, jadi pengiriman antar-gudang dan truk bongkar lebih jarang tertolak.
+- Catatan uji: 16 dari 16 skenario lulus penuh (22 pemeriksaan per skenario, 20 sampai 22 pengiriman antar-gudang per 30 menit).
+
 ## v33 · 19 Okt 2026
 - **Pengiriman antar-gudang**: truk muat bisa diarahkan ke gudang lain dari kartu "Arahkan pengiriman" (bagian baru "Antar ke gudang lain"). Setelah selesai dimuat, truk keluar halaman, menyeberang kota lewat rute terpendek tanpa putar balik, check-in di gerbang gudang tujuan, menunggu di area tunggu bila perlu, lalu dibongkar forklift gudang tujuan. Setelah itu truk keluar lewat tol dan kembali ke pool gudang asalnya.
 - Sekitar 18% truk muat yang tidak ke toko kini otomatis mengirim sebagian stok ke gudang lain, jadi pengiriman antar-gudang terlihat tanpa perlu diatur manual.

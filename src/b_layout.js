@@ -49,8 +49,8 @@ function createSite(C,idx){
   for(let i=0;i<C.bays;i++){ const bx=(i-(C.bays-1)/2)*3.6;
     const d={kind:'dock',id:C.id+'-B'+(i+1),siteId:s.id,label:'Bay '+(i+1),i,x:bx,truckId:null,doorState:'closed',today:2+Math.floor(R()*6),pos:P2(bx,s.zDock)};
     relate(d,'truck','trucks','truckId'); relate(d,'site','sites','siteId'); s.bays.push(Store.add('docks',d)); }
-  /* staging slots + pallets */
-  for(let row=0;row<2;row++)for(let c=0;c<5;c++){
+  /* staging slots + pallets: baris A 5 slot (sisi utara, berbagi lantai dengan charger), baris B 10 slot memanjang ke barat sayap platform */
+  for(let row=0;row<2;row++)for(let c=0;c<(row?10:5);c++){
     const sx=-W/2-2.6-c*1.75, sz=row===0? fz-2.4 : fz+5.0;
     const sl={kind:'slot',id:C.id+'-S'+(row?'B':'A')+(c+1),siteId:s.id,code:(row?'B':'A')+(c+1),row,x:sx,z:sz,palletId:null,reserved:false,
       spot:{x:sx,z:row===0? sz+1.18 : sz-1.18,face:row===0?Math.PI:0}};

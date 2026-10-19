@@ -801,8 +801,8 @@ function createSite(C,idx){
   for(let i=0;i<C.bays;i++){ const bx=(i-(C.bays-1)/2)*3.6;
     const d={kind:'dock',id:C.id+'-B'+(i+1),siteId:s.id,label:'Bay '+(i+1),i,x:bx,truckId:null,doorState:'closed',today:2+Math.floor(R()*6),pos:P2(bx,s.zDock)};
     relate(d,'truck','trucks','truckId'); relate(d,'site','sites','siteId'); s.bays.push(Store.add('docks',d)); }
-  /* staging slots + pallets */
-  for(let row=0;row<2;row++)for(let c=0;c<5;c++){
+  /* staging slots + pallets: baris A 5 slot (sisi utara, berbagi lantai dengan charger), baris B 10 slot memanjang ke barat sayap platform */
+  for(let row=0;row<2;row++)for(let c=0;c<(row?10:5);c++){
     const sx=-W/2-2.6-c*1.75, sz=row===0? fz-2.4 : fz+5.0;
     const sl={kind:'slot',id:C.id+'-S'+(row?'B':'A')+(c+1),siteId:s.id,code:(row?'B':'A')+(c+1),row,x:sx,z:sz,palletId:null,reserved:false,
       spot:{x:sx,z:row===0? sz+1.18 : sz-1.18,face:row===0?Math.PI:0}};
@@ -1790,8 +1790,9 @@ function exitRoom(L,cs,i,jc){
   /* lampu kuning berkedip (malam): persimpangan berikutnya yang sedang terpakai dianggap titik berhenti */
   if(WX.flash) for(const jn of L.juncs){ const sp=jn.pIn-jn.j.pre-2.1; if(sp<=jc.pOut+1||sp>jc.pOut+70||sp+6.2>=stopAt) continue; if(jn.j.occ.size||jn.j.q.length) stopAt=sp+6.2; break; }
   if(stopAt===Infinity) return true;
-  let m=0; for(let k=i-1;k>=0;k--){ const o=cs[k]; if(o.wait<=0&&o.p>jc.pOut-6&&o.p<stopAt-0.5) m++; }
-  return stopAt-6.2*(m+1)-2.1>jc.pOut+2.6; }
+  /* semua mobil di depan (termasuk yang masih di dalam persimpangan) akan ikut antre di depan mobil ini; jarak antre nyata 6,5 m (6,2 + sisa rem 0,3) */
+  let m=0; for(let k=i-1;k>=0;k--){ const o=cs[k]; if(o.wait<=0&&o.p<stopAt-0.5) m++; }
+  return stopAt-6.5*(m+1)-2.1>jc.pOut+2.6; }
 function stepTraffic(dt){
   traffic.t+=dt;
   for(const s of Store.tables.signals.values()){ s.stateH=sigState(s,'H',traffic.t); s.stateV=sigState(s,'V',traffic.t); }
