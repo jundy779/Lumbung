@@ -1,10 +1,18 @@
-# CLAUDE.md · Peta Teknis Lumbung v34
+# CLAUDE.md · Peta Teknis Lumbung v35
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v35 (19 Okt 2026), garis waktu & putar ulang**:
+- e_ui.js (blok "v35" sebelum frame loop). `REC`: `dt` 0,5 dtk waktu simulasi, `max` 1200 frame (600 di LOWPOWER), `frames[]` berisi `{t,hour,wx,d:Float32Array}`, `pal` (Map palet → riwayat `[t,kunciLokasi]` hanya saat berubah), `ev` (kejadian `Store.on` dengan waktu rekam `rt`), tabel string `str/smap` (`sid()`), entitas tetap `recEnts()` (truk, forklift, orang, mobil, lampu, site, dock).
+- Tata letak frame (stride): truk `TS=17` (x,z,heading,v,state,doorsT,cabDoor,presence,rev,siteIdx,dockIdx,mode,done,total,curv,stuck,turn) + sopir `CS=7` (on,x,z,h,v,pose,y), forklift `FS=6`, orang `PS=6`, mobil `KS=4` (p,v,active,presence; x/z/heading dihitung ulang dari `LANES`), lampu 2, palang gerbang 1 per site, pintu dock 1. ±10,5 KB per frame (±13 MB untuk 10 menit).
+- `recordTick(dt)` dipanggil di frame loop setelah `simCity` (hanya saat simulasi berjalan). Tidak menulis Store → simulasi & sidik jari tidak berubah.
+- `enterReplay()`: menyimpan `rpBackup()` (nilai JS asli tiap field yang akan ditulis, plus `hasOwnProperty`), objek lokasi palet asli, `Store.clock`, `Store.weather`; `RP.on=true`; frame loop memanggil `rpStep` alih-alih simulasi. `rpSeek(T)` → `applyRec(A,B,a)` (interpolasi posisi/heading; tidak diinterpolasi bila pindah site atau lompat >25 m) + `applyPallets(T)` (palet yang belum ada pada T disembunyikan lewat `RP.hide`). `exitReplay()` menulis balik cadangan persis. Teruji: keadaan Store sebelum/sesudah identik dan `simFingerprint()` sama.
+- Saat `RP.on`: `setTruckDest`, `runAlert`, `setWeather`, `setTimeMode` dibungkus dan menolak dengan pesan; CSS `body.replay` menonaktifkan kartu Arahkan pengiriman, tombol cuaca/bersih/sinematik, dan menyembunyikan kartu pelacakan & Operasi. Sparkline tidak menambah sampel. Sein memakai `RP.turn` (dari rekaman), bukan `turnAhead`.
+- UI: tombol `#replayBtn` di `.mapctl`, bilah `#replayBar.rpbar` (jangan pakai kelas `.replay` untuk elemen: `body.replay` adalah kelas mode), penanda `.rpm` (warna kejadian, `.dim` untuk gudang lain, `data-tip`), pill jam atas `.live.rp` menampilkan "Putar ulang" + jam dengan detik (`hms`).
 
 **Perubahan v34 (19 Okt 2026), lampu sinyal kendaraan**:
 - Semua di `d_part2.js` setelah `updateVehicleLights`, **hanya lapis View** (membaca Store, tidak menulis), jadi sidik jari simulasi tetap sama (`cfcd7f0c` untuk `2 7 siang`).
@@ -550,7 +558,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 - Mengarahkan truk yang sedang datang ke dock lain: perlu melepas reservasi bay lama (`bay.truck`, `t.res`, klaim persimpangan) dan menghitung ulang `approachPath`. Perhatikan batasan penempatan gx di bagian 5.
 
 ### 16.2 Ide yang pernah diusulkan, belum dipilih
-- Bisnis: garis waktu & putar ulang kejadian (butuh B: seed + log event yang lengkap), laporan & ekspor PDF/Excel, analitik dock.
+- Bisnis: ~~garis waktu & putar ulang~~ (selesai v35), laporan & ekspor PDF/Excel, analitik dock.
 - UX: tombol mode gelap manual (token CSS sudah ada, tapi warna hardcode perlu dibereskan dulu, lihat temuan #12), tur perkenalan, pintasan keyboard lengkap, versi bahasa Inggris (semua teks sekarang hardcode di template).
 - Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
 - Kehidupan: pekerja datang naik motor, istirahat siang, jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).

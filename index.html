@@ -558,6 +558,48 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 #selftest .sta button{padding:7px 12px;border-radius:9px;border:1px solid var(--line);font-weight:700;font-size:12px;background:var(--panel)}
 #selftest .sta button.pri{background:var(--blue);border-color:var(--blue);color:#fff}
 .env .seedrow{margin-bottom:12px}
+
+/* ---------- v35: putar ulang ---------- */
+.rpbar{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:min(820px,calc(100% - 48px - var(--dw,354px)));margin-left:calc(var(--dw,354px) / -2 - 4px);padding:12px 16px 10px;z-index:4;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--line))}
+.rpbar[hidden]{display:none}
+.rp-row{display:flex;align-items:center;gap:8px}
+.rp-ib,.rp-play{display:grid;place-items:center;border-radius:999px;color:var(--ink)}
+.rp-ib{width:32px;height:32px;color:var(--ink-2)} .rp-ib:hover{background:var(--panel-2);color:var(--ink)}
+.rp-play{width:40px;height:40px;background:var(--ink);color:var(--panel)}
+.rp-time{display:flex;flex-direction:column;line-height:1.15;margin-left:6px;min-width:0;flex:1}
+.rp-time b{font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.rp-time span{font-size:12px;color:var(--amber);font-weight:600}
+.rp-speed{display:flex;background:var(--panel-2);border-radius:999px;padding:3px}
+.rp-speed button{height:28px;min-width:38px;padding:0 8px;border-radius:999px;font-weight:700;font-size:12.5px;color:var(--ink-2)}
+.rp-speed button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(23,32,74,.14)}
+.rp-live{display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;background:var(--blue-soft);color:var(--blue);font-weight:700;font-size:13px;white-space:nowrap}
+.rp-live i{width:8px;height:8px;border-radius:50%;background:#E5484D;box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+.rpbar.atEnd .rp-live{background:var(--blue);color:#fff;animation:rpPulse 1.6s ease-in-out infinite}
+@keyframes rpPulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--blue) 22%,transparent)}}
+.rp-track{position:relative;height:30px;margin:8px 2px 2px}
+.rp-rail{position:absolute;left:0;right:0;top:19px;height:5px;border-radius:9px;background:var(--line);overflow:hidden}
+.rp-fill{height:100%;background:var(--amber);border-radius:9px}
+.rp-marks{position:absolute;left:0;right:0;top:0;height:14px}
+.rpm{position:absolute;top:2px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--panel);padding:0}
+.rpm.dim{opacity:.35;width:7px;height:7px;margin-left:-3.5px;top:3px}
+.rpm:hover{transform:scale(1.5);opacity:1}
+#rpRange{position:absolute;left:-2px;right:-2px;top:12px;width:calc(100% + 4px);height:20px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+#rpRange::-webkit-slider-runnable-track{height:20px;background:transparent}
+#rpRange::-moz-range-track{height:20px;background:transparent}
+#rpRange::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:2px;border-radius:50%;background:var(--panel);border:3px solid var(--amber);box-shadow:0 1px 4px rgba(23,32,74,.3)}
+#rpRange::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--panel);border:3px solid var(--amber)}
+.rp-foot{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;color:var(--ink-3)}
+.live.rp{background:var(--amber-soft);color:var(--amber)} .live.rp i{background:var(--amber);animation:none}
+body.replay .track,body.replay #ops{display:none}
+body.replay #cleanBtn,body.replay #stormBtn,body.replay #cineBtn,body.replay #wxBtn{opacity:.35;pointer-events:none}
+body.replay .dest,body.replay .alert .acts{opacity:.45;pointer-events:none}
+body.replay .vignette{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--amber) 55%,transparent)}
+@media (max-width:820px){
+  .rpbar{left:8px;right:8px;width:auto;transform:none;margin:0;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);padding:10px 12px 8px}
+  .rp-row{flex-wrap:wrap;row-gap:8px} .rp-speed{order:5} .rp-live{order:6;margin-left:auto} .rp-foot span:last-child{display:none}
+  .rp-time b{font-size:16px}
+  body.replay .sheet,body.replay #detail{display:none}
+}
 </style>
 </head>
 <body>
@@ -620,11 +662,28 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
     <button id="cleanBtn" aria-label="Tampilan bersih" title="Tampilan bersih: sembunyikan lalu lintas & rambu kota" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></button>
     <button id="cineBtn" aria-label="Mode sinematik" title="Mode sinematik" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></button>
     <button id="stormBtn" aria-label="Waktu dan cuaca" title="Waktu & cuaca" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v1.5M3.5 8H2M4.8 4.8l1 1M13 8a5 5 0 0 0-9 3"/><path d="M17 18a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.8A3.2 3.2 0 0 0 7 18z"/></svg></button>
+    <button id="replayBtn" aria-label="Putar ulang" title="Putar ulang beberapa menit terakhir" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/></svg></button>
     <button id="home" aria-label="Kembali ke tampilan awal" title="Tampilan awal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
   </nav>
 
   <aside id="detail" class="panel detail" aria-live="polite"></aside>
   <section id="track" class="panel track" aria-label="Pelacakan pengiriman"></section>
+  <section id="replayBar" class="panel rpbar" aria-label="Putar ulang" hidden>
+    <div class="rp-row">
+      <button id="rpBack" class="rp-ib" aria-label="Mundur 10 detik" title="Mundur 10 dtk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 17 6 12l5-5M18 17l-5-5 5-5"/></svg></button>
+      <button id="rpPlay" class="rp-play" aria-label="Jeda"></button>
+      <button id="rpFwd" class="rp-ib" aria-label="Maju 10 detik" title="Maju 10 dtk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m13 17 5-5-5-5M6 17l5-5-5-5"/></svg></button>
+      <div class="rp-time"><b id="rpClock">--:--:--</b><span id="rpAgo"></span></div>
+      <div id="rpSpeed" class="rp-speed" role="group" aria-label="Kecepatan putar"><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-sp="16">16×</button></div>
+      <button id="rpLive" class="rp-live"><i></i>Kembali ke live</button>
+    </div>
+    <div class="rp-track">
+      <div class="rp-rail"><div id="rpFill" class="rp-fill"></div></div>
+      <div id="rpMarks" class="rp-marks"></div>
+      <input id="rpRange" type="range" step="0.1" aria-label="Posisi putar ulang">
+    </div>
+    <div class="rp-foot"><span id="rpLen"></span><span>Simulasi dijeda selama putar ulang · titik = kejadian, klik untuk lompat</span></div>
+  </section>
   <section id="ops" class="panel ops" aria-label="Operasi">
     <div class="tabs" role="tablist">
       <button role="tab" data-tab="dock" aria-selected="true">Dock <span id="tDock"></span></button>
@@ -3108,7 +3167,7 @@ function syncView(dt,now){
     if(!v){ const mesh=makePallet(p.packing,rng(strHash(p.id)),p.layers); T.parent.add(mesh); mesh.position.set(T.x,T.y,T.z); mesh.scale.setScalar(T.s);
       v={mesh,key:T.key}; View.pallets.set(p.id,v); updatePallet(mesh,true); }
     else if(v.key!==T.key){ T.parent.attach(v.mesh); v.mesh.position.set(T.x,T.y,T.z); v.mesh.scale.setScalar(T.s); v.key=T.key; v.mesh.userData.pallet.dirty=true; }
-    let vis=true; if(p.location.type==='truck'){ const t=Store.get('trucks',p.location.id); vis=!!t&&(t.state==='parked'||t.presence>0.98); }
+    let vis=!RP.hide.has(p.id); if(vis&&p.location.type==='truck'){ const t=Store.get('trucks',p.location.id); vis=!!t&&(t.state==='parked'||t.presence>0.98); }
     if(vis!==v.mesh.visible){ v.mesh.visible=vis; v.mesh.userData.pallet.dirty=true; }
     if(p.location.type==='fork'||p.location.type==='truck') v.mesh.userData.pallet.dirty=true;
     updatePallet(v.mesh,false);
@@ -3287,6 +3346,8 @@ const TRUCK_LAMPS=[[0.8,0.83,-3.27,0.3,0.2,0.04,'brake'],[-0.8,0.83,-3.27,0.3,0.
   [1.02,1.25,2.2,0.04,0.12,0.3,'turnL'],[-1.02,1.25,2.2,0.04,0.12,0.3,'turnR']];
 const CAR_LAMPS=[[0.6,0.72,-1.975,0.34,0.14,0.04,'brake'],[-0.6,0.72,-1.975,0.34,0.14,0.04,'brake']];
 let LAMPS=null, HALO=null;
+/* status putar ulang (v35, diisi e_ui.js): saat aktif, arah sein diambil dari rekaman, bukan dari jalur hidup */
+const RP={on:false,turn:new Map(),hide:new Set(),T:0,play:false,speed:1};
 function initSignalLamps(){
   const n=Store.tables.trucks.size*TRUCK_LAMPS.length+Store.tables.cars.size*CAR_LAMPS.length;
   LAMPS=new InstPool(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xFFFFFF}),n,{color:true,cast:false,receive:false});
@@ -3312,7 +3373,7 @@ function updateSignalLamps(dt,now){ if(!LAMPS) return; let n=0, nh=0, halo=0; co
     L.rev=!!t.rev||LAMP_REV.includes(t.state);
     L.brake=L.bT>0||hold||(L.rev&&t.v<0.2);
     /* sein ditahan 0,6 dtk setelah belokan selesai supaya tidak berkedip putus-putus di tikungan halus */
-    const tr=turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
+    const tr=RP.on?(RP.turn.get(t)||0):turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
     L.hazard=(t.stuck||0)>25;
     L.blinkOn=((tsec+L.ph)%0.75)<0.42;
     const s=t.site, x=t.pos.x+s.ox, z=t.pos.z+s.oz;
@@ -3633,7 +3694,7 @@ function sparkPath(el,arr,col){ if(!el) return; const W=72,Hh=30, mn=Math.min(..
   const last=pts[pts.length-1], id='g'+el.id;
   el.innerHTML=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".22"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${W} ${Hh} L0 ${Hh} Z" fill="url(#${id})"/><path class="l" d="${d}" stroke="${col}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4" fill="${col}"/>`; }
 function renderSparks(s,n){ const H=sparkHist(s,n), now=performance.now();
-  if(now-sparkT>3000){ sparkT=now; for(const site of SITES()){ const nn=siteNumbers(site), h=sparkHist(site,nn); h.stock.push(nn.stock); h.trucks.push(nn.onsite); h.on.push(ontimeNow(site)); for(const k of ['stock','trucks','on']) if(h[k].length>24) h[k].shift(); } }
+  if(now-sparkT>3000&&!RP.on){ sparkT=now; for(const site of SITES()){ const nn=siteNumbers(site), h=sparkHist(site,nn); h.stock.push(nn.stock); h.trucks.push(nn.onsite); h.on.push(ontimeNow(site)); for(const k of ['stock','trucks','on']) if(h[k].length>24) h[k].shift(); } }
   sparkPath($('#spStock'),H.stock,'#2E5BFF'); sparkPath($('#spTruck'),H.trucks,'#7C3AED'); sparkPath($('#spOn'),H.on,'#16A34A'); }
 function renderKPIs(){
   const s=S_(), n=siteNumbers(s); renderSparks(s,n);
@@ -3644,12 +3705,12 @@ function renderKPIs(){
   $('#kOn').textContent=ontimeNow(s).toLocaleString('id-ID')+'%'; $('#kOnD').textContent=(s.ontimeDelta>=0?'↑ +':'↓ −')+Math.abs(s.ontimeDelta).toLocaleString('id-ID')+'%'; $('#kOnD').className='d'+(s.ontimeDelta<0?' neg':'');
   $('#siteId').textContent=s.id; $('#siteName').textContent=s.name;
   $('#siteSub').textContent=`${Math.round(n.stock/s.capacity*100)}% penuh · ${n.docked}/${s.bays.length} di dock`;
-  $('#clock').textContent=hhmm(Store.clock.hour);
+  $('#clock').textContent=RP.on?hms(Store.clock.hour):hhmm(Store.clock.hour);
   { const na=openAlerts().length, d=$('#bellDot'); d.textContent=na?String(na):''; d.classList.toggle('cnt',na>0); d.style.display=(na||Store.unread)?'':'none'; }
   if(!$('#notif').hidden) renderNotif();
   const w=Store.weather, bad=['rain','storm','fog','sandstorm'].includes(w.condition); $('#wxIcon').textContent=w.icon; $('#wxText').textContent=`${w.label} · ${w.tempC}°C`;
   $('#wxBtn').classList.toggle('storm',bad); $('#stormBtn').setAttribute('aria-pressed',bad);
-  const live=Store.clock.mode==='live'; $('#liveLbl').textContent=live?'Live':TIME_MODES[Store.clock.mode].label; $('#livePill').classList.toggle('sim',!live);
+  const live=Store.clock.mode==='live'&&!RP.on; $('#liveLbl').textContent=RP.on?'Putar ulang':live?'Live':TIME_MODES[Store.clock.mode].label; $('#livePill').classList.toggle('sim',!live); $('#livePill').classList.toggle('rp',RP.on);
   if(!$('#envMenu').hidden) renderEnvMenu();
 }
 function destBlock(t){ const o=destOptions(t); if(!o) return '';
@@ -3727,6 +3788,7 @@ function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) re
   c.fillStyle=dark?'#AEB6DA':'#56608A'; c.font='600 10px "Plus Jakarta Sans",system-ui,sans-serif'; c.textBaseline='top'; c.fillText('Gudang',X(-s.W/2)+4,2); c.textBaseline='bottom'; c.fillText('Dock',X(s.bays[0].x-1.3),Hh-2); c.fillText('Staging & charger',3,Hh-2);
   cv.onpointermove=ev=>{ const rc=cv.getBoundingClientRect(), q=Math.floor((ev.clientX-rc.left)/cs), r=Math.floor((ev.clientY-rc.top)/cs); if(q<0||r<0||q>=g.cols||r>=g.rows) return;
     const v=g.g[r*g.cols+q]; cv.dataset.tip=`Sel ${q},${r} (1 × 1 m)|${mx?Math.round(v/mx*100):0}% dari sel terpadat`; }; }
+const hms=h=>{ const S=Math.floor(((h%24)+24)%24*3600), p2=x=>String(x).padStart(2,'0'); return p2(Math.floor(S/3600))+':'+p2(Math.floor(S/60)%60)+':'+p2(S%60); };
 const hhmm=h=>{ const H=Math.floor(h)%24, M=Math.floor((h-Math.floor(h))*60); return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0'); };
 const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3?'Senja':'Malam';
 function renderEnvMenu(){
@@ -4127,14 +4189,122 @@ async function runSelftest(){
   SIM_PAUSED=false; refreshUI(true);
 }
 if(QS.has('selftest')) setTimeout(runSelftest,300);
+
+/* ---------- v35: garis waktu & putar ulang ----------
+   Perekam membaca Store setiap 0,5 dtk waktu simulasi (tidak menulis apa pun, jadi simulasi & sidik jari seed tidak berubah).
+   Saat putar ulang: simulasi dijeda, field tampilan di Store diisi dari rekaman (diinterpolasi), lalu dikembalikan PERSIS
+   ke nilai live saat keluar. Aksi yang mengubah operasi (arahkan truk, aksi peringatan, waktu & cuaca) diblokir selama putar ulang. */
+const REC={dt:0.5,max:LOWPOWER?600:1200,t:0,acc:0,frames:[],pal:new Map(),ev:[],str:[''],smap:new Map([['',0]]),E:null};
+const sid=v=>{ v=v==null?'':String(v); let i=REC.smap.get(v); if(i==null){ i=REC.str.length; REC.str.push(v); REC.smap.set(v,i); } return i; };
+const TS=17, CS=7, FS=6, PS=6, KS=4;
+function recEnts(){ if(REC.E) return REC.E; const S=Store.all('sites'), D=[...Store.tables.docks.values()];
+  REC.E={T:[...Store.tables.trucks.values()],F:[...Store.tables.forklifts.values()],P:[...Store.tables.people.values()],C:[...Store.tables.cars.values()],
+    G:[...Store.tables.signals.values()],S,D,sIdx:new Map(S.map((x,i)=>[x.id,i])),dIdx:new Map(D.map((x,i)=>[x.id,i]))}; return REC.E; }
+function capture(){ const E=recEnts(), n=E.T.length*(TS+CS)+E.F.length*FS+E.P.length*PS+E.C.length*KS+E.G.length*2+E.S.length+E.D.length, d=new Float32Array(n); let k=0;
+  for(const t of E.T){ const c=t.crew, L=LAMP_ST.get(t);
+    d[k++]=t.pos.x; d[k++]=t.pos.z; d[k++]=t.heading; d[k++]=t.v; d[k++]=sid(t.state); d[k++]=t.doorsT||0; d[k++]=t.cabDoor||0; d[k++]=t.presence??1; d[k++]=t.rev?1:0;
+    d[k++]=E.sIdx.get(t.siteId)??-1; d[k++]=t.dockId?E.dIdx.get(t.dockId)??-1:-1; d[k++]=sid(t.mode); d[k++]=t.done||0; d[k++]=t.total||0; d[k++]=t.path?t.curv||0:0; d[k++]=t.stuck||0; d[k++]=L?L.turn:0;
+    if(c&&c.on){ d[k++]=1; d[k++]=c.x; d[k++]=c.z; d[k++]=c.h; d[k++]=c.v||0; d[k++]=sid(c.pose); d[k++]=c.y||0; } else { d[k++]=0; k+=6; } }
+  for(const f of E.F){ d[k++]=f.pos.x; d[k++]=f.pos.z; d[k++]=f.heading; d[k++]=f.v||0; d[k++]=f.lift||0; d[k++]=f.rev?1:0; }
+  for(const p of E.P){ d[k++]=p.pos.x; d[k++]=p.pos.z; d[k++]=p.heading; d[k++]=p.v||0; d[k++]=sid(p.pose); d[k++]=p.y||0; }
+  for(const c of E.C){ d[k++]=c.p; d[k++]=c.v; d[k++]=c.active?1:0; d[k++]=c.presence??1; }
+  for(const g of E.G){ d[k++]=sid(g.stateH); d[k++]=sid(g.stateV); }
+  for(const s of E.S){ d[k++]=s.tgate?s.tgate.armT:0; }
+  for(const b of E.D){ d[k++]=b.doorState==='open'?1:0; }
+  return {t:REC.t,hour:Store.clock.hour,wx:Store.weather.condition,d}; }
+const palKey=L=>!L?'':L.type+'|'+(L.id??'')+'|'+(L.index??'');
+const palLoc=k=>{ const [type,id,idx]=k.split('|'), o={type}; if(id) o.id=id; if(idx!=='') o.index=+idx; return o; };
+function recordTick(dt){ REC.t+=dt; REC.acc+=dt; if(REC.acc<REC.dt) return; REC.acc=0;
+  REC.frames.push(capture()); if(REC.frames.length>REC.max) REC.frames.shift();
+  for(const p of Store.tables.pallets.values()){ const k=palKey(p.location); let h=REC.pal.get(p.id); if(!h){ h=[]; REC.pal.set(p.id,h); } if(!h.length||h[h.length-1][1]!==k) h.push([REC.t,k]); }
+  const t0=REC.frames[0].t; if(REC.frames.length%60===0){ for(const [id,h] of REC.pal){ while(h.length>1&&h[1][0]<=t0) h.shift(); if(!Store.tables.pallets.has(id)&&h[h.length-1][0]<t0) REC.pal.delete(id); } while(REC.ev.length&&REC.ev[0].rt<t0) REC.ev.shift(); } }
+Store.on(ev=>{ if(!RP.on) REC.ev.push({rt:REC.t,ev}); });
+/* tulis satu keadaan ke Store; A,B = frame, a = bobot interpolasi */
+function applyRec(A,B,a){ const E=recEnts(), d=A.d, e=(B||A).d; let k=0; const L=(i)=>d[i]+(e[i]-d[i])*a, LH=(i)=>d[i]+angDiff(d[i],e[i])*a;
+  RP.turn.clear();
+  for(const t of E.T){ const same=d[k+9]===e[k+9]&&Math.hypot(e[k]-d[k],e[k+1]-d[k+1])<25, w=same?a:0, Li=i=>d[i]+(e[i]-d[i])*w;
+    t.pos.x=Li(k); t.pos.z=Li(k+1); t.heading=same?d[k+2]+angDiff(d[k+2],e[k+2])*w:d[k+2]; t.v=Li(k+3); t.state=REC.str[d[k+4]]; t.doorsT=Li(k+5); t.cabDoor=Li(k+6); t.presence=Li(k+7); t.rev=!!d[k+8];
+    const si=d[k+9]; if(si>=0) t.siteId=E.S[si].id; const di=d[k+10]; t.dockId=di>=0?E.D[di].id:null; t.mode=REC.str[d[k+11]]; t.done=d[k+12]; t.total=d[k+13]; t.curv=d[k+14]; t.stuck=d[k+15]; RP.turn.set(t,d[k+16]); k+=TS;
+    const c=t.crew; if(c){ c.on=!!d[k]; if(c.on){ c.x=Li(k+1); c.z=Li(k+2); c.h=same?d[k+3]+angDiff(d[k+3],e[k+3])*w:d[k+3]; c.v=d[k+4]; c.pose=REC.str[d[k+5]]||undefined; c.y=d[k+6]; } } k+=CS; }
+  for(const f of E.F){ f.pos.x=L(k); f.pos.z=L(k+1); f.heading=LH(k+2); f.v=d[k+3]; f.lift=L(k+4); f.rev=!!d[k+5]; k+=FS; }
+  for(const p of E.P){ const jump=Math.hypot(e[k]-d[k],e[k+1]-d[k+1])>6, w=jump?0:a; p.pos.x=d[k]+(e[k]-d[k])*w; p.pos.z=d[k+1]+(e[k+1]-d[k+1])*w; p.heading=d[k+2]+angDiff(d[k+2],e[k+2])*w; p.v=d[k+3]; p.pose=REC.str[d[k+4]]||undefined; p.y=d[k+5]; k+=PS; }
+  for(const c of E.C){ const Ln=LANES[c.lane], wrap=e[k]<d[k]-1, pp=wrap?d[k]:L(k); c.p=pp; c.v=d[k+1]; c.active=!!d[k+2]; c.presence=d[k+3];
+    const coord=Ln.a+Ln.dir*pp; c.x=Ln.ax==='x'?coord:Ln.c; c.z=Ln.ax==='x'?Ln.c:coord; c.heading=Ln.ax==='x'?(Ln.dir>0?Math.PI/2:-Math.PI/2):(Ln.dir>0?0:Math.PI); k+=KS; }
+  for(const g of E.G){ g.stateH=REC.str[d[k]]; g.stateV=REC.str[d[k+1]]; k+=2; }
+  for(const s of E.S){ if(s.tgate) s.tgate.armT=L(k); k++; }
+  for(const b of E.D){ b.doorState=d[k]?'open':'closed'; k++; }
+  Store.clock.hour=A.hour+(B&&Math.abs(B.hour-A.hour)<1?(B.hour-A.hour)*a:0); if(Store.weather.condition!==A.wx) Store.weather={condition:A.wx,...WEATHER[A.wx]}; }
+function applyPallets(T){ RP.hide.clear();
+  for(const p of Store.tables.pallets.values()){ const h=REC.pal.get(p.id); let k=null; if(h) for(let i=h.length-1;i>=0;i--) if(h[i][0]<=T+1e-6){ k=h[i][1]; break; }
+    if(k==null){ RP.hide.add(p.id); continue; } if(palKey(p.location)!==k) p.location=palLoc(k); } }
+/* cadangan nilai live yang PERSIS (bukan Float32 rekaman) untuk setiap field yang ditulis applyRec */
+function rpBackup(){ const E=recEnts(), B=[], keep=(o,ks)=>{ if(o) for(const k of ks) B.push([o,k,o[k],Object.prototype.hasOwnProperty.call(o,k)]); };
+  for(const t of E.T){ keep(t.pos,['x','z']); keep(t,['heading','v','state','doorsT','cabDoor','presence','rev','siteId','dockId','mode','done','total','curv','stuck']); keep(t.crew,['on','x','z','h','v','pose','y']); }
+  for(const f of E.F){ keep(f.pos,['x','z']); keep(f,['heading','v','lift','rev']); }
+  for(const p of E.P){ keep(p.pos,['x','z']); keep(p,['heading','v','pose','y']); }
+  for(const c of E.C) keep(c,['p','v','active','presence','x','z','heading']);
+  for(const g of E.G) keep(g,['stateH','stateV']);
+  for(const st of E.S) keep(st.tgate,['armT']);
+  for(const b of E.D) keep(b,['doorState']);
+  return B; }
+function rpSpan(){ const F=REC.frames; return F.length?{t0:F[0].t,t1:F[F.length-1].t}:null; }
+function rpSeek(T){ const F=REC.frames, sp=rpSpan(); if(!sp) return; T=clamp(T,sp.t0,sp.t1); RP.T=T;
+  const i=clamp(Math.floor((T-sp.t0)/REC.dt),0,F.length-1), A=F[i], B=F[Math.min(i+1,F.length-1)], a=B.t>A.t?clamp((T-A.t)/(B.t-A.t),0,1):0;
+  applyRec(A,B,a); applyPallets(T); }
+function enterReplay(){ if(RP.on||SIM_PAUSED) return; const sp=rpSpan(); if(!sp||sp.t1-sp.t0<15){ showToast('Rekaman belum cukup. Tunggu beberapa detik lagi.','#B76E00'); return; }
+  stopCine(); closeMenus&&closeMenus();
+  RP.live={bak:rpBackup(),pal:new Map([...Store.tables.pallets.values()].map(p=>[p.id,p.location])),clock:{...Store.clock},wx:Store.weather};
+  RP.on=true; RP.play=true; RP.speed=1; document.body.classList.add('replay'); $('#replayBar').hidden=false; $('#replayBtn').setAttribute('aria-pressed','true');
+  rpBuildMarks(); rpSeek(Math.max(sp.t0,sp.t1-60)); rpUI(true); refreshUI(true); }
+function exitReplay(){ if(!RP.on) return; const L=RP.live;
+  for(const [o,key,v,had] of L.bak){ if(had) o[key]=v; else delete o[key]; } for(const p of Store.tables.pallets.values()){ const o=L.pal.get(p.id); if(o) p.location=o; }
+  Object.assign(Store.clock,L.clock); Store.weather=L.wx; RP.hide.clear(); RP.turn.clear(); RP.on=false; RP.live=null;
+  document.body.classList.remove('replay'); $('#replayBar').hidden=true; $('#replayBtn').setAttribute('aria-pressed','false'); refreshUI(true); }
+function rpStep(rdt){ if(!RP.play) return; const sp=rpSpan(); let T=RP.T+rdt*RP.speed; if(T>=sp.t1){ T=sp.t1; RP.play=false; rpUI(true); } rpSeek(T); }
+const rpAgo=s=>{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60), r=s%60; return s<1?'ujung rekaman':(m?m+' mnt ':'')+(r||!m?r+' dtk':'')+' lalu'; };
+function rpUI(full){ const sp=rpSpan(); if(!sp||!RP.on) return; const r=$('#rpRange'); r.min=sp.t0; r.max=sp.t1; if(document.activeElement!==r||full) r.value=RP.T;
+  $('#rpClock').textContent=hms(Store.clock.hour); $('#rpAgo').textContent=rpAgo(sp.t1-RP.T); $('#rpLen').textContent=`Rekaman ${Math.round((sp.t1-sp.t0)/60)} menit`;
+  const pct=(sp.t1>sp.t0?(RP.T-sp.t0)/(sp.t1-sp.t0):1)*100; $('#rpFill').style.width=pct+'%';
+  $('#rpPlay').innerHTML=RP.play?'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z"/></svg>';
+  $('#rpPlay').setAttribute('aria-label',RP.play?'Jeda':'Putar');
+  if(full) for(const b of document.querySelectorAll('#rpSpeed button')) b.setAttribute('aria-pressed',String(+b.dataset.sp===RP.speed));
+  $('#replayBar').classList.toggle('atEnd',sp.t1-RP.T<0.6); if(RP.markSite!==active){ RP.markSite=active; rpBuildMarks(); } }
+/* penanda kejadian di garis waktu: warna = warna kejadian, klik = lompat 3 dtk sebelum kejadian */
+function rpBuildMarks(){ const sp=rpSpan(), box=$('#rpMarks'); if(!sp) return; const W=sp.t1-sp.t0||1, cur=S_();
+  box.innerHTML=REC.ev.filter(x=>x.rt>=sp.t0&&x.rt<=sp.t1).slice(-160).map(x=>{ const mine=!cur||x.ev.siteId===cur.id;
+    return `<button class="rpm${mine?'':' dim'}" style="left:${((x.rt-sp.t0)/W*100).toFixed(2)}%;--c:${esc(x.ev.color||'#2E5BFF')}" data-rt="${x.rt}" data-ref="${esc(x.ev.ref||'')}" data-tip="${esc(hm(x.ev.t))} · ${esc(x.ev.siteId||'')}|${esc(x.ev.text)}" aria-label="${esc(x.ev.text)}"></button>`; }).join(''); }
+/* aksi yang mengubah operasi diblokir saat putar ulang supaya keadaan live tidak tercampur keadaan masa lalu */
+const RP_MSG='Sedang putar ulang. Kembali ke live untuk mengubah operasi.';
+{ const _sd=setTruckDest, _ra=runAlert, _sw=setWeather, _st=setTimeMode;
+  setTruckDest=(...a)=>RP.on?RP_MSG:_sd(...a); runAlert=(...a)=>RP.on?{msg:RP_MSG}:_ra(...a);
+  setWeather=(...a)=>RP.on?showToast(RP_MSG,'#B76E00'):_sw(...a); setTimeMode=(...a)=>RP.on?showToast(RP_MSG,'#B76E00'):_st(...a); }
+$('#replayBtn').onclick=e=>{ e.stopPropagation(); RP.on?exitReplay():enterReplay(); };
+$('#rpLive').onclick=exitReplay;
+$('#rpPlay').onclick=()=>{ const sp=rpSpan(); if(!RP.play&&sp&&sp.t1-RP.T<0.6) rpSeek(Math.max(sp.t0,sp.t1-60)); RP.play=!RP.play; rpUI(true); };
+$('#rpBack').onclick=()=>{ rpSeek(RP.T-10); rpUI(true); };
+$('#rpFwd').onclick=()=>{ rpSeek(RP.T+10); rpUI(true); };
+$('#rpRange').addEventListener('input',e=>{ RP.drag=true; rpSeek(+e.target.value); rpUI(); });
+$('#rpRange').addEventListener('change',()=>{ RP.drag=false; });
+$('#rpSpeed').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; RP.speed=+b.dataset.sp; rpUI(true); };
+$('#rpMarks').onclick=e=>{ const b=e.target.closest('.rpm'); if(!b) return; rpSeek(+b.dataset.rt-3); RP.play=true; const r=b.dataset.ref&&Store.find(b.dataset.ref); if(r) select(r,true); rpUI(true); };
+$('#rpMarks').addEventListener('pointerover',e=>{ const b=e.target.closest('.rpm'); if(!b) return; const [h,txt]=b.dataset.tip.split('|'), bb=b.getBoundingClientRect();
+  tipEl.innerHTML=`<b>${h}</b><span>${txt}</span>`; tipEl.style.left=Math.min(innerWidth-260,Math.max(8,bb.left-110))+'px'; tipEl.style.top=(bb.top-64)+'px'; tipEl.classList.add('show'); });
+$('#rpMarks').addEventListener('pointerout',()=>tipEl.classList.remove('show'));
+addEventListener('keydown',e=>{ if(!RP.on||document.activeElement===q) return;
+  if(e.key==='Escape'){ e.preventDefault(); e.stopImmediatePropagation(); exitReplay(); }
+  else if(e.key===' '){ e.preventDefault(); $('#rpPlay').click(); }
+  else if(e.key==='ArrowLeft'&&document.activeElement!==$('#rpRange')){ rpSeek(RP.T-5); rpUI(true); }
+  else if(e.key==='ArrowRight'&&document.activeElement!==$('#rpRange')){ rpSeek(RP.T+5); rpUI(true); } },true);
 let last=performance.now(), uiT=0, fno=0, tiltB=-1; const simAcc=new Map();
 function frame(now){
   const rdt=Math.max(0,(now-last)/1000), dt=Math.min(0.05,rdt); last=Math.max(last,now); fno++;
-  if(!SIM_PAUSED){
+  if(RP.on){ rpStep(Math.min(rdt,0.1)); if(fno%6===0) rpUI(); }
+  else if(!SIM_PAUSED){
   tickClock(dt);
   SITES().forEach((s,i)=>{ if(!LOWPOWER||i===active){ simSite(s,dt); return; } const a=(simAcc.get(s.id)||0)+dt; if(fno%2===i%2){ simSite(s,Math.min(a,0.1)); simAcc.set(s.id,0); } else simAcc.set(s.id,a); });
   for(const st of stores()) simStore(st,dt);
   simCity(dt);
+  recordTick(dt);
   }
   syncView(dt,now); updateWeather(Math.min(rdt,0.25),now);
   const k=reduceMotion?1:Math.min(1,dt*6);

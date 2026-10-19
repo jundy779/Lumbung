@@ -341,7 +341,7 @@ function syncView(dt,now){
     if(!v){ const mesh=makePallet(p.packing,rng(strHash(p.id)),p.layers); T.parent.add(mesh); mesh.position.set(T.x,T.y,T.z); mesh.scale.setScalar(T.s);
       v={mesh,key:T.key}; View.pallets.set(p.id,v); updatePallet(mesh,true); }
     else if(v.key!==T.key){ T.parent.attach(v.mesh); v.mesh.position.set(T.x,T.y,T.z); v.mesh.scale.setScalar(T.s); v.key=T.key; v.mesh.userData.pallet.dirty=true; }
-    let vis=true; if(p.location.type==='truck'){ const t=Store.get('trucks',p.location.id); vis=!!t&&(t.state==='parked'||t.presence>0.98); }
+    let vis=!RP.hide.has(p.id); if(vis&&p.location.type==='truck'){ const t=Store.get('trucks',p.location.id); vis=!!t&&(t.state==='parked'||t.presence>0.98); }
     if(vis!==v.mesh.visible){ v.mesh.visible=vis; v.mesh.userData.pallet.dirty=true; }
     if(p.location.type==='fork'||p.location.type==='truck') v.mesh.userData.pallet.dirty=true;
     updatePallet(v.mesh,false);
@@ -520,6 +520,8 @@ const TRUCK_LAMPS=[[0.8,0.83,-3.27,0.3,0.2,0.04,'brake'],[-0.8,0.83,-3.27,0.3,0.
   [1.02,1.25,2.2,0.04,0.12,0.3,'turnL'],[-1.02,1.25,2.2,0.04,0.12,0.3,'turnR']];
 const CAR_LAMPS=[[0.6,0.72,-1.975,0.34,0.14,0.04,'brake'],[-0.6,0.72,-1.975,0.34,0.14,0.04,'brake']];
 let LAMPS=null, HALO=null;
+/* status putar ulang (v35, diisi e_ui.js): saat aktif, arah sein diambil dari rekaman, bukan dari jalur hidup */
+const RP={on:false,turn:new Map(),hide:new Set(),T:0,play:false,speed:1};
 function initSignalLamps(){
   const n=Store.tables.trucks.size*TRUCK_LAMPS.length+Store.tables.cars.size*CAR_LAMPS.length;
   LAMPS=new InstPool(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xFFFFFF}),n,{color:true,cast:false,receive:false});
@@ -545,7 +547,7 @@ function updateSignalLamps(dt,now){ if(!LAMPS) return; let n=0, nh=0, halo=0; co
     L.rev=!!t.rev||LAMP_REV.includes(t.state);
     L.brake=L.bT>0||hold||(L.rev&&t.v<0.2);
     /* sein ditahan 0,6 dtk setelah belokan selesai supaya tidak berkedip putus-putus di tikungan halus */
-    const tr=turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
+    const tr=RP.on?(RP.turn.get(t)||0):turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
     L.hazard=(t.stuck||0)>25;
     L.blinkOn=((tsec+L.ph)%0.75)<0.42;
     const s=t.site, x=t.pos.x+s.ox, z=t.pos.z+s.oz;

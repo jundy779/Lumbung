@@ -1,5 +1,12 @@
 # Changelog
 
+## v35 · 19 Okt 2026
+- **Putar ulang (garis waktu)**: tombol jam berpanah baru di kontrol peta merekam 10 menit terakhir (5 menit di HP dan perangkat hemat daya) dan bisa memutarnya ulang. Bilah putar ulang punya tombol putar/jeda, mundur dan maju 10 detik, kecepatan 1×, 4×, 16×, slider waktu, jam kejadian lengkap dengan detik, dan keterangan "x mnt y dtk lalu".
+- Setiap kejadian di log tampil sebagai titik berwarna di garis waktu (kejadian gudang lain tampil pudar). Arahkan kursor untuk melihat isinya; klik untuk lompat ke 3 detik sebelum kejadian dan langsung memilih truk atau objek terkait.
+- Saat putar ulang, truk, sopir, forklift, palet, pekerja, mobil, lampu lalu lintas, palang gerbang, pintu dock, jam, cuaca, dan lampu sein ikut kembali ke keadaan saat itu. Panel detail menampilkan status pada waktu tersebut, jadi bisa ditelusuri kenapa sebuah truk tertahan.
+- Simulasi dijeda selama putar ulang dan dilanjutkan persis dari titik yang sama setelah "Kembali ke live" (diuji: keadaan sebelum dan sesudah identik, sidik jari seed sama). Aksi yang mengubah operasi (arahkan truk, aksi peringatan, waktu & cuaca, tampilan bersih, sinematik) dinonaktifkan selama putar ulang.
+- Pintasan: Spasi putar/jeda, ← → lompat 5 detik, Esc kembali ke live.
+
 ## v34 · 19 Okt 2026
 - **Lampu sinyal truk**: lampu rem menyala merah terang saat truk mengerem, antre, atau berhenti di palang dan area tunggu; lampu mundur putih menyala selama truk mundur ke dock; lampu sein oranye berkedip di depan, belakang, dan samping kabin sebelum truk berbelok (termasuk saat masuk halaman gudang dan berayun sebelum mundur), lalu padam ±0,6 detik setelah belokan selesai.
 - Truk yang tertahan lebih dari 25 detik menyalakan **lampu hazard** (kedua sein berkedip).

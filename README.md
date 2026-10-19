@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v34** · oleh PT Fusionify Digital
+**Lumbung v35** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -289,6 +289,8 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Simulasi dengan *seed* + mode uji mandiri (`?selftest`) · v30
 - [x] Check-in gerbang & area tunggu truk · v32
 - [x] Pengiriman antar-gudang & mengarahkan truk yang sedang datang · v33
+- [x] Lampu sein, rem, mundur, dan hazard truk · v34
+- [x] Garis waktu & putar ulang 10 menit terakhir · v35
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 
