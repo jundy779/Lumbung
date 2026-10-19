@@ -30,6 +30,10 @@ const hm = d => pad(d.getHours())+':'+pad(d.getMinutes());
 const minsFrom = m => { const h=(typeof Store!=='undefined'&&Store.clock)?Store.clock.hour:null; if(h==null){ const d=nowWIB(); d.setMinutes(d.getMinutes()+Math.round(m)); return hm(d); }
   let t=Math.round(h*60+m); t=((t%1440)+1440)%1440; return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* v40: tema tampilan. pref = 'auto' (ikut sistem) | 'light' | 'dark', disimpan di localStorage['lumbung.theme']; atribut data-theme dipasang skrip kecil di <head> sebelum CSS dibaca */
+const THEME={pref:'auto'}; try{ const t=localStorage.getItem('lumbung.theme'); if(t==='light'||t==='dark') THEME.pref=t; }catch(e){}
+const MQ_DARK=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>THEME.pref==='dark'||(THEME.pref==='auto'&&MQ_DARK.matches);
 const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
 const angDiff = (a,b) => ((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;
 const lerpAngle = (a,b,t) => a+angDiff(a,b)*t;

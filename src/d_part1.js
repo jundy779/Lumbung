@@ -2,6 +2,10 @@
 /* ==========================================================================
    LAPISAN 3 · TAMPILAN 3D (View3D) — hanya MEMBACA Store
    ========================================================================== */
+/* v40: material yang warnanya dari token CSS (tanah, jalan) diperbarui saat tema berganti; noTheme = tidak ikut digelapkan shader tema (marka jalan) */
+const THEMED=[];
+function themedMat(v,o={}){ const m=new THREE.MeshStandardMaterial({color:C(cssVar(v)),...o}); m.userData.noTheme=true; THEMED.push({m,v}); return m; }
+const noTheme=mesh=>{ mesh.material.userData.noTheme=true; return mesh; };
 const View={spinners:[],vapor:[],clutter:[],lampPts:[],nightMats:[],barriers:[],trucks:new Map(),forks:new Map(),people:new Map(),docks:new Map(),slots:new Map(),pallets:new Map(),cars:new Map(),signals:new Map(),sites:new Map(),pickables:[],holds:[]};
 /* ---------- renderer ---------- */
 await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,1500))]);
@@ -436,10 +440,10 @@ function buildCityView(){
   const g=new THREE.Group(); scene.add(g);
   const R=rng(4242);
   const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog=new THREE.Fog(C(bg),230,560);
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshStandardMaterial({color:C(cssVar('--ground')),roughness:1}));
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),themedMat('--ground',{roughness:1}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; g.add(ground);
   const X0=(GRID.x0-0.5)*PX-ROAD/2, X1=(GRID.x1+0.5)*PX+ROAD/2, Z0=(GRID.z0-0.5)*PZ-ROAD/2, Z1=(GRID.z1+0.5)*PZ+ROAD/2;
-  RB(g,X1-X0,0.04,Z1-Z0,0,new THREE.MeshStandardMaterial({color:C(cssVar('--road')),roughness:.95}),(X0+X1)/2,0.02,(Z0+Z1)/2,{cast:false});
+  RB(g,X1-X0,0.04,Z1-Z0,0,themedMat('--road',{roughness:.95}),(X0+X1)/2,0.02,(Z0+Z1)/2,{cast:false});
   const L=new Parts(), W=0xFFFFFF;
   const vx=[],hz=[]; for(let k=GRID.x0;k<=GRID.x1+1;k++) vx.push((k-0.5)*PX); for(let k=GRID.z0;k<=GRID.z1+1;k++) hz.push((k-0.5)*PZ);
   const e=ROAD/2-0.45;
@@ -518,7 +522,7 @@ function buildCityView(){
     sgn(xl,zs-ROAD/2-22,['↓ Kawasan Gudang','Lumbung '+S.id]);
   }
   /* jalan lingkar utara, penghubung, perpanjangan jalan ke kabut, Gerbang Tol Jagorawi */
-  { const RM=new THREE.MeshStandardMaterial({color:C(cssVar('--road')),roughness:.95}), RW=ROAD, W=0xFFFFFF, Y=0xF0B43C;
+  { const RM=themedMat('--road',{roughness:.95}), RW=ROAD, W=0xFFFFFF, Y=0xF0B43C;
     const strip=(x0,x1,z0,z1)=>{ const m=new THREE.Mesh(gR(Math.abs(x1-x0),0.04,Math.abs(z1-z0),0),RM); m.position.set((x0+x1)/2,0.02,(z0+z1)/2); m.receiveShadow=true; g.add(m); };
     const X0g=(GRID.x0-0.5)*PX-RW/2, X1g=(GRID.x1+0.5)*PX+RW/2, Z0g=(GRID.z0-0.5)*PZ-RW/2, Z1g=(GRID.z1+0.5)*PZ+RW/2;
     for(const z of CAR_H){ strip(-660,X0g,z-RW/2,z+RW/2); strip(X1g,660,z-RW/2,z+RW/2); for(const [a,b] of [[-660,X0g],[X1g,660]]) for(let x=a+2;x<b-2;x+=5) L.box(2.4,0.01,0.14,0,W,x,0.045,z); }
@@ -526,7 +530,7 @@ function buildCityView(){
       for(const [a,b] of [[-660,ZHW-RW/2-4],[ZHW+RW/2+4,Z0g],[Z1g,660]]) for(let z=a+2;z<b-2;z+=5) L.box(0.14,0.01,2.4,0,W,x,0.045,z); }
     const XT0=HWY.xToll-16, XT1=HWY.xToll+16;
     /* v38: Jalan Lingkar Utara = jalan arteri: aspal lebih gelap dari jalan kota, garis tengah ganda kuning (dilarang menyalip/putar balik di luar persimpangan) */
-    { const RA=new THREE.MeshStandardMaterial({color:C(cssVar('--road-art')),roughness:.92}), x0=(GRID.x0-0.5)*PX-RW/2-40, m=new THREE.Mesh(gR(XT0-x0,0.04,RW,0),RA); m.position.set((x0+XT0)/2,0.021,ZHW); m.receiveShadow=true; g.add(m); }
+    { const RA=themedMat('--road-art',{roughness:.92}), x0=(GRID.x0-0.5)*PX-RW/2-40, m=new THREE.Mesh(gR(XT0-x0,0.04,RW,0),RA); m.position.set((x0+XT0)/2,0.021,ZHW); m.receiveShadow=true; g.add(m); }
     for(let x=(GRID.x0-0.5)*PX-40;x<XT0-2;x+=2){ let skip=false; for(let k=GRID.x0;k<=GRID.x1+1;k++) if(Math.abs(x-(k-0.5)*PX)<8) skip=true; if(Math.abs(x-HWY.xToll)<16) skip=true; if(!skip) for(const s of [-0.16,0.16]) L.box(2.0,0.01,0.12,0,Y,x+1,0.047,ZHW+s); }
     for(const s of [-1,1]) L.box(XT0-((GRID.x0-0.5)*PX),0.01,0.12,0,W,(XT0+(GRID.x0-0.5)*PX)/2,0.045,ZHW+s*(RW/2-0.45));
     for(let k=GRID.x0+1;k<=GRID.x1;k++){ const x=(k-0.5)*PX; strip(x-RW/2,x+RW/2,ZHW+RW/2,Z0g);
@@ -537,7 +541,7 @@ function buildCityView(){
       for(const s of [-1,1]){ SH.add(gCyl(0.06,0.7,6),0x9AA3BA,x,0.35,ZHW+s*(RW/2+0.7)); } SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW-(RW/2+0.7)); SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW+(RW/2+0.7)); }
     for(let x=-240;x<640;x+=18+((x*7)%5)){ for(const s of [-1,1]){ const z=ZHW+s*(RW/2+4+((x*13)%3)+(x>XT1?4:0)); SH.add(gCyl(0.11,1.0,6),0xB58B63,x,0.55,z); SH.add(gSph(1,10),0x5FB880,x,1.9,z,0,0.95,1.2,0.95); } }
     /* Jalan tol: lebih lebar, 4 lajur + bahu, median beton, guardrail, lampu median, papan hijau */
-    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=new THREE.MeshStandardMaterial({color:C(cssVar('--road-toll')),roughness:.85});
+    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=themedMat('--road-toll',{roughness:.85});
       const tm=new THREE.Mesh(gR(len,0.04,TW*2,0),RMT); tm.position.set(cx,0.021,ZHW); tm.receiveShadow=true; g.add(tm);
       for(const s of [-1,1]){ L.box(len,0.01,0.16,0,W,cx,0.046,ZHW+s*7.3); L.box(len,0.01,0.12,0,Y,cx,0.046,ZHW+s*0.72);
         for(let x=x0+4;x<x1-4;x+=9) L.box(4.0,0.01,0.15,0,W,x+2,0.046,ZHW+s*3.95); }
@@ -584,7 +588,7 @@ function buildCityView(){
           if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+a.dx*5.7,0.047,z+sgn*0.85,a.ry+sgn*0.8,0.7,1,0.7); }
         else { const z=sd.z+a.dz*off, x=sd.x+a.lx; MK.box(4.0,0.012,0.4,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x,0.047,z+a.dz*k,a.ry);
           if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+sgn*0.85,0.047,z+a.dz*5.7,a.ry+sgn*0.8,0.7,1,0.7); } } }
-    { const mm=MK.build(.9,false); g.add(mm); View.clutter.push(mm); }
+    { const mm=noTheme(MK.build(.9,false)); g.add(mm); View.clutter.push(mm); }
     /* atlas rambu */
     const NAMES_H=ROAD_NAMES_H;
     const NAMES_V=ROAD_NAMES_V;
@@ -621,7 +625,7 @@ function buildCityView(){
     for(const x of [-60,90,240]){ post(x,ZHW+ROAD/2+1.2,3.0); board('toll',0.95,0.95,x,2.6,ZHW+ROAD/2+1.2,0); }
     const sm=SG.build(.55,false,atlas); sm.material.side=THREE.FrontSide; g.add(sm); View.clutter.push(sm);
   }
-  g.add(L.build(.9,false)); g.add(plates.build(.9,false,paveTex)); const c0=g.children.length; g.add(city.build(.75)); { const bm=bldg.build(.6,true,windowTex); bm.material.emissive=C(0xFFD49A); bm.material.emissiveMap=windowTex; bm.material.emissiveIntensity=0; View.nightMats.push({m:bm.material,max:0.95}); g.add(bm); } g.add(glass.build(.25,true,glassTex)); g.add(trees.build(.8)); BB.build(g); View.clutter.push(...g.children.slice(c0));
+  g.add(noTheme(L.build(.9,false))); g.add(plates.build(.9,false,paveTex)); const c0=g.children.length; g.add(city.build(.75)); { const bm=bldg.build(.6,true,windowTex); bm.material.emissive=C(0xFFD49A); bm.material.emissiveMap=windowTex; bm.material.emissiveIntensity=0; View.nightMats.push({m:bm.material,max:0.95}); g.add(bm); } g.add(glass.build(.25,true,glassTex)); g.add(trees.build(.8)); BB.build(g); View.clutter.push(...g.children.slice(c0));
   return g;
 }
 

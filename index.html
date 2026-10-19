@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
+<script>/* v40: pasang tema tersimpan sebelum CSS dibaca, supaya tidak berkedip terang */try{var t=localStorage.getItem("lumbung.theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lumbung · Pusat Kendali Gudang</title>
 <meta name="description" content="Lumbung — dashboard operasional gudang 3D real-time: dock, truk, forklift, stok, dan pengiriman dalam satu tampilan.">
@@ -26,6 +27,14 @@
   --red:#C93C3C;
   --shadow:0 1px 2px rgba(23,32,74,.05),0 10px 28px rgba(23,32,74,.09);
   --r-lg:16px; --r-md:12px; --r-sm:8px;
+  --sim-bg:#EEF0FF; --sim-ink:#4D4BD8; --sim-dot:#6C63FF;
+  --shift-bg:#FFF1E6; --shift-ink:#9A3412; --shiftn-bg:#EEF8DF; --shiftn-ink:#3F6212;
+  --dicy-bg:#FFF3C9; --dicy-ink:#9A6A00; --dict-bg:#FFEBDD; --dict-ink:#A85A16;
+  --storm-bg:#FDE7D3; --storm-ink:#B4440E; --neg:#C2410C; --toggle-off:#C9D0E6;
+  --kic-a:#EEF2FF; --kic-b:#DAE3FF; --load-a:#F4F6FF; --load-b:#E3E8FA; --lbar:#D7DEF5;
+  --bad-bg:#FDE7E7; --bad-ink:#C93C3C; --sd:#9ec5f4; --al-line:rgba(214,220,238,.9); --panel-line:rgba(214,220,238,.7); --ok-ink:#16A34A;
+  --kramp:linear-gradient(90deg,#cde2fb,#6da7ec,#256abf,#0d366b);
+  color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -39,6 +48,14 @@
     --green:#4FD18F; --green-soft:#183B33;
     --amber:#FFC061; --amber-soft:#3D3220;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+    --sim-bg:rgba(124,116,255,.2); --sim-ink:#C4C0FF; --sim-dot:#A39CFF;
+    --shift-bg:rgba(242,107,29,.16); --shift-ink:#FFB487; --shiftn-bg:rgba(139,209,42,.16); --shiftn-ink:#C6EE8B;
+    --dicy-bg:rgba(246,196,10,.16); --dicy-ink:#F6D36B; --dict-bg:rgba(242,140,40,.17); --dict-ink:#FFB27A;
+    --storm-bg:rgba(234,88,12,.2); --storm-ink:#FFB089; --neg:#FF9A62; --toggle-off:#3A4478;
+    --kic-a:#283270; --kic-b:#1E2758; --load-a:#1C2450; --load-b:#10162E; --lbar:#2C3563;
+    --bad-bg:rgba(229,72,77,.2); --bad-ink:#FF8A8E; --sd:#3D6FB8; --al-line:#2C3563; --panel-line:#29315C; --ok-ink:#4FD18F;
+    --kramp:linear-gradient(90deg,#0d366b,#256abf,#6da7ec,#cde2fb);
+    color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
@@ -49,6 +66,14 @@
   --green:#4FD18F; --green-soft:#183B33;
   --amber:#FFC061; --amber-soft:#3D3220;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+  --sim-bg:rgba(124,116,255,.2); --sim-ink:#C4C0FF; --sim-dot:#A39CFF;
+  --shift-bg:rgba(242,107,29,.16); --shift-ink:#FFB487; --shiftn-bg:rgba(139,209,42,.16); --shiftn-ink:#C6EE8B;
+  --dicy-bg:rgba(246,196,10,.16); --dicy-ink:#F6D36B; --dict-bg:rgba(242,140,40,.17); --dict-ink:#FFB27A;
+  --storm-bg:rgba(234,88,12,.2); --storm-ink:#FFB089; --neg:#FF9A62; --toggle-off:#3A4478;
+  --kic-a:#283270; --kic-b:#1E2758; --load-a:#1C2450; --load-b:#10162E; --lbar:#2C3563;
+  --bad-bg:rgba(229,72,77,.2); --bad-ink:#FF8A8E; --sd:#3D6FB8; --al-line:#2C3563; --panel-line:#29315C; --ok-ink:#4FD18F;
+  --kramp:linear-gradient(90deg,#0d366b,#256abf,#6da7ec,#cde2fb);
+  color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
@@ -146,7 +171,7 @@ svg{display:block}
   max-height:calc(100% - 74px - 238px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;scrollbar-width:thin}
 .dh{display:flex;gap:11px;align-items:flex-start}
 .dic{flex:none;width:44px;height:44px;border-radius:11px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue)}
-.dic.y{background:#FFF3C9;color:#9A6A00}.dic.t{background:#FFEBDD;color:#A85A16}
+.dic.y{background:var(--dicy-bg);color:var(--dicy-ink)}.dic.t{background:var(--dict-bg);color:var(--dict-ink)}
 .dh small{color:var(--ink-3);font-size:11px;font-weight:600}
 .dh h2{margin:1px 0 1px;font-size:17px;font-weight:800;letter-spacing:-.01em}
 .dh p{margin:0;color:var(--ink-2);font-size:12px}
@@ -330,7 +355,7 @@ body.table-open #scene{visibility:hidden}
 
 .wx{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;background:var(--panel-2);color:var(--ink-2);font-weight:600;font-size:12px;white-space:nowrap}
 .wx:hover{background:var(--blue-soft);color:var(--blue)}
-.wx.storm{background:#FDE7D3;color:#B4440E}
+.wx.storm{background:var(--storm-bg);color:var(--storm-ink)}
 .mapctl button[aria-pressed="true"]{background:var(--blue-soft);color:var(--blue)}
 #cineBars i{position:fixed;left:0;right:0;height:0;background:#0B0F1E;z-index:4;transition:height .8s ease;pointer-events:none}
 #cineBars i:first-child{top:0}#cineBars i:last-child{bottom:0}
@@ -360,9 +385,9 @@ body.cine #labels{opacity:0}
 .env .imp{background:var(--panel-2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--ink-2)}
 .env .imp p{margin:0 0 8px;line-height:1.4}
 .env .imp ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
-.env .imp li{display:flex;justify-content:space-between}.env .imp li b{font-weight:700}.env .imp li b.neg{color:#C2410C}
+.env .imp li{display:flex;justify-content:space-between}.env .imp li b{font-weight:700}.env .imp li b.neg{color:var(--neg)}
 .env .clk{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.env .clk b{font-size:20px;font-weight:800}
-.live.sim{background:#EEF0FF;color:#4D4BD8}.live.sim i{background:#6C63FF}
+.live.sim{background:var(--sim-bg);color:var(--sim-ink)}.live.sim i{background:var(--sim-dot)}
 @media (max-width:820px){ .env{position:fixed;left:10px;right:10px;width:auto;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 70px)} }
 
 .inv .ic3{width:30px;height:27px;flex:none;object-fit:contain}
@@ -387,25 +412,25 @@ body.ui-s #ui{zoom:.88} body.ui-l #ui{zoom:1.15}
 
 .env .cleanrow{display:flex;align-items:center;gap:10px;background:var(--panel-2);border-radius:10px;padding:10px 12px;margin-bottom:14px;width:100%;text-align:left}
 .env .cleanrow span{flex:1;min-width:0}.env .cleanrow b{display:block;font-size:13px;color:var(--ink)}.env .cleanrow small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:1px}
-.env .cleanrow i{width:36px;height:21px;border-radius:999px;background:#C9D0E6;position:relative;flex:none;transition:background .2s}
+.env .cleanrow i{width:36px;height:21px;border-radius:999px;background:var(--toggle-off);position:relative;flex:none;transition:background .2s}
 .env .cleanrow i::after{content:'';position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
 .env .cleanrow[aria-checked="true"] i{background:var(--blue)}.env .cleanrow[aria-checked="true"] i::after{transform:translateX(15px)}
 .env .cleanrow[aria-checked="true"]{box-shadow:none}
-.shiftbar{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:8px 10px;border-radius:10px;font-size:12px;background:#FFF1E6;color:#9A3412}
+.shiftbar{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:8px 10px;border-radius:10px;font-size:12px;background:var(--shift-bg);color:var(--shift-ink)}
 .shiftbar i{width:10px;height:10px;border-radius:3px;background:#F26B1D;flex:none}.shiftbar b{font-weight:700}.shiftbar span{color:inherit;opacity:.8}
-.shiftbar.malam{background:#EEF8DF;color:#3F6212}.shiftbar.malam i{background:#8BD12A}
+.shiftbar.malam{background:var(--shiftn-bg);color:var(--shiftn-ink)}.shiftbar.malam i{background:#8BD12A}
 #scene{cursor:grab}#scene.grabbing{cursor:grabbing}
-.user .avatar.img{background-size:cover;background-position:center;color:transparent;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(30,40,90,.18)}
+.user .avatar.img{background-size:cover;background-position:center;color:transparent;box-shadow:0 0 0 2px var(--panel),0 2px 6px rgba(30,40,90,.18)}
 .tag.sel{background:#2E5BFF;color:#fff;transform:translate(-50%,-100%) scale(1.08);box-shadow:0 6px 18px rgba(46,91,255,.45);z-index:3}
 .tag.sel .st{background:rgba(255,255,255,.22);color:#fff}
 
 /* ---- poles sistem desain ---- */
 .kpi{border:1px solid rgba(214,220,238,.75);padding:10px 12px 10px 10px;gap:12px;border-radius:14px}
-.kic{width:38px;height:38px;border-radius:11px;background:linear-gradient(145deg,#EEF2FF,#DAE3FF);box-shadow:inset 0 0 0 1px rgba(46,91,255,.12)}
+.kic{width:38px;height:38px;border-radius:11px;background:linear-gradient(145deg,var(--kic-a),var(--kic-b));box-shadow:inset 0 0 0 1px rgba(46,91,255,.12)}
 .kpi .spark{width:72px;height:30px;flex:none;margin-left:2px;overflow:visible}
 .kpi .spark path.l{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .kpi em{font-style:normal}
-.panel{border:1px solid rgba(214,220,238,.7)}
+.panel{border:1px solid var(--panel-line)}
 .kpi b,.stat b,.inv li b,.track b,#clock{font-variant-numeric:tabular-nums}
 .top{box-shadow:0 1px 0 rgba(214,220,238,.8),0 6px 18px rgba(23,32,74,.04)}
 button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
@@ -415,17 +440,17 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 #hoverTip.flip{transform:translate(-14px,14px)}
 #hoverTip.show{opacity:1}#hoverTip b{display:block;font-weight:700;font-size:12.5px}#hoverTip span{color:#C9D3FF}
 #toasts{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:7;pointer-events:none;width:min(420px,calc(100vw - 32px))}
-.toast{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid rgba(214,220,238,.85);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:12.5px;color:var(--ink);cursor:pointer;animation:tin .35s ease}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--al-line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:12.5px;color:var(--ink);cursor:pointer;animation:tin .35s ease}
 .toast i{width:8px;height:8px;border-radius:50%;flex:none}.toast span{flex:1;min-width:0}.toast small{color:var(--ink-3);font-size:11px;flex:none}
 .toast.out{animation:tout .35s ease forwards}
 @keyframes tin{from{transform:translateY(10px)}to{transform:none}}@keyframes tout{to{opacity:0;transform:translateY(8px)}}
 @media (max-width:820px){ #toasts{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 150px)} #hoverTip{display:none} .kpi .spark{display:none} }
 @media (prefers-reduced-motion:reduce){ .toast,.toast.out{animation:none} }
-#loading{background:radial-gradient(120% 80% at 50% 40%,#F4F6FF,#E3E8FA);z-index:20;transition:opacity .5s}
+#loading{background:radial-gradient(120% 80% at 50% 40%,var(--load-a),var(--load-b));z-index:20;transition:opacity .5s}
 #loading.done{opacity:0;pointer-events:none}
 .splash{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .splash b{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-.02em}.splash span{font-size:13px;color:var(--ink-2);font-weight:500}
-.lbar{display:block;width:180px;height:4px;border-radius:4px;background:#D7DEF5;overflow:hidden;margin-top:6px}
+.lbar{display:block;width:180px;height:4px;border-radius:4px;background:var(--lbar);overflow:hidden;margin-top:6px}
 .lbar em{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#4D7BFF,#2447D9);animation:lb 1.1s ease-in-out infinite}
 @keyframes lb{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
 
@@ -475,8 +500,6 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 @media (min-width:821px) and (max-width:1280px){ .ship{padding:8px 10px;gap:8px} .ship .tkimg{width:56px;height:38px;margin:0} .ship b{font-size:12.5px} .ship small,.ship em{font-size:10.5px} }
 .live.sim b,.live b{color:inherit}
 .shiftbar b{white-space:nowrap}
-@media (prefers-color-scheme:dark){ .live.sim{background:rgba(124,116,255,.2);color:#C4C0FF} .live.sim i{background:#A39CFF} .shiftbar{background:rgba(242,107,29,.16);color:#FFB487} .shiftbar.malam{background:rgba(139,209,42,.16);color:#C6EE8B} }
-:root[data-theme="dark"] .live.sim{background:rgba(124,116,255,.2);color:#C4C0FF}
 .profline{display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding:7px 10px;border-radius:10px;background:var(--panel-2);font-size:12px;color:var(--ink-2);font-weight:600}.profline span{font-size:14px}
 /* v31 · grafik Kinerja khas per gudang */
 .kcard{background:var(--panel-2);border-radius:12px;padding:10px 10px 8px}
@@ -489,9 +512,9 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 .kchart .kg{stroke:var(--line);stroke-width:1}
 .kchart .kt{fill:var(--ink-3);font-size:9.5px;font-weight:600;font-variant-numeric:tabular-nums}
 .kchart .kb{fill:var(--blue)}
-.kchart .kb.sd{fill:#9ec5f4}
+.kchart .kb.sd{fill:var(--sd)}
 .kchart .kl{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.kchart .kl.sd{stroke:#9ec5f4;stroke-dasharray:4 3}
+.kchart .kl.sd{stroke:var(--sd);stroke-dasharray:4 3}
 .kchart .kdot{fill:var(--blue);stroke:var(--panel-2);stroke-width:2}
 .kchart .kband{fill:var(--green-soft)}
 .kchart .kref{stroke:var(--ink-2);stroke-width:1.2;stroke-dasharray:4 3}
@@ -501,10 +524,9 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 .klg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:10.5px;color:var(--ink-2)}
 .klg span{display:inline-flex;align-items:center;gap:5px}
 .klg i{width:10px;height:10px;border-radius:3px;display:inline-block}
-.klg i.m{background:var(--blue)} .klg i.s{background:#9ec5f4} .klg i.b{background:var(--green-soft);border:1px solid var(--green)}
-.klg .kramp{margin-left:auto} .klg .kramp i{width:42px;background:linear-gradient(90deg,#cde2fb,#6da7ec,#256abf,#0d366b)}
+.klg i.m{background:var(--blue)} .klg i.s{background:var(--sd)} .klg i.b{background:var(--green-soft);border:1px solid var(--green)}
+.klg .kramp{margin-left:auto} .klg .kramp i{width:42px;background:var(--kramp)}
 .kheatw{border-radius:8px;overflow:hidden}
-@media (prefers-color-scheme:dark){.klg .kramp i{background:linear-gradient(90deg,#0d366b,#256abf,#6da7ec,#cde2fb)}}
 .kheat{display:block;width:100%}
 .kempty{padding:18px 6px;text-align:center;color:var(--ink-3);font-size:11.5px}
 .dest{margin:10px 0 4px;padding:10px;border-radius:12px;background:var(--panel-2)}
@@ -525,7 +547,7 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 .ntabs button{flex:1;justify-content:center;padding:7px 6px;border-radius:7px;font-size:12px;font-weight:700;color:var(--ink-2)}
 .ntabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(20,28,66,.12)}
 .ntabs em{font-style:normal;background:#DC2626;color:#fff;border-radius:8px;padding:0 6px;font-size:10.5px;margin-left:4px}
-.al{border:1px solid rgba(214,220,238,.9);border-left:4px solid #F59E0B;border-radius:10px;padding:9px 10px;margin:0 2px 7px;background:var(--panel)}
+.al{border:1px solid var(--al-line);border-left:4px solid #F59E0B;border-radius:10px;padding:9px 10px;margin:0 2px 7px;background:var(--panel)}
 .al.crit{border-left-color:#DC2626;background:rgba(220,38,38,.045)}.al.info{border-left-color:#3B82F6}
 .alh{display:flex;gap:8px;align-items:flex-start}.ali{font-size:14px;line-height:1.2}
 .alh b{display:block;font-size:12.5px;line-height:1.3}.alh small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
@@ -534,8 +556,8 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 .notif .ab.pri{background:var(--blue);border-color:var(--blue);color:#fff}.notif .ab.pri:hover{filter:brightness(1.08);background:var(--blue)}
 .notif .ab.ghost{color:var(--ink-3);padding:5px 8px}
 .notif h5{margin:10px 6px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3)}
-.alx{display:flex;gap:8px;padding:6px;font-size:12px;opacity:.85}.alx b{display:block;font-size:12px}.alx small{color:var(--ink-3);font-size:11px}.alx.done span{color:#16A34A;font-weight:800}
-.empty.ok{color:#16A34A;font-weight:600;padding:16px 8px;text-align:center}
+.alx{display:flex;gap:8px;padding:6px;font-size:12px;opacity:.85}.alx b{display:block;font-size:12px}.alx small{color:var(--ink-3);font-size:11px}.alx.done span{color:var(--ok-ink);font-weight:800}
+.empty.ok{color:var(--ok-ink);font-weight:600;padding:16px 8px;text-align:center}
 @media (max-width:820px){ .icon.bell{display:grid!important} .notif{left:8px;right:8px;width:auto;top:58px} }
 :root{--dw:354px}
 @media (max-width:1280px) and (min-width:821px){ :root{--dw:330px} }
@@ -618,9 +640,9 @@ body.photo:not(.photo-labels) #labels{opacity:0}
 @media (max-width:820px){ #photoBar .pb-t{display:none} }
 
 /* ---------- v37: truk mogok ---------- */
-.chip.bad{background:#FDE7E7;color:#C93C3C}
+.chip.bad{background:var(--bad-bg);color:var(--bad-ink)}
 .brk{margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,#E5484D 9%,var(--panel));border:1px solid color-mix(in srgb,#E5484D 28%,var(--line))}
-.brk .bh{display:flex;flex-direction:column;gap:2px} .brk .bh b{font-size:13px;color:#C93C3C} .brk .bh span{font-size:12px;color:var(--ink-2)}
+.brk .bh{display:flex;flex-direction:column;gap:2px} .brk .bh b{font-size:13px;color:var(--bad-ink)} .brk .bh span{font-size:12px;color:var(--ink-2)}
 .brk .bbar{height:5px;border-radius:9px;background:var(--line);margin:8px 0 2px;overflow:hidden} .brk .bbar i{display:block;height:100%;background:#E5484D;border-radius:9px}
 .brk .dopt{width:100%;margin-top:8px}
 
@@ -637,6 +659,24 @@ body.photo:not(.photo-labels) #labels{opacity:0}
 body.zoomed-out .legend{display:flex}
 body.cine .legend,body.photo .legend,body.replay .legend{display:none!important}
 @media (max-width:820px){ .legend{display:none!important} }
+/* v40 · tur perkenalan */
+#tour{position:fixed;inset:0;z-index:40}
+#tour .tspot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(8,12,32,.56);outline:2px solid color-mix(in srgb,var(--blue) 80%,transparent);outline-offset:2px;pointer-events:none;transition:left .35s cubic-bezier(.2,.8,.2,1),top .35s cubic-bezier(.2,.8,.2,1),width .35s cubic-bezier(.2,.8,.2,1),height .35s cubic-bezier(.2,.8,.2,1)}
+#tour .tspot.none{left:50%!important;top:50%!important;width:0!important;height:0!important;outline-color:transparent}
+#tour .tcard{position:fixed;width:min(340px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(8,12,32,.35);padding:16px 16px 12px;transition:left .35s cubic-bezier(.2,.8,.2,1),top .35s cubic-bezier(.2,.8,.2,1)}
+#tour .tcard small{display:block;color:var(--blue);font-weight:700;font-size:11px;letter-spacing:.02em;margin-bottom:4px}
+#tour .tcard h3{margin:0 0 6px;font-size:16px;font-weight:800;letter-spacing:-.01em}
+#tour .tcard p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.5}
+#tour .tmap{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}#tour .tmap span{font-size:11px;font-weight:700;color:var(--ink-2);background:var(--panel-2);border-radius:999px;padding:4px 9px}
+#tour .tmap[hidden],#tour .tnav button[hidden]{display:none}
+#tour .tnav{display:flex;align-items:center;gap:6px;margin-top:14px}#tour .tnav span{flex:1}
+#tour .tnav button{height:34px;padding:0 13px;border-radius:10px;font-weight:700;font-size:12.5px;color:var(--ink-2)}
+#tour .tnav button:hover{background:var(--panel-2)} #tour .tnav .pri{background:var(--blue);color:#fff} #tour .tnav .pri:hover{background:var(--blue);filter:brightness(1.08)}
+#tour .tnav .tskip{padding:0 6px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){ #tour .tspot,#tour .tcard{transition:none} }
+#themeBtn[aria-pressed="true"]{color:var(--blue)}
+/* area gulir panel detail bisa tergambar hitam di luar panel (kotak hitam di bawahnya, terutama setelah ganti tema); clip-path mengunci area gambar ke bentuk panel */
+.detail{clip-path:inset(0 round var(--r-lg))}
 </style>
 </head>
 <body>
@@ -701,6 +741,7 @@ body.cine .legend,body.photo .legend,body.replay .legend{display:none!important}
     <button id="cineBtn" aria-label="Mode sinematik" title="Mode sinematik" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></button>
     <button id="stormBtn" aria-label="Waktu dan cuaca" title="Waktu & cuaca" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v1.5M3.5 8H2M4.8 4.8l1 1M13 8a5 5 0 0 0-9 3"/><path d="M17 18a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.8A3.2 3.2 0 0 0 7 18z"/></svg></button>
     <button id="soundBtn" aria-label="Suara suasana" title="Suara suasana (M)" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5z"/><path class="sw" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="sx" d="m16 9.5 5 5m0-5-5 5"/></svg></button>
+    <button id="themeBtn" aria-label="Tema gelap" title="Tema gelap / terang" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
     <button id="replayBtn" aria-label="Putar ulang" title="Putar ulang beberapa menit terakhir" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/></svg></button>
     <button id="home" aria-label="Kembali ke tampilan awal" title="Tampilan awal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
   </nav>
@@ -783,6 +824,10 @@ const hm = d => pad(d.getHours())+':'+pad(d.getMinutes());
 const minsFrom = m => { const h=(typeof Store!=='undefined'&&Store.clock)?Store.clock.hour:null; if(h==null){ const d=nowWIB(); d.setMinutes(d.getMinutes()+Math.round(m)); return hm(d); }
   let t=Math.round(h*60+m); t=((t%1440)+1440)%1440; return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* v40: tema tampilan. pref = 'auto' (ikut sistem) | 'light' | 'dark', disimpan di localStorage['lumbung.theme']; atribut data-theme dipasang skrip kecil di <head> sebelum CSS dibaca */
+const THEME={pref:'auto'}; try{ const t=localStorage.getItem('lumbung.theme'); if(t==='light'||t==='dark') THEME.pref=t; }catch(e){}
+const MQ_DARK=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>THEME.pref==='dark'||(THEME.pref==='auto'&&MQ_DARK.matches);
 const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
 const angDiff = (a,b) => ((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;
 const lerpAngle = (a,b,t) => a+angDiff(a,b)*t;
@@ -2453,6 +2498,10 @@ function simFingerprint(){ let h=''; for(const t of Store.tables.trucks.values()
 /* ==========================================================================
    LAPISAN 3 · TAMPILAN 3D (View3D) — hanya MEMBACA Store
    ========================================================================== */
+/* v40: material yang warnanya dari token CSS (tanah, jalan) diperbarui saat tema berganti; noTheme = tidak ikut digelapkan shader tema (marka jalan) */
+const THEMED=[];
+function themedMat(v,o={}){ const m=new THREE.MeshStandardMaterial({color:C(cssVar(v)),...o}); m.userData.noTheme=true; THEMED.push({m,v}); return m; }
+const noTheme=mesh=>{ mesh.material.userData.noTheme=true; return mesh; };
 const View={spinners:[],vapor:[],clutter:[],lampPts:[],nightMats:[],barriers:[],trucks:new Map(),forks:new Map(),people:new Map(),docks:new Map(),slots:new Map(),pallets:new Map(),cars:new Map(),signals:new Map(),sites:new Map(),pickables:[],holds:[]};
 /* ---------- renderer ---------- */
 await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,1500))]);
@@ -2887,10 +2936,10 @@ function buildCityView(){
   const g=new THREE.Group(); scene.add(g);
   const R=rng(4242);
   const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog=new THREE.Fog(C(bg),230,560);
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshStandardMaterial({color:C(cssVar('--ground')),roughness:1}));
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),themedMat('--ground',{roughness:1}));
   ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; g.add(ground);
   const X0=(GRID.x0-0.5)*PX-ROAD/2, X1=(GRID.x1+0.5)*PX+ROAD/2, Z0=(GRID.z0-0.5)*PZ-ROAD/2, Z1=(GRID.z1+0.5)*PZ+ROAD/2;
-  RB(g,X1-X0,0.04,Z1-Z0,0,new THREE.MeshStandardMaterial({color:C(cssVar('--road')),roughness:.95}),(X0+X1)/2,0.02,(Z0+Z1)/2,{cast:false});
+  RB(g,X1-X0,0.04,Z1-Z0,0,themedMat('--road',{roughness:.95}),(X0+X1)/2,0.02,(Z0+Z1)/2,{cast:false});
   const L=new Parts(), W=0xFFFFFF;
   const vx=[],hz=[]; for(let k=GRID.x0;k<=GRID.x1+1;k++) vx.push((k-0.5)*PX); for(let k=GRID.z0;k<=GRID.z1+1;k++) hz.push((k-0.5)*PZ);
   const e=ROAD/2-0.45;
@@ -2969,7 +3018,7 @@ function buildCityView(){
     sgn(xl,zs-ROAD/2-22,['↓ Kawasan Gudang','Lumbung '+S.id]);
   }
   /* jalan lingkar utara, penghubung, perpanjangan jalan ke kabut, Gerbang Tol Jagorawi */
-  { const RM=new THREE.MeshStandardMaterial({color:C(cssVar('--road')),roughness:.95}), RW=ROAD, W=0xFFFFFF, Y=0xF0B43C;
+  { const RM=themedMat('--road',{roughness:.95}), RW=ROAD, W=0xFFFFFF, Y=0xF0B43C;
     const strip=(x0,x1,z0,z1)=>{ const m=new THREE.Mesh(gR(Math.abs(x1-x0),0.04,Math.abs(z1-z0),0),RM); m.position.set((x0+x1)/2,0.02,(z0+z1)/2); m.receiveShadow=true; g.add(m); };
     const X0g=(GRID.x0-0.5)*PX-RW/2, X1g=(GRID.x1+0.5)*PX+RW/2, Z0g=(GRID.z0-0.5)*PZ-RW/2, Z1g=(GRID.z1+0.5)*PZ+RW/2;
     for(const z of CAR_H){ strip(-660,X0g,z-RW/2,z+RW/2); strip(X1g,660,z-RW/2,z+RW/2); for(const [a,b] of [[-660,X0g],[X1g,660]]) for(let x=a+2;x<b-2;x+=5) L.box(2.4,0.01,0.14,0,W,x,0.045,z); }
@@ -2977,7 +3026,7 @@ function buildCityView(){
       for(const [a,b] of [[-660,ZHW-RW/2-4],[ZHW+RW/2+4,Z0g],[Z1g,660]]) for(let z=a+2;z<b-2;z+=5) L.box(0.14,0.01,2.4,0,W,x,0.045,z); }
     const XT0=HWY.xToll-16, XT1=HWY.xToll+16;
     /* v38: Jalan Lingkar Utara = jalan arteri: aspal lebih gelap dari jalan kota, garis tengah ganda kuning (dilarang menyalip/putar balik di luar persimpangan) */
-    { const RA=new THREE.MeshStandardMaterial({color:C(cssVar('--road-art')),roughness:.92}), x0=(GRID.x0-0.5)*PX-RW/2-40, m=new THREE.Mesh(gR(XT0-x0,0.04,RW,0),RA); m.position.set((x0+XT0)/2,0.021,ZHW); m.receiveShadow=true; g.add(m); }
+    { const RA=themedMat('--road-art',{roughness:.92}), x0=(GRID.x0-0.5)*PX-RW/2-40, m=new THREE.Mesh(gR(XT0-x0,0.04,RW,0),RA); m.position.set((x0+XT0)/2,0.021,ZHW); m.receiveShadow=true; g.add(m); }
     for(let x=(GRID.x0-0.5)*PX-40;x<XT0-2;x+=2){ let skip=false; for(let k=GRID.x0;k<=GRID.x1+1;k++) if(Math.abs(x-(k-0.5)*PX)<8) skip=true; if(Math.abs(x-HWY.xToll)<16) skip=true; if(!skip) for(const s of [-0.16,0.16]) L.box(2.0,0.01,0.12,0,Y,x+1,0.047,ZHW+s); }
     for(const s of [-1,1]) L.box(XT0-((GRID.x0-0.5)*PX),0.01,0.12,0,W,(XT0+(GRID.x0-0.5)*PX)/2,0.045,ZHW+s*(RW/2-0.45));
     for(let k=GRID.x0+1;k<=GRID.x1;k++){ const x=(k-0.5)*PX; strip(x-RW/2,x+RW/2,ZHW+RW/2,Z0g);
@@ -2988,7 +3037,7 @@ function buildCityView(){
       for(const s of [-1,1]){ SH.add(gCyl(0.06,0.7,6),0x9AA3BA,x,0.35,ZHW+s*(RW/2+0.7)); } SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW-(RW/2+0.7)); SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW+(RW/2+0.7)); }
     for(let x=-240;x<640;x+=18+((x*7)%5)){ for(const s of [-1,1]){ const z=ZHW+s*(RW/2+4+((x*13)%3)+(x>XT1?4:0)); SH.add(gCyl(0.11,1.0,6),0xB58B63,x,0.55,z); SH.add(gSph(1,10),0x5FB880,x,1.9,z,0,0.95,1.2,0.95); } }
     /* Jalan tol: lebih lebar, 4 lajur + bahu, median beton, guardrail, lampu median, papan hijau */
-    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=new THREE.MeshStandardMaterial({color:C(cssVar('--road-toll')),roughness:.85});
+    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=themedMat('--road-toll',{roughness:.85});
       const tm=new THREE.Mesh(gR(len,0.04,TW*2,0),RMT); tm.position.set(cx,0.021,ZHW); tm.receiveShadow=true; g.add(tm);
       for(const s of [-1,1]){ L.box(len,0.01,0.16,0,W,cx,0.046,ZHW+s*7.3); L.box(len,0.01,0.12,0,Y,cx,0.046,ZHW+s*0.72);
         for(let x=x0+4;x<x1-4;x+=9) L.box(4.0,0.01,0.15,0,W,x+2,0.046,ZHW+s*3.95); }
@@ -3035,7 +3084,7 @@ function buildCityView(){
           if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+a.dx*5.7,0.047,z+sgn*0.85,a.ry+sgn*0.8,0.7,1,0.7); }
         else { const z=sd.z+a.dz*off, x=sd.x+a.lx; MK.box(4.0,0.012,0.4,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x,0.047,z+a.dz*k,a.ry);
           if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+sgn*0.85,0.047,z+a.dz*5.7,a.ry+sgn*0.8,0.7,1,0.7); } } }
-    { const mm=MK.build(.9,false); g.add(mm); View.clutter.push(mm); }
+    { const mm=noTheme(MK.build(.9,false)); g.add(mm); View.clutter.push(mm); }
     /* atlas rambu */
     const NAMES_H=ROAD_NAMES_H;
     const NAMES_V=ROAD_NAMES_V;
@@ -3072,7 +3121,7 @@ function buildCityView(){
     for(const x of [-60,90,240]){ post(x,ZHW+ROAD/2+1.2,3.0); board('toll',0.95,0.95,x,2.6,ZHW+ROAD/2+1.2,0); }
     const sm=SG.build(.55,false,atlas); sm.material.side=THREE.FrontSide; g.add(sm); View.clutter.push(sm);
   }
-  g.add(L.build(.9,false)); g.add(plates.build(.9,false,paveTex)); const c0=g.children.length; g.add(city.build(.75)); { const bm=bldg.build(.6,true,windowTex); bm.material.emissive=C(0xFFD49A); bm.material.emissiveMap=windowTex; bm.material.emissiveIntensity=0; View.nightMats.push({m:bm.material,max:0.95}); g.add(bm); } g.add(glass.build(.25,true,glassTex)); g.add(trees.build(.8)); BB.build(g); View.clutter.push(...g.children.slice(c0));
+  g.add(noTheme(L.build(.9,false))); g.add(plates.build(.9,false,paveTex)); const c0=g.children.length; g.add(city.build(.75)); { const bm=bldg.build(.6,true,windowTex); bm.material.emissive=C(0xFFD49A); bm.material.emissiveMap=windowTex; bm.material.emissiveIntensity=0; View.nightMats.push({m:bm.material,max:0.95}); g.add(bm); } g.add(glass.build(.25,true,glassTex)); g.add(trees.build(.8)); BB.build(g); View.clutter.push(...g.children.slice(c0));
   return g;
 }
 
@@ -3326,7 +3375,7 @@ function buildSiteView(s){
   if(fanPts.length){ const bl=new Parts(); bl.box(0.58,0.02,0.09,0.01,0xD7DCEA,0,0,0); bl.box(0.09,0.02,0.58,0.01,0xD7DCEA,0,0,0);
     const im=new THREE.InstancedMesh(bl.geometry(),stdMat(.5,true),fanPts.length); im.frustumCulled=false; g.add(im); View.spinners.push({mesh:im,pts:fanPts}); }
   if(prof==='cold') View.vapor.push({s,spr:new Sprites(s.bays.length*6,1.0,0xFFFFFF,{additive:false,map:dustTex,order:6})});
-  g.add(WP.build(.62,true,RIB)); g.add(TP.build(.6)); g.add(PL.build(.85)); g.add(ST.build(.85)); g.add(LN.build(.9,false)); g.add(TR.build(.8));
+  g.add(WP.build(.62,true,RIB)); g.add(TP.build(.6)); g.add(PL.build(.85)); g.add(ST.build(.85)); g.add(noTheme(LN.build(.9,false))); g.add(TR.build(.8));
   const gm=GL.build(.2,false); gm.material=new THREE.MeshStandardMaterial({color:C(0xFFFFFF),roughness:.2,transparent:true,opacity:.42}); g.add(gm);
   BB.build(g);
 }
@@ -3589,6 +3638,7 @@ function updateWeather(dt,now){
   const lon=L>0.05; LAMPG.m.visible=POOLS_L.visible=lon&&!CLEAN; View.dockGlow.m.visible=lon; LAMPG.m.material.opacity=0.9*L; POOLS_L.material.opacity=0.34*L; View.dockGlow.m.material.opacity=0.75*L;
   if(lon){ LAMPG.update(LAMPG.n); View.dockGlow.update(View.dockGlow.n); }
   updateSignalLamps(dt,now); updateVehicleLights(L); updateClouds(dt,E);
+  { const U=THEME_U.uDark; if(Math.abs(U.value-THEME_U.want)>0.001) U.value+=(THEME_U.want-U.value)*Math.min(1,dt*(reduceMotion?60:3.2)); else U.value=THEME_U.want; }
   /* hujan */
   const rainAmt=Store.weather.condition==='rain'?1:storm?1.6:0; ENV.rain=(ENV.rain||0)+(rainAmt-(ENV.rain||0))*k;
   const R=RAIN; R.m.visible=ENV.rain>0.02;
@@ -3780,7 +3830,7 @@ function buildStoreView(s){
   for(let x=xi0+3;x<xi1-3;x+=2.9){ const z=-fz-7; LN.box(0.08,0.01,4.8,0,0xFFFFFF,x-1.45,0.1,z); if(R()<0.75) addCar(B,pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0xE0573B,0x17A090,0x3B4A7A],R),x,z,Math.PI); }
   B.box(xi1-xi0-2,0.03,7,0.3,0xD9DEEC,(xi0+xi1)/2,0.09,-fz-7);
   for(let x=xi0+3;x<xi1-2;x+=7){ B.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,zi0+1.6); B.add(gSph(1,10),0x5FB880,x,1.8,zi0+1.6,0,0.9,1.15,0.9); }
-  g.add(B.build(.62)); g.add(PL.build(.85)); g.add(LN.build(.9,false));
+  g.add(B.build(.62)); g.add(PL.build(.85)); g.add(noTheme(LN.build(.9,false)));
   const gm=GLs.build(.15,false); gm.material=new THREE.MeshStandardMaterial({color:C(mall?0x8FA7E8:0x9CC9B4),roughness:.15,metalness:.1,emissive:C(0xFFE3B0),emissiveIntensity:0}); g.add(gm); View.nightMats.push({m:gm.material,max:0.7});
   const pk=pickBox(W,H,D); pk.position.set(0,H/2,0); g.add(pk); tagRef(pk,'stores',s.id);
   BB.build(g);
@@ -3877,9 +3927,13 @@ function syncRail(dt){ const R=RAIL; if(!R.mid) return; R.t+=dt; let ci=0, mi=0;
    Awan menggelapkan cahaya matahari langsung (bukan cahaya langit) pada semua material standar lewat onBeforeCompile,
    jadi tanah, atap, truk, dan rel ikut teduh secara konsisten. Tekstur awan disampel dari posisi dunia (x,z). */
 const CLOUD_U={cloudMap:{value:null},cloudOff:{value:new THREE.Vector2()},cloudAmt:{value:0}};
+/* v40: tema gelap di scene 3D. Warna netral terang (tanah halaman, apron, dinding putih, trailer) dipetakan ke biru tua sesuai terangnya,
+   warna jenuh (atap biru, rompi, palet, lampu) dan marka jalan (userData.noTheme) tidak berubah. uDark dianimasikan, jadi tidak perlu kompilasi ulang */
+const THEME_U={uDark:{value:0},want:0};
 function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt;
+    sh.uniforms.uDark=THEME_U.uDark; sh.uniforms.uThemeK={value:this&&this.userData&&this.userData.noTheme?0:1};
     sh.vertexShader='varying vec3 vCloudW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;');
-    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\n'+sh.fragmentShader.replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
+    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\nuniform float uDark;\nuniform float uThemeK;\n'+sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nif(uDark*uThemeK>0.001){ vec3 c0=diffuseColor.rgb; float mx=max(c0.r,max(c0.g,c0.b)), mn=min(c0.r,min(c0.g,c0.b)), lu=dot(c0,vec3(0.2126,0.7152,0.0722)), sa=(mx-mn)/max(mx,1e-3); float w=smoothstep(0.30,0.62,lu)*(1.0-smoothstep(0.12,0.30,sa)); vec3 dk=mix(vec3(0.010,0.015,0.058),vec3(0.046,0.062,0.185),smoothstep(0.62,1.0,lu)); diffuseColor.rgb=mix(c0,dk,w*uDark*uThemeK); }').replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
 /* dipasang di prototipe: semua MeshStandardMaterial (tanah, gedung, truk, kereta) ikut teduh tanpa menyentuh tiap pembuat material */
 THREE.MeshStandardMaterial.prototype.onBeforeCompile=cloudShader;
 let CLOUDS=null;
@@ -4228,7 +4282,7 @@ function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s)
 const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
 function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
   cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
-  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=isDark();
   c.fillStyle=dark?'#222A52':'#F4F6FD'; c.fillRect(0,0,W,Hh);
   for(let r=0;r<g.rows;r++) for(let q=0;q<g.cols;q++){ const v=g.g[r*g.cols+q]; if(v<=mx*0.02||!mx) continue; const t=Math.sqrt(v/mx), k=Math.min(HEAT_RAMP.length-1,Math.floor(t*HEAT_RAMP.length)); c.fillStyle=dark?HEAT_RAMP[HEAT_RAMP.length-1-k]:HEAT_RAMP[k];   /* mode gelap: jarang = dekat latar, padat = terang */ c.fillRect(q*cs+0.5,r*cs+0.5,cs-1,cs-1); }
   const X=x=>(x-g.x0)*cs, Z=z=>(z-g.z0)*cs; c.strokeStyle=dark?'#AEB6DA':'#56608A'; c.lineWidth=1.2; c.setLineDash([]);
@@ -4243,8 +4297,10 @@ const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3
 function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
   $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
-    <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+    <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div>
+    <h4>Tema</h4><div class="seg seg3">${[['auto','Ikuti sistem'],['light','Terang'],['dark','Gelap']].map(([k,l])=>`<button data-themepick="${k}" aria-pressed="${THEME.pref===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
     <button class="cleanrow seedrow" data-photo="1"><span><b>Mode foto</b><small>Sembunyikan panel, atur kamera, lalu simpan gambar PNG (P)</small></span></button>
+    <button class="cleanrow seedrow" data-tour="1"><span><b>Tur perkenalan</b><small>Kenali bagian-bagian layar dalam 1 menit (?)</small></span></button>
     <button class="cleanrow seedrow" data-copyseed="1"><span><b>Seed simulasi ${SEED}</b><small>${SEEDED?'Dipakai dari tautan':'Acak'} · salin tautan untuk mengulang kondisi awal</small></span></button>
     <h4>Waktu</h4><div class="seg">${Object.entries(TIME_MODES).map(([k,m])=>`<button data-time="${k}" aria-pressed="${c.mode===k}">${k==='live'?'● ':''}${m.label.replace(' (WIB)','')}</button>`).join('')}</div>
     <h4>Cuaca</h4><div class="wxg">${WX_ORDER.map(k=>`<button data-wx="${k}" aria-pressed="${w.condition===k}"><b>${WEATHER[k].icon}</b>${WEATHER[k].label}</button>`).join('')}</div>
@@ -4274,6 +4330,8 @@ $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.targe
   if(b.dataset.clean){ setClean(!CLEAN); renderEnvMenu(); return; }
   if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
   if(b.dataset.photo){ $('#envMenu').hidden=true; startPhoto(); return; }
+  if(b.dataset.themepick){ applyTheme(b.dataset.themepick); renderEnvMenu(); return; }
+  if(b.dataset.tour){ $('#envMenu').hidden=true; startTour(); return; }
   if(b.dataset.copyseed){ const u=new URL(location.href); u.searchParams.set('seed',String(SEED)); const done=()=>showToast(`Tautan seed ${SEED} disalin`,'#16A34A');
     try{ navigator.clipboard.writeText(u.toString()).then(done,()=>showToast(u.toString(),'#2E5BFF')); }catch(_){ showToast(u.toString(),'#2E5BFF'); } return; }
   if(b.dataset.time) setTimeMode(b.dataset.time); if(b.dataset.wx) setWeather(b.dataset.wx); renderEnvMenu(); refreshUI(true); });
@@ -4873,7 +4931,62 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg); });
+/* ---------- v40: tema terang / gelap / ikuti sistem ---------- */
+function applyTheme(pref,save=true){ THEME.pref=pref; const r=document.documentElement; if(pref==='auto') delete r.dataset.theme; else r.dataset.theme=pref;
+  if(save) try{ localStorage.setItem('lumbung.theme',pref); }catch(_){}
+  const dk=isDark(); THEME_U.want=dk?1:0; for(const t of THEMED) t.m.color.copy(C(cssVar(t.v)));
+  const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg);
+  const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.content=dk?'#10162E':'#2E5BFF';
+  const tb=$('#themeBtn'); if(tb){ tb.setAttribute('aria-pressed',dk); tb.title=dk?'Tema gelap aktif · klik untuk terang':'Tema terang aktif · klik untuk gelap'; }
+  refreshUI(true); }
+MQ_DARK.addEventListener('change',()=>{ if(THEME.pref==='auto') applyTheme('auto',false); });
+$('#themeBtn').onclick=()=>{ applyTheme(isDark()?'light':'dark'); if(!$('#envMenu').hidden) renderEnvMenu(); showToast(isDark()?'Tema gelap aktif':'Tema terang aktif','#2E5BFF'); };
+THEME_U.uDark.value=THEME_U.want=isDark()?1:0; applyTheme(THEME.pref,false);
+
+/* ---------- v40: tur perkenalan ---------- */
+const TOUR_STEPS=[
+  {title:'Selamat datang di Lumbung',body:'Pusat kendali lima gudang dan dua toko dalam satu peta 3D. Truk datang lewat tol, forklift bongkar-muat, pekerja bergantian shift, semuanya bergerak sendiri. Tur ini kira-kira satu menit.'},
+  {title:'Peta 3D',body:'Seret untuk menggeser, gulir atau cubit untuk zoom. Klik truk, forklift, palet, dock, atau pekerja untuk melihat detailnya.',hint:'map'},
+  {t:['.sitewrap'],title:'Pilih gudang',body:'Pindah antar gudang dari sini. Tombol panah di sebelahnya langsung ke gudang berikutnya, dan kamera terbang ke lokasinya.'},
+  {t:['.kpis'],title:'Angka utama',body:'Stok, truk di lokasi, dan ketepatan waktu untuk gudang yang sedang dipilih, lengkap dengan tren singkatnya.'},
+  {t:['#detail'],title:'Panel detail',body:'Isinya mengikuti apa yang dipilih: gudang, truk, forklift, palet, atau pekerja. Truk yang sedang dimuat bisa diarahkan ke toko atau gudang lain dari sini.'},
+  {t:['#ops','#opsToggle'],title:'Operasi',body:'Daftar dock, forklift, dan truk beserta statusnya. Klik satu baris untuk langsung fokus ke objeknya.'},
+  {t:['.mapctl'],title:'Kontrol peta',body:'Zoom, putar kamera, tampilan bersih, mode sinematik, cuaca, suara, tema, dan putar ulang 10 menit terakhir.'},
+  {t:['#bell'],title:'Peringatan',body:'Truk tertahan, stok menipis, baterai forklift lemah, atau truk mogok muncul di sini, lengkap dengan tombol tindakan.'},
+  {t:['#wxBtn','#stormBtn'],title:'Waktu, cuaca & tema',body:'Ubah jam dan cuaca untuk melihat dampaknya ke operasi, pilih tema terang atau gelap, buka mode foto, atau ulangi tur ini.'},
+  {t:['.search'],title:'Cari apa saja',body:'Tekan / lalu ketik nomor truk, palet, pengiriman, atau nama pekerja.',bodyM:'Ketuk kaca pembesar lalu ketik nomor truk, palet, pengiriman, atau nama pekerja.'},
+  {title:'Siap memantau',body:'Tur bisa diulang kapan saja dari menu Waktu & cuaca atau dengan tombol ?. Selamat bekerja, semoga truknya tidak ada yang mogok.'}];
+const TOUR={on:false,i:0,steps:[],el:null,raf:0};
+const tourVis=sel=>{ const e=document.querySelector(sel); if(!e) return null; const r=e.getBoundingClientRect(), cs=getComputedStyle(e); return r.width>4&&r.height>4&&cs.display!=='none'&&cs.visibility!=='hidden'?e:null; };
+function startTour(){ if(TOUR.on||RP.on||PHOTO.on) return; stopCine(); closeMenus(); $('#envMenu').hidden=true;
+  TOUR.steps=TOUR_STEPS.filter(st=>!st.t||st.t.some(tourVis)); TOUR.on=true; TOUR.i=0; document.body.classList.add('touring');
+  const el=document.createElement('div'); el.id='tour'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-labelledby','tourT');
+  el.innerHTML='<div class="tspot none"></div><div class="tcard"><small id="tourN"></small><h3 id="tourT"></h3><p id="tourB"></p><div class="tmap" aria-hidden="true"><span>Seret</span><span>Gulir / cubit</span><span>Klik objek</span></div><div class="tnav"><button class="tskip">Lewati</button><span></span><button class="tprev">Kembali</button><button class="tnext pri">Lanjut</button></div></div>';
+  document.body.appendChild(el); TOUR.el=el;
+  el.querySelector('.tskip').onclick=()=>endTour(); el.querySelector('.tprev').onclick=()=>tourGo(TOUR.i-1); el.querySelector('.tnext').onclick=()=>tourGo(TOUR.i+1);
+  tourGo(0); const loop=()=>{ if(!TOUR.on) return; tourPlace(); TOUR.raf=requestAnimationFrame(loop); }; loop(); }
+function tourGo(i){ if(i>=TOUR.steps.length) return endTour(); TOUR.i=Math.max(0,i); const st=TOUR.steps[TOUR.i], el=TOUR.el, n=TOUR.steps.length;
+  if(st.t&&st.t[0]==='#detail'&&!sel) refreshUI(true);
+  el.querySelector('#tourN').textContent=`${TOUR.i+1} dari ${n}`; el.querySelector('#tourT').textContent=st.title; el.querySelector('#tourB').textContent=(phoneUI()&&st.bodyM)||st.body;
+  el.querySelector('.tmap').hidden=st.hint!=='map'; el.querySelector('.tprev').hidden=TOUR.i===0;
+  const nx=el.querySelector('.tnext'); nx.textContent=TOUR.i===n-1?'Selesai':TOUR.i===0?'Mulai tur':'Lanjut'; el.querySelector('.tskip').hidden=TOUR.i===n-1;
+  TOUR.target=st.t?st.t.map(tourVis).find(Boolean):null; el.classList.toggle('center',!TOUR.target); tourPlace(true); nx.focus({preventScroll:true}); }
+function tourPlace(){ const el=TOUR.el; if(!el) return; const sp=el.querySelector('.tspot'), cd=el.querySelector('.tcard'), vw=innerWidth, vh=innerHeight, G=16, cw=cd.offsetWidth, ch=cd.offsetHeight;
+  const t=TOUR.target; if(!t||!t.isConnected){ sp.classList.add('none'); cd.style.left=Math.round((vw-cw)/2)+'px'; cd.style.top=Math.round(Math.max(G,(vh-ch)/2))+'px'; return; }
+  const r=t.getBoundingClientRect(), pad=6, x=r.left-pad, y=r.top-pad, w=r.width+pad*2, h=Math.min(r.height+pad*2,vh-y-G);
+  sp.classList.remove('none'); Object.assign(sp.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+  /* kartu: di bawah target bila cukup ruang, lalu di atas, lalu di samping (kiri/kanan), selalu di dalam layar */
+  let L,T; if(y+h+12+ch<=vh-G){ T=y+h+12; L=x+w/2-cw/2; } else if(y-12-ch>=G){ T=y-12-ch; L=x+w/2-cw/2; }
+  else if(x-12-cw>=G){ L=x-12-cw; T=y+h/2-ch/2; } else { L=x+w+12; T=y+h/2-ch/2; }
+  cd.style.left=Math.round(clamp(L,G,vw-cw-G))+'px'; cd.style.top=Math.round(clamp(T,G,vh-ch-G))+'px'; }
+function endTour(){ if(!TOUR.on) return; TOUR.on=false; cancelAnimationFrame(TOUR.raf); document.body.classList.remove('touring'); TOUR.el&&TOUR.el.remove(); TOUR.el=null;
+  try{ localStorage.setItem('lumbung.tour','1'); }catch(_){} }
+addEventListener('keydown',e=>{ const ae=document.activeElement;
+  if(TOUR.on){ e.stopImmediatePropagation(); if(e.key==='Escape'){ e.preventDefault(); endTour(); } else if(e.key==='ArrowRight'){ e.preventDefault(); tourGo(TOUR.i+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); tourGo(TOUR.i-1); }
+    else if(e.key==='Tab'){ const bs=[...TOUR.el.querySelectorAll('button')].filter(b=>!b.hidden); const k=bs.indexOf(ae); e.preventDefault(); bs[(k+(e.shiftKey?-1:1)+bs.length)%bs.length].focus(); } return; }
+  if(e.key==='?'&&ae!==q&&!(ae&&/INPUT|TEXTAREA/.test(ae.tagName))){ e.preventDefault(); startTour(); } },true); /* capture: selama tur, pintasan lain (P, M, /) tidak ikut jalan */
+/* pengunjung pertama: tur dibuka otomatis setelah dunia siap (tidak saat uji mandiri, putar ulang, atau mode foto) */
+{ let seen=false; try{ seen=localStorage.getItem('lumbung.tour')==='1'; }catch(_){} if(!seen&&!QS.has('selftest')&&!QS.has('notour')) setTimeout(()=>{ if(!TOUR.on&&!PHOTO.on&&!RP.on&&!cine.on) startTour(); },1400); }
 })();
 </script>
 </body>

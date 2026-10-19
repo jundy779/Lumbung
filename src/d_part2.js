@@ -248,7 +248,7 @@ function buildSiteView(s){
   if(fanPts.length){ const bl=new Parts(); bl.box(0.58,0.02,0.09,0.01,0xD7DCEA,0,0,0); bl.box(0.09,0.02,0.58,0.01,0xD7DCEA,0,0,0);
     const im=new THREE.InstancedMesh(bl.geometry(),stdMat(.5,true),fanPts.length); im.frustumCulled=false; g.add(im); View.spinners.push({mesh:im,pts:fanPts}); }
   if(prof==='cold') View.vapor.push({s,spr:new Sprites(s.bays.length*6,1.0,0xFFFFFF,{additive:false,map:dustTex,order:6})});
-  g.add(WP.build(.62,true,RIB)); g.add(TP.build(.6)); g.add(PL.build(.85)); g.add(ST.build(.85)); g.add(LN.build(.9,false)); g.add(TR.build(.8));
+  g.add(WP.build(.62,true,RIB)); g.add(TP.build(.6)); g.add(PL.build(.85)); g.add(ST.build(.85)); g.add(noTheme(LN.build(.9,false))); g.add(TR.build(.8));
   const gm=GL.build(.2,false); gm.material=new THREE.MeshStandardMaterial({color:C(0xFFFFFF),roughness:.2,transparent:true,opacity:.42}); g.add(gm);
   BB.build(g);
 }
@@ -511,6 +511,7 @@ function updateWeather(dt,now){
   const lon=L>0.05; LAMPG.m.visible=POOLS_L.visible=lon&&!CLEAN; View.dockGlow.m.visible=lon; LAMPG.m.material.opacity=0.9*L; POOLS_L.material.opacity=0.34*L; View.dockGlow.m.material.opacity=0.75*L;
   if(lon){ LAMPG.update(LAMPG.n); View.dockGlow.update(View.dockGlow.n); }
   updateSignalLamps(dt,now); updateVehicleLights(L); updateClouds(dt,E);
+  { const U=THEME_U.uDark; if(Math.abs(U.value-THEME_U.want)>0.001) U.value+=(THEME_U.want-U.value)*Math.min(1,dt*(reduceMotion?60:3.2)); else U.value=THEME_U.want; }
   /* hujan */
   const rainAmt=Store.weather.condition==='rain'?1:storm?1.6:0; ENV.rain=(ENV.rain||0)+(rainAmt-(ENV.rain||0))*k;
   const R=RAIN; R.m.visible=ENV.rain>0.02;
@@ -702,7 +703,7 @@ function buildStoreView(s){
   for(let x=xi0+3;x<xi1-3;x+=2.9){ const z=-fz-7; LN.box(0.08,0.01,4.8,0,0xFFFFFF,x-1.45,0.1,z); if(R()<0.75) addCar(B,pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0xE0573B,0x17A090,0x3B4A7A],R),x,z,Math.PI); }
   B.box(xi1-xi0-2,0.03,7,0.3,0xD9DEEC,(xi0+xi1)/2,0.09,-fz-7);
   for(let x=xi0+3;x<xi1-2;x+=7){ B.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,zi0+1.6); B.add(gSph(1,10),0x5FB880,x,1.8,zi0+1.6,0,0.9,1.15,0.9); }
-  g.add(B.build(.62)); g.add(PL.build(.85)); g.add(LN.build(.9,false));
+  g.add(B.build(.62)); g.add(PL.build(.85)); g.add(noTheme(LN.build(.9,false)));
   const gm=GLs.build(.15,false); gm.material=new THREE.MeshStandardMaterial({color:C(mall?0x8FA7E8:0x9CC9B4),roughness:.15,metalness:.1,emissive:C(0xFFE3B0),emissiveIntensity:0}); g.add(gm); View.nightMats.push({m:gm.material,max:0.7});
   const pk=pickBox(W,H,D); pk.position.set(0,H/2,0); g.add(pk); tagRef(pk,'stores',s.id);
   BB.build(g);
@@ -799,9 +800,13 @@ function syncRail(dt){ const R=RAIL; if(!R.mid) return; R.t+=dt; let ci=0, mi=0;
    Awan menggelapkan cahaya matahari langsung (bukan cahaya langit) pada semua material standar lewat onBeforeCompile,
    jadi tanah, atap, truk, dan rel ikut teduh secara konsisten. Tekstur awan disampel dari posisi dunia (x,z). */
 const CLOUD_U={cloudMap:{value:null},cloudOff:{value:new THREE.Vector2()},cloudAmt:{value:0}};
+/* v40: tema gelap di scene 3D. Warna netral terang (tanah halaman, apron, dinding putih, trailer) dipetakan ke biru tua sesuai terangnya,
+   warna jenuh (atap biru, rompi, palet, lampu) dan marka jalan (userData.noTheme) tidak berubah. uDark dianimasikan, jadi tidak perlu kompilasi ulang */
+const THEME_U={uDark:{value:0},want:0};
 function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt;
+    sh.uniforms.uDark=THEME_U.uDark; sh.uniforms.uThemeK={value:this&&this.userData&&this.userData.noTheme?0:1};
     sh.vertexShader='varying vec3 vCloudW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;');
-    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\n'+sh.fragmentShader.replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
+    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\nuniform float uDark;\nuniform float uThemeK;\n'+sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nif(uDark*uThemeK>0.001){ vec3 c0=diffuseColor.rgb; float mx=max(c0.r,max(c0.g,c0.b)), mn=min(c0.r,min(c0.g,c0.b)), lu=dot(c0,vec3(0.2126,0.7152,0.0722)), sa=(mx-mn)/max(mx,1e-3); float w=smoothstep(0.30,0.62,lu)*(1.0-smoothstep(0.12,0.30,sa)); vec3 dk=mix(vec3(0.010,0.015,0.058),vec3(0.046,0.062,0.185),smoothstep(0.62,1.0,lu)); diffuseColor.rgb=mix(c0,dk,w*uDark*uThemeK); }').replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
 /* dipasang di prototipe: semua MeshStandardMaterial (tanah, gedung, truk, kereta) ikut teduh tanpa menyentuh tiap pembuat material */
 THREE.MeshStandardMaterial.prototype.onBeforeCompile=cloudShader;
 let CLOUDS=null;

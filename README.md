@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v39** · oleh PT Fusionify Digital
+**Lumbung v40** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -52,6 +52,9 @@ Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan na
 
 ### 🌦️ Waktu & Cuaca
 Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, berawan, hujan, badai petir, kabut, dan badai pasir. Cuaca memengaruhi kecepatan truk, forklift, dan jarak pandang.
+
+### 🌙 Tema & Tur
+Tema terang, gelap, atau ikuti sistem (menu Waktu & cuaca atau tombol bulan di kontrol peta); peta 3D ikut gelap tanpa dimuat ulang. Pengunjung pertama mendapat tur singkat yang bisa diulang dengan tombol **?**.
 
 ### 🛣️ Kota, Jalan Raya & Tol
 Grid jalan kota dengan lampu lalu lintas, zebra cross, dan garis stop di lajur kiri; Jalan Lingkar; serta **Tol Jagorawi** 4 lajur dengan median beton, guardrail, dan gantry hijau.
@@ -298,6 +301,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Truk mogok + kirim mekanik, jas hujan · v37
 - [x] Jenis jalan dibedakan, mobil belok & putar balik, lampu & penyeberang jalan · v38
 - [x] Istirahat makan bergiliran & kantin pekerja · v39
+- [x] Tema gelap manual & tur perkenalan · v40
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

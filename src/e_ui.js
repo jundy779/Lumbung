@@ -335,7 +335,7 @@ function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s)
 const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
 function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
   cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
-  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  let mx=0; for(const v of g.g) if(v>mx) mx=v; const dark=isDark();
   c.fillStyle=dark?'#222A52':'#F4F6FD'; c.fillRect(0,0,W,Hh);
   for(let r=0;r<g.rows;r++) for(let q=0;q<g.cols;q++){ const v=g.g[r*g.cols+q]; if(v<=mx*0.02||!mx) continue; const t=Math.sqrt(v/mx), k=Math.min(HEAT_RAMP.length-1,Math.floor(t*HEAT_RAMP.length)); c.fillStyle=dark?HEAT_RAMP[HEAT_RAMP.length-1-k]:HEAT_RAMP[k];   /* mode gelap: jarang = dekat latar, padat = terang */ c.fillRect(q*cs+0.5,r*cs+0.5,cs-1,cs-1); }
   const X=x=>(x-g.x0)*cs, Z=z=>(z-g.z0)*cs; c.strokeStyle=dark?'#AEB6DA':'#56608A'; c.lineWidth=1.2; c.setLineDash([]);
@@ -350,8 +350,10 @@ const phaseOf=h=>h<5.5?'Malam':h<10.5?'Pagi':h<14.5?'Siang':h<18.3?'Sore':h<19.3
 function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
   $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
-    <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+    <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div>
+    <h4>Tema</h4><div class="seg seg3">${[['auto','Ikuti sistem'],['light','Terang'],['dark','Gelap']].map(([k,l])=>`<button data-themepick="${k}" aria-pressed="${THEME.pref===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
     <button class="cleanrow seedrow" data-photo="1"><span><b>Mode foto</b><small>Sembunyikan panel, atur kamera, lalu simpan gambar PNG (P)</small></span></button>
+    <button class="cleanrow seedrow" data-tour="1"><span><b>Tur perkenalan</b><small>Kenali bagian-bagian layar dalam 1 menit (?)</small></span></button>
     <button class="cleanrow seedrow" data-copyseed="1"><span><b>Seed simulasi ${SEED}</b><small>${SEEDED?'Dipakai dari tautan':'Acak'} · salin tautan untuk mengulang kondisi awal</small></span></button>
     <h4>Waktu</h4><div class="seg">${Object.entries(TIME_MODES).map(([k,m])=>`<button data-time="${k}" aria-pressed="${c.mode===k}">${k==='live'?'● ':''}${m.label.replace(' (WIB)','')}</button>`).join('')}</div>
     <h4>Cuaca</h4><div class="wxg">${WX_ORDER.map(k=>`<button data-wx="${k}" aria-pressed="${w.condition===k}"><b>${WEATHER[k].icon}</b>${WEATHER[k].label}</button>`).join('')}</div>
@@ -381,6 +383,8 @@ $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.targe
   if(b.dataset.clean){ setClean(!CLEAN); renderEnvMenu(); return; }
   if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
   if(b.dataset.photo){ $('#envMenu').hidden=true; startPhoto(); return; }
+  if(b.dataset.themepick){ applyTheme(b.dataset.themepick); renderEnvMenu(); return; }
+  if(b.dataset.tour){ $('#envMenu').hidden=true; startTour(); return; }
   if(b.dataset.copyseed){ const u=new URL(location.href); u.searchParams.set('seed',String(SEED)); const done=()=>showToast(`Tautan seed ${SEED} disalin`,'#16A34A');
     try{ navigator.clipboard.writeText(u.toString()).then(done,()=>showToast(u.toString(),'#2E5BFF')); }catch(_){ showToast(u.toString(),'#2E5BFF'); } return; }
   if(b.dataset.time) setTimeMode(b.dataset.time); if(b.dataset.wx) setWeather(b.dataset.wx); renderEnvMenu(); refreshUI(true); });
@@ -980,7 +984,62 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg); });
+/* ---------- v40: tema terang / gelap / ikuti sistem ---------- */
+function applyTheme(pref,save=true){ THEME.pref=pref; const r=document.documentElement; if(pref==='auto') delete r.dataset.theme; else r.dataset.theme=pref;
+  if(save) try{ localStorage.setItem('lumbung.theme',pref); }catch(_){}
+  const dk=isDark(); THEME_U.want=dk?1:0; for(const t of THEMED) t.m.color.copy(C(cssVar(t.v)));
+  const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg);
+  const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.content=dk?'#10162E':'#2E5BFF';
+  const tb=$('#themeBtn'); if(tb){ tb.setAttribute('aria-pressed',dk); tb.title=dk?'Tema gelap aktif · klik untuk terang':'Tema terang aktif · klik untuk gelap'; }
+  refreshUI(true); }
+MQ_DARK.addEventListener('change',()=>{ if(THEME.pref==='auto') applyTheme('auto',false); });
+$('#themeBtn').onclick=()=>{ applyTheme(isDark()?'light':'dark'); if(!$('#envMenu').hidden) renderEnvMenu(); showToast(isDark()?'Tema gelap aktif':'Tema terang aktif','#2E5BFF'); };
+THEME_U.uDark.value=THEME_U.want=isDark()?1:0; applyTheme(THEME.pref,false);
+
+/* ---------- v40: tur perkenalan ---------- */
+const TOUR_STEPS=[
+  {title:'Selamat datang di Lumbung',body:'Pusat kendali lima gudang dan dua toko dalam satu peta 3D. Truk datang lewat tol, forklift bongkar-muat, pekerja bergantian shift, semuanya bergerak sendiri. Tur ini kira-kira satu menit.'},
+  {title:'Peta 3D',body:'Seret untuk menggeser, gulir atau cubit untuk zoom. Klik truk, forklift, palet, dock, atau pekerja untuk melihat detailnya.',hint:'map'},
+  {t:['.sitewrap'],title:'Pilih gudang',body:'Pindah antar gudang dari sini. Tombol panah di sebelahnya langsung ke gudang berikutnya, dan kamera terbang ke lokasinya.'},
+  {t:['.kpis'],title:'Angka utama',body:'Stok, truk di lokasi, dan ketepatan waktu untuk gudang yang sedang dipilih, lengkap dengan tren singkatnya.'},
+  {t:['#detail'],title:'Panel detail',body:'Isinya mengikuti apa yang dipilih: gudang, truk, forklift, palet, atau pekerja. Truk yang sedang dimuat bisa diarahkan ke toko atau gudang lain dari sini.'},
+  {t:['#ops','#opsToggle'],title:'Operasi',body:'Daftar dock, forklift, dan truk beserta statusnya. Klik satu baris untuk langsung fokus ke objeknya.'},
+  {t:['.mapctl'],title:'Kontrol peta',body:'Zoom, putar kamera, tampilan bersih, mode sinematik, cuaca, suara, tema, dan putar ulang 10 menit terakhir.'},
+  {t:['#bell'],title:'Peringatan',body:'Truk tertahan, stok menipis, baterai forklift lemah, atau truk mogok muncul di sini, lengkap dengan tombol tindakan.'},
+  {t:['#wxBtn','#stormBtn'],title:'Waktu, cuaca & tema',body:'Ubah jam dan cuaca untuk melihat dampaknya ke operasi, pilih tema terang atau gelap, buka mode foto, atau ulangi tur ini.'},
+  {t:['.search'],title:'Cari apa saja',body:'Tekan / lalu ketik nomor truk, palet, pengiriman, atau nama pekerja.',bodyM:'Ketuk kaca pembesar lalu ketik nomor truk, palet, pengiriman, atau nama pekerja.'},
+  {title:'Siap memantau',body:'Tur bisa diulang kapan saja dari menu Waktu & cuaca atau dengan tombol ?. Selamat bekerja, semoga truknya tidak ada yang mogok.'}];
+const TOUR={on:false,i:0,steps:[],el:null,raf:0};
+const tourVis=sel=>{ const e=document.querySelector(sel); if(!e) return null; const r=e.getBoundingClientRect(), cs=getComputedStyle(e); return r.width>4&&r.height>4&&cs.display!=='none'&&cs.visibility!=='hidden'?e:null; };
+function startTour(){ if(TOUR.on||RP.on||PHOTO.on) return; stopCine(); closeMenus(); $('#envMenu').hidden=true;
+  TOUR.steps=TOUR_STEPS.filter(st=>!st.t||st.t.some(tourVis)); TOUR.on=true; TOUR.i=0; document.body.classList.add('touring');
+  const el=document.createElement('div'); el.id='tour'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-labelledby','tourT');
+  el.innerHTML='<div class="tspot none"></div><div class="tcard"><small id="tourN"></small><h3 id="tourT"></h3><p id="tourB"></p><div class="tmap" aria-hidden="true"><span>Seret</span><span>Gulir / cubit</span><span>Klik objek</span></div><div class="tnav"><button class="tskip">Lewati</button><span></span><button class="tprev">Kembali</button><button class="tnext pri">Lanjut</button></div></div>';
+  document.body.appendChild(el); TOUR.el=el;
+  el.querySelector('.tskip').onclick=()=>endTour(); el.querySelector('.tprev').onclick=()=>tourGo(TOUR.i-1); el.querySelector('.tnext').onclick=()=>tourGo(TOUR.i+1);
+  tourGo(0); const loop=()=>{ if(!TOUR.on) return; tourPlace(); TOUR.raf=requestAnimationFrame(loop); }; loop(); }
+function tourGo(i){ if(i>=TOUR.steps.length) return endTour(); TOUR.i=Math.max(0,i); const st=TOUR.steps[TOUR.i], el=TOUR.el, n=TOUR.steps.length;
+  if(st.t&&st.t[0]==='#detail'&&!sel) refreshUI(true);
+  el.querySelector('#tourN').textContent=`${TOUR.i+1} dari ${n}`; el.querySelector('#tourT').textContent=st.title; el.querySelector('#tourB').textContent=(phoneUI()&&st.bodyM)||st.body;
+  el.querySelector('.tmap').hidden=st.hint!=='map'; el.querySelector('.tprev').hidden=TOUR.i===0;
+  const nx=el.querySelector('.tnext'); nx.textContent=TOUR.i===n-1?'Selesai':TOUR.i===0?'Mulai tur':'Lanjut'; el.querySelector('.tskip').hidden=TOUR.i===n-1;
+  TOUR.target=st.t?st.t.map(tourVis).find(Boolean):null; el.classList.toggle('center',!TOUR.target); tourPlace(true); nx.focus({preventScroll:true}); }
+function tourPlace(){ const el=TOUR.el; if(!el) return; const sp=el.querySelector('.tspot'), cd=el.querySelector('.tcard'), vw=innerWidth, vh=innerHeight, G=16, cw=cd.offsetWidth, ch=cd.offsetHeight;
+  const t=TOUR.target; if(!t||!t.isConnected){ sp.classList.add('none'); cd.style.left=Math.round((vw-cw)/2)+'px'; cd.style.top=Math.round(Math.max(G,(vh-ch)/2))+'px'; return; }
+  const r=t.getBoundingClientRect(), pad=6, x=r.left-pad, y=r.top-pad, w=r.width+pad*2, h=Math.min(r.height+pad*2,vh-y-G);
+  sp.classList.remove('none'); Object.assign(sp.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+  /* kartu: di bawah target bila cukup ruang, lalu di atas, lalu di samping (kiri/kanan), selalu di dalam layar */
+  let L,T; if(y+h+12+ch<=vh-G){ T=y+h+12; L=x+w/2-cw/2; } else if(y-12-ch>=G){ T=y-12-ch; L=x+w/2-cw/2; }
+  else if(x-12-cw>=G){ L=x-12-cw; T=y+h/2-ch/2; } else { L=x+w+12; T=y+h/2-ch/2; }
+  cd.style.left=Math.round(clamp(L,G,vw-cw-G))+'px'; cd.style.top=Math.round(clamp(T,G,vh-ch-G))+'px'; }
+function endTour(){ if(!TOUR.on) return; TOUR.on=false; cancelAnimationFrame(TOUR.raf); document.body.classList.remove('touring'); TOUR.el&&TOUR.el.remove(); TOUR.el=null;
+  try{ localStorage.setItem('lumbung.tour','1'); }catch(_){} }
+addEventListener('keydown',e=>{ const ae=document.activeElement;
+  if(TOUR.on){ e.stopImmediatePropagation(); if(e.key==='Escape'){ e.preventDefault(); endTour(); } else if(e.key==='ArrowRight'){ e.preventDefault(); tourGo(TOUR.i+1); } else if(e.key==='ArrowLeft'){ e.preventDefault(); tourGo(TOUR.i-1); }
+    else if(e.key==='Tab'){ const bs=[...TOUR.el.querySelectorAll('button')].filter(b=>!b.hidden); const k=bs.indexOf(ae); e.preventDefault(); bs[(k+(e.shiftKey?-1:1)+bs.length)%bs.length].focus(); } return; }
+  if(e.key==='?'&&ae!==q&&!(ae&&/INPUT|TEXTAREA/.test(ae.tagName))){ e.preventDefault(); startTour(); } },true); /* capture: selama tur, pintasan lain (P, M, /) tidak ikut jalan */
+/* pengunjung pertama: tur dibuka otomatis setelah dunia siap (tidak saat uji mandiri, putar ulang, atau mode foto) */
+{ let seen=false; try{ seen=localStorage.getItem('lumbung.tour')==='1'; }catch(_){} if(!seen&&!QS.has('selftest')&&!QS.has('notour')) setTimeout(()=>{ if(!TOUR.on&&!PHOTO.on&&!RP.on&&!cine.on) startTour(); },1400); }
 })();
 </script>
 </body>

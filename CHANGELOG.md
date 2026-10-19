@@ -1,5 +1,13 @@
 # Changelog
 
+## v40 · 20 Okt 2026
+- **Tema gelap manual**: pilih **Ikuti sistem**, **Terang**, atau **Gelap** di menu Waktu & cuaca, atau pakai tombol bulan di kontrol peta untuk ganti cepat. Pilihan disimpan di browser dan dipasang sebelum halaman tampil, jadi tidak ada kedipan terang saat dibuka.
+- Scene 3D ikut gelap: tanah halaman, apron, dinding, platform dock, dan trailer berubah ke biru tua sesuai terangnya, sementara atap, rompi, palet, lampu, dan marka jalan tetap jelas. Pergantian tema dianimasikan halus tanpa memuat ulang peta, dan tetap menyatu dengan siklus siang-malam.
+- Semua warna yang dulu terkunci terang kini punya versi gelap: layar pembuka, bilah shift, kartu peringatan dan toast, chip mogok, ikon panel, grafik KPI, peta panas, dan sakelar menu. Bilah alamat di ponsel ikut berganti warna.
+- **Tur perkenalan**: pengunjung pertama disambut tur singkat (10 sampai 11 langkah) yang menyorot pilihan gudang, angka utama, panel detail, operasi, kontrol peta, peringatan, menu waktu & cuaca, dan pencarian. Langkah yang elemennya tidak tampil (misalnya panel detail di ponsel) otomatis dilewati. Navigasi dengan tombol atau keyboard (panah, Enter, Esc), dan bisa diulang dari menu Waktu & cuaca atau tombol **?**.
+- Perbaikan: area gulir panel detail kadang tergambar sebagai kotak hitam di bawah panel, terutama di mode gelap atau setelah ganti tema.
+- Simulasi tidak berubah (sidik jari sama dengan v39).
+
 ## v39 · 19 Okt 2026
 - **Istirahat makan & kantin**: setiap gudang punya kantin beratap di belakang sisi timur gedung, lengkap dengan meja saji, dapur kecil, papan menu, dua meja panjang berbangku, galon, wastafel, dan petugas kantin yang melayani. Jalur pejalan kaki bermarka menghubungkan area kerja ke kantin.
 - Shift pagi makan siang pukul 12.00 sampai 13.00, shift malam makan malam pukul 00.00 sampai 01.00. Pekerja dibagi dua gelombang 30 menit (operator gudang pertama dan petugas QC di gelombang 1, operator gudang kedua di gelombang 2), jadi area kerja tidak pernah kosong. Mereka berjalan ke kantin, mengambil makanan di meja saji, duduk makan sambil mengobrol, lalu kembali ke pos. Satpam, petugas gerbang, dan pengawas dock tetap berjaga.
