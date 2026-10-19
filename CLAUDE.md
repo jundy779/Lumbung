@@ -1,10 +1,19 @@
-# CLAUDE.md · Peta Teknis Lumbung v33.1
+# CLAUDE.md · Peta Teknis Lumbung v34
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v34 (19 Okt 2026), lampu sinyal kendaraan**:
+- Semua di `d_part2.js` setelah `updateVehicleLights`, **hanya lapis View** (membaca Store, tidak menulis), jadi sidik jari simulasi tetap sama (`cfcd7f0c` untuk `2 7 siang`).
+- `LAMP_ST` (Map record kendaraan → `{pv,bT,ph,turn,turnT,brake,rev,hazard,blinkOn,truck}`) diisi `updateSignalLamps(dt,now)` yang dipanggil di `updateWeather` tepat sebelum `updateVehicleLights(L)`.
+- Rem: perlambatan > 0,9 m/s² (ditahan 0,35 dtk) atau diam (< 0,25 m/s) di status `LAMP_HOLD` (jalan, gerbang, area tunggu). Tidak menyala saat `prep`/`docked`. Mobil: perlambatan atau v < 0,3.
+- Mundur: `t.rev` atau status `reverse`/`store_reverse`.
+- Sein: `turnAhead(t)` mengambil sampel tangen jalur `t.path` 2..(8+2v, 10–22) m di depan; |Δheading| > 0,38 rad → arah. Konvensi: heading = `atan2(tx,tz)`, Δ>0 = belok kiri = sisi lokal +x (lalu lintas lajur kiri, kabin kanan). `P.ci` dikembalikan setelah sampling. Ditahan 0,6 dtk. Hazard bila `t.stuck > 25`. Kedip 0,75 dtk dengan fase per ID (`strHash`).
+- Visual: `LAMPS` (InstPool kotak `MeshBasicMaterial` + instanceColor, 1 draw call, `TRUCK_LAMPS` 10 lensa per truk termasuk sein samping kabin, `CAR_LAMPS` 2 per mobil, hanya yang menyala yang diisi) + `HALO` (Sprites normal-blend, pendar kecil untuk lampu truk yang menyala). Malam: `updateVehicleLights` membaca `LAMP_ST` untuk lampu belakang redup/terang, sprite sein oranye dan mundur putih; kapasitas `VLIGHT` = truk×9 + (mobil+forklift)×4.
+- Motor kurir (`View.motos`) tidak diberi lampu rem.
 
 **Perubahan v33.1 (19 Okt 2026)**:
 - `exitRoom` (c_sim.js, lalu lintas mobil): jumlah mobil di depan `m` kini menghitung semua mobil aktif di depan yang posisinya sebelum `stopAt` (sebelumnya hanya yang sudah lewat `pOut-6`, sehingga mobil yang masih di dalam persimpangan terlewat), dan jarak per mobil 6,5 m (6,2 jarak ikut + 0,3 sisa rem). Ini menutup kasus mobil berhenti di zebra persimpangan `-2_-1` saat antre masuk Jalan Lingkar (lajur 7, x=-250).
@@ -543,7 +552,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 ### 16.2 Ide yang pernah diusulkan, belum dipilih
 - Bisnis: garis waktu & putar ulang kejadian (butuh B: seed + log event yang lengkap), laporan & ekspor PDF/Excel, analitik dock.
 - UX: tombol mode gelap manual (token CSS sudah ada, tapi warna hardcode perlu dibereskan dulu, lihat temuan #12), tur perkenalan, pintasan keyboard lengkap, versi bahasa Inggris (semua teks sekarang hardcode di template).
-- Suasana: lampu sein, rem, mundur (sudah ada `VLIGHT` untuk lampu depan/belakang, tinggal ditambah status), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
+- Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
 - Kehidupan: pekerja datang naik motor, istirahat siang, jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).
 - Sinematik: shot bercerita mengikuti satu truk dari gerbang sampai dock, mode foto untuk materi promosi.
 

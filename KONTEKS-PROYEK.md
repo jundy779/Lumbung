@@ -302,6 +302,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v34):** lampu sinyal kendaraan di lapis tampilan (`updateSignalLamps`, `LAMP_ST`, `turnAhead`, `TRUCK_LAMPS`, `CAR_LAMPS` di d_part2.js): rem, mundur, sein, hazard truk + rem mobil; tanpa perubahan simulasi.
+
 **Selesai (v33.1):** aturan "jangan menutup persimpangan" untuk mobil menghitung semua mobil di depan termasuk yang masih di dalam persimpangan (`exitRoom`, jarak antre 6,5 m), staging 15 slot per gudang (baris A 5, baris B 10).
 
 **Selesai (v33):** pengiriman antar-gudang (`t.xfer`, state `transfer`, `siteTripPath`, `rehome` + `flushMoves` saat truk pindah pool, kembali ke pool asal `homeId`), alihkan truk di tol ke gudang lain (`redirectIncoming`), pindah bay (`changeBay`/`retargetLane`), serah bay di palang ke truk antrean terdepan, operator uji di selftest, pemeriksa `wrongSite` dan `jump`.
@@ -318,7 +320,7 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 **Belum dikerjakan (urutan disarankan):**
 
-1. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, lampu sein/rem/mundur, Gunung Salak, KRL, suara ambien, bloom, mode foto.
+1. Ide lain: garis waktu & putar ulang, laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, Gunung Salak, KRL, suara ambien, bloom, mode foto.
 2. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
 **Batasan yang diketahui:** data masih simulasi; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).

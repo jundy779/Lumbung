@@ -1,5 +1,12 @@
 # Changelog
 
+## v34 · 19 Okt 2026
+- **Lampu sinyal truk**: lampu rem menyala merah terang saat truk mengerem, antre, atau berhenti di palang dan area tunggu; lampu mundur putih menyala selama truk mundur ke dock; lampu sein oranye berkedip di depan, belakang, dan samping kabin sebelum truk berbelok (termasuk saat masuk halaman gudang dan berayun sebelum mundur), lalu padam ±0,6 detik setelah belokan selesai.
+- Truk yang tertahan lebih dari 25 detik menyalakan **lampu hazard** (kedua sein berkedip).
+- **Lampu rem mobil**: mobil lalu lintas kota menyalakan lampu rem saat melambat dan saat antre di lampu merah.
+- Siang hari lampu tampil sebagai lensa terang dengan pendar kecil; malam hari lampu belakang redup saat berjalan dan terang saat mengerem, plus cahaya sein dan lampu mundur.
+- Arah sein dibaca dari jalur truk 10–22 m di depan, jadi kiri/kanan selalu sesuai belokan yang akan diambil. Semua dihitung di lapis tampilan, sehingga simulasi, uji keselamatan, dan sidik jari seed tidak berubah.
+
 ## v33.1 · 19 Okt 2026
 - **Antrean mobil tidak lagi meluber ke zebra cross.** Aturan "jangan menutup persimpangan" sebelumnya hanya menghitung mobil yang sudah keluar persimpangan, sehingga mobil yang masih melintas di dalam persimpangan tidak ikut dihitung. Saat lampu masuk Jalan Lingkar merah, mobil terakhir bisa ikut masuk lalu berhenti dengan badan di atas zebra. Sekarang semua mobil di depan ikut dihitung, dengan jarak antre nyata 6,5 m. Kasus `20 13 pagi` dan `20 14 sore` kini lulus.
 - **Staging gudang 50% lebih lega**: baris B diperpanjang ke barat sayap platform dari 5 jadi 10 slot, sehingga tiap gudang kini punya 15 slot (sebelumnya 10). Baris A tetap 5 slot karena berbagi lantai dengan charger forklift. Dalam uji 15 menit, waktu ketika gudang "staging penuh" (sisa < 4 slot) turun dari 76% jadi 18%, jadi pengiriman antar-gudang dan truk bongkar lebih jarang tertolak.

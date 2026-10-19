@@ -3199,7 +3199,8 @@ function initWeatherFX(){
   const pg=new THREE.CircleGeometry(4.2,20); pg.rotateX(-Math.PI/2);
   POOLS_L=new THREE.InstancedMesh(pg,new THREE.MeshBasicMaterial({map:lightTex,color:C(0xFFC46B),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}),View.lampPts.length);
   View.lampPts.forEach((p,i)=>POOLS_L.setMatrixAt(i,new THREE.Matrix4().makeTranslation(p[0],0.07,p[2]))); POOLS_L.frustumCulled=false; POOLS_L.visible=false; POOLS_L.renderOrder=2; scene.add(POOLS_L);
-  VLIGHT=new Sprites((Store.tables.trucks.size+Store.tables.cars.size+Store.tables.forklifts.size)*4,1.0,0xFFFFFF,{colors:true,order:7});
+  VLIGHT=new Sprites(Store.tables.trucks.size*9+(Store.tables.cars.size+Store.tables.forklifts.size)*4,1.0,0xFFFFFF,{colors:true,order:7});
+  initSignalLamps();
   const bg=new THREE.PlaneGeometry(3.4,9); bg.rotateX(-Math.PI/2); bg.translate(0,0,4.5);
   BEAMS=new THREE.InstancedMesh(bg,new THREE.MeshBasicMaterial({map:beamTex,color:C(0xFFF0C8),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}),Store.tables.trucks.size+Store.tables.cars.size);
   BEAMS.frustumCulled=false; BEAMS.visible=false; BEAMS.renderOrder=3; scene.add(BEAMS);
@@ -3237,7 +3238,7 @@ function updateWeather(dt,now){
   for(const nm of View.nightMats) nm.m.emissiveIntensity=nm.max*E.n;
   const lon=L>0.05; LAMPG.m.visible=POOLS_L.visible=lon&&!CLEAN; View.dockGlow.m.visible=lon; LAMPG.m.material.opacity=0.9*L; POOLS_L.material.opacity=0.34*L; View.dockGlow.m.material.opacity=0.75*L;
   if(lon){ LAMPG.update(LAMPG.n); View.dockGlow.update(View.dockGlow.n); }
-  updateVehicleLights(L);
+  updateSignalLamps(dt,now); updateVehicleLights(L);
   /* hujan */
   const rainAmt=Store.weather.condition==='rain'?1:storm?1.6:0; ENV.rain=(ENV.rain||0)+(rainAmt-(ENV.rain||0))*k;
   const R=RAIN; R.m.visible=ENV.rain>0.02;
@@ -3258,16 +3259,72 @@ function updateVehicleLights(L){
   const on=L>0.05; VLIGHT.m.visible=BEAMS.visible=on; if(!on) return;
   let n=0, b=0;
   const put=(x,y,z,r,g,bl)=>{ VLIGHT.set(n,x,y,z); VLIGHT.color(n,r,g,bl); n++; };
-  const veh=(x,z,h,fy,fz,fx,ry,rz,rx,beam)=>{ const s=Math.sin(h), c=Math.cos(h), at=(lx,lz,y,r,g,bl)=>put(x+lx*c+lz*s,y,z-lx*s+lz*c,r,g,bl);
-    at(fx,fz,fy,1,0.95,0.8); at(-fx,fz,fy,1,0.95,0.8); at(rx,rz,ry,1,0.15,0.12); at(-rx,rz,ry,1,0.15,0.12);
-    if(beam){ _ve.set(0,h,0); _vq.setFromEuler(_ve); _vm.compose(_vv.set(x+fz*s,0.06,z+fz*c),_vq,_vs); BEAMS.setMatrixAt(b++,_vm); } };
-  for(const t of Store.tables.trucks.values()){ if(t.state==='away'||t.presence<0.5) continue; const s=t.site; veh(t.pos.x+s.ox,t.pos.z+s.oz,t.heading,1.0,3.4,0.68,0.82,-3.26,0.82,t.state!=='docked'&&t.state!=='store_docked'&&t.state!=='parked'); }
-  if(!CLEAN) for(const c of Store.tables.cars.values()){ if(!c.active||c.presence<0.3) continue; veh(c.x,c.z,c.heading,0.7,1.97,0.55,0.72,-1.97,0.6,true); }
+  /* lampu belakang: redup saat jalan biasa, terang saat mengerem (v34) */
+  const veh=(x,z,h,fy,fz,fx,ry,rz,rx,beam,ls)=>{ const s=Math.sin(h), c=Math.cos(h), at=(lx,lz,y,r,g,bl)=>put(x+lx*c+lz*s,y,z-lx*s+lz*c,r,g,bl), tb=ls&&ls.brake?1:0.5;
+    at(fx,fz,fy,1,0.95,0.8); at(-fx,fz,fy,1,0.95,0.8); at(rx,rz,ry,tb,0.15*tb,0.12*tb); at(-rx,rz,ry,tb,0.15*tb,0.12*tb);
+    if(beam){ _ve.set(0,h,0); _vq.setFromEuler(_ve); _vm.compose(_vv.set(x+fz*s,0.06,z+fz*c),_vq,_vs); BEAMS.setMatrixAt(b++,_vm); }
+    if(!ls||!ls.truck) return;
+    /* sein / hazard (oranye berkedip) dan lampu mundur (putih) */
+    if(ls.blinkOn){ for(const sd of [1,-1]) if(ls.turn===sd||ls.hazard){ at(sd*0.92,3.45,1.0,1,0.62,0.08); at(sd*0.965,-3.28,0.82,1,0.62,0.08); } }
+    if(ls.rev){ at(0.6,-3.3,0.82,0.95,0.97,1); at(-0.6,-3.3,0.82,0.95,0.97,1); } };
+  for(const t of Store.tables.trucks.values()){ if(t.state==='away'||t.presence<0.5) continue; const s=t.site; veh(t.pos.x+s.ox,t.pos.z+s.oz,t.heading,1.0,3.4,0.68,0.82,-3.26,0.82,t.state!=='docked'&&t.state!=='store_docked'&&t.state!=='parked',LAMP_ST.get(t)); }
+  if(!CLEAN) for(const c of Store.tables.cars.values()){ if(!c.active||c.presence<0.3) continue; veh(c.x,c.z,c.heading,0.7,1.97,0.55,0.72,-1.97,0.6,true,LAMP_ST.get(c)); }
   for(const f of Store.tables.forklifts.values()){ const s=Store.get('sites',f.siteId)||Store.get('stores',f.siteId); if(!s) continue; const x=f.pos.x+s.ox, z=f.pos.z+s.oz, h=f.heading, sn=Math.sin(h), cs=Math.cos(h);
     put(x+0.3*cs+0.6*sn,0.75,z-0.3*sn+0.6*cs,1,0.95,0.8); put(x-0.3*cs+0.6*sn,0.75,z+0.3*sn+0.6*cs,1,0.95,0.8); }
   VLIGHT.update(n); VLIGHT.m.material.opacity=Math.min(1,0.45+L);
   for(let i=b;i<BEAMS.count;i++) BEAMS.setMatrixAt(i,_hide); BEAMS.instanceMatrix.needsUpdate=true; BEAMS.material.opacity=0.22*L;
 }
+/* ---------- v34: lampu sinyal kendaraan ----------
+   Rem (merah terang), mundur (putih), sein & hazard (oranye berkedip) untuk truk, plus lampu rem mobil.
+   Semua dihitung di View dari keadaan Store (kecepatan, status, jalur di depan), jadi simulasi dan sidik jarinya tidak berubah.
+   Siang: kotak lampu tanpa pencahayaan (MeshBasic) menutup lensa di model. Malam: sprite cahaya di updateVehicleLights. */
+const LAMP_ST=new Map(), LAMP_HOLD=['inbound','toll_in','approach','depart','toll_out','highway','to_store','leave','transfer','gate','yard_wait'];
+const LAMP_REV=['reverse','store_reverse'];
+const LAMP_COL={brake:'#FF2B2B',rev:'#FFFFFF',turn:'#FFA412'};
+/* posisi lensa lokal truk: [lx, y, lz, lebar, tinggi, tebal, jenis]; lampu sein samping di kabin supaya kedipan terlihat dari kamera isometrik */
+const TRUCK_LAMPS=[[0.8,0.83,-3.27,0.3,0.2,0.04,'brake'],[-0.8,0.83,-3.27,0.3,0.2,0.04,'brake'],[0.56,0.83,-3.27,0.18,0.2,0.04,'rev'],[-0.56,0.83,-3.27,0.18,0.2,0.04,'rev'],
+  [0.97,0.83,-3.27,0.06,0.2,0.04,'turnL'],[-0.97,0.83,-3.27,0.06,0.2,0.04,'turnR'],[0.92,1.0,3.44,0.2,0.2,0.04,'turnL'],[-0.92,1.0,3.44,0.2,0.2,0.04,'turnR'],
+  [1.02,1.25,2.2,0.04,0.12,0.3,'turnL'],[-1.02,1.25,2.2,0.04,0.12,0.3,'turnR']];
+const CAR_LAMPS=[[0.6,0.72,-1.975,0.34,0.14,0.04,'brake'],[-0.6,0.72,-1.975,0.34,0.14,0.04,'brake']];
+let LAMPS=null, HALO=null;
+function initSignalLamps(){
+  const n=Store.tables.trucks.size*TRUCK_LAMPS.length+Store.tables.cars.size*CAR_LAMPS.length;
+  LAMPS=new InstPool(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xFFFFFF}),n,{color:true,cast:false,receive:false});
+  /* pendar kecil di sekitar lampu yang menyala (siang & malam), hanya untuk truk */
+  HALO=new Sprites(Store.tables.trucks.size*6,1.0,0xFFFFFF,{additive:false,colors:true,order:8}); }
+const _lm=new THREE.Matrix4(), _lq=new THREE.Quaternion(), _le=new THREE.Euler(), _lv=new THREE.Vector3(), _ls=new THREE.Vector3();
+const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a));
+/* arah belok dari jalur di depan: 1 = kiri (+x lokal), -1 = kanan, 0 = lurus. Indeks cache jalur (P.ci) dikembalikan supaya simulasi tidak terganggu */
+function turnAhead(t){ const P=t.path; if(!P||t.rev||P.len-t.s<2) return 0; const ci=P.ci;
+  const p0=samplePath(P,t.s), h0=Math.atan2(p0.tx,p0.tz), look=clamp(8+t.v*2,10,22); let best=0;
+  for(let d=2;d<=look;d+=1.5){ if(t.s+d>P.len) break; const p=samplePath(P,t.s+d), dh=wrapA(Math.atan2(p.tx,p.tz)-h0); if(Math.abs(dh)>Math.abs(best)) best=dh; }
+  P.ci=ci; return Math.abs(best)>0.38?Math.sign(best):0; }
+function lampState(k,v,dt,now,id){ let L=LAMP_ST.get(k); if(!L){ L={pv:v,bT:0,ph:(strHash(id)%1000)/1000*0.75,turn:0,turnT:0}; LAMP_ST.set(k,L); }
+  const dec=(L.pv-v)/Math.max(dt,1e-3); L.pv=v; if(dec>0.9) L.bT=0.35; else L.bT=Math.max(0,L.bT-dt); return L; }
+function updateSignalLamps(dt,now){ if(!LAMPS) return; let n=0, nh=0, halo=0; const tsec=now/1000;
+  const put=(x,z,h,y0,spec,col)=>{ const s=Math.sin(h), c=Math.cos(h), [lx,ly,lz,w,hh,dd]=spec;
+    _le.set(0,h,0); _lq.setFromEuler(_le); _lm.compose(_lv.set(x+lx*c+lz*s,y0+ly,z-lx*s+lz*c),_lq,_ls.set(w,hh,dd)); LAMPS.set(n,_lm); LAMPS.color(n,col); n++;
+    if(halo&&nh<HALO.n){ HALO.set(nh,_lv.x,_lv.y,_lv.z,halo); const k=col===LAMP_COL.brake?[1,0.2,0.16]:col===LAMP_COL.rev?[1,1,1]:[1,0.62,0.1]; HALO.color(nh,k[0],k[1],k[2]); nh++; } };
+  for(const t of Store.tables.trucks.values()){
+    if(t.state==='away'||t.state==='parked'||t.presence<0.5){ LAMP_ST.delete(t); continue; }
+    const L=lampState(t,t.v,dt,now,t.id); L.truck=true;
+    const hold=LAMP_HOLD.includes(t.state)&&t.v<0.25;
+    L.rev=!!t.rev||LAMP_REV.includes(t.state);
+    L.brake=L.bT>0||hold||(L.rev&&t.v<0.2);
+    /* sein ditahan 0,6 dtk setelah belokan selesai supaya tidak berkedip putus-putus di tikungan halus */
+    const tr=turnAhead(t); if(tr){ L.turn=tr; L.turnT=0.6; } else { L.turnT=Math.max(0,L.turnT-dt); if(!L.turnT) L.turn=0; }
+    L.hazard=(t.stuck||0)>25;
+    L.blinkOn=((tsec+L.ph)%0.75)<0.42;
+    const s=t.site, x=t.pos.x+s.ox, z=t.pos.z+s.oz;
+    for(const sp of TRUCK_LAMPS){ const k=sp[6];
+      const on=k==='brake'?L.brake:k==='rev'?L.rev:L.blinkOn&&(L.hazard||(k==='turnL'?L.turn===1:L.turn===-1));
+      halo=k==='brake'?0.75:k==='rev'?0.7:sp[5]>0.1?0:0.95; if(on) put(x,z,t.heading,GY,sp,k==='brake'?LAMP_COL.brake:k==='rev'?LAMP_COL.rev:LAMP_COL.turn); } }
+  for(const c of Store.tables.cars.values()){
+    if(CLEAN||!c.active||c.presence<0.3||View.motos.has(c.id)){ LAMP_ST.delete(c); continue; }
+    const L=lampState(c,c.v,dt,now,c.id); L.brake=L.bT>0||c.v<0.3;
+    halo=0; if(L.brake) for(const sp of CAR_LAMPS) put(c.x,c.z,c.heading,0.04,sp,LAMP_COL.brake); }
+  HALO.update(nh); HALO.m.visible=nh>0; HALO.m.material.opacity=0.5;
+  for(let i=n;i<LAMPS.n;i++) LAMPS.set(i,_hide); LAMPS.n=Math.max(LAMPS.n,n); LAMPS.mesh.count=LAMPS.n; LAMPS.flush(); }
 function animDust(dt,now,m){
   for(const D of [DUST,HAZE]){ if(!D) continue; const on=m>0.01&&D.base>0; D.pts.visible=on; if(!on) continue;
     D.pts.material.opacity=D.base*m; D.pts.position.set(cam.target.x,0,cam.target.z);

@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v33.1** · oleh PT Fusionify Digital
+**Lumbung v34** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -121,6 +121,7 @@ Aturan keselamatan yang dijaga simulator:
 - Pintu belakang dibuka **di halaman gudang**, tidak di jalan raya.
 - Truk berhenti bila ada sopir atau pekerja di jalurnya.
 - Bay dibagikan sesuai urutan check-in, dan palang hanya dibuka bila truk muat sepenuhnya di area tunggu, jadi antrean tidak meluber ke jalan raya.
+- Truk menyalakan sein sebelum berbelok, lampu rem saat mengerem atau antre, lampu mundur saat mundur ke dock, dan hazard bila tertahan lama. Mobil kota ikut menyalakan lampu rem.
 
 ---
 
