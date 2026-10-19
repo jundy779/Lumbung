@@ -1,5 +1,9 @@
 # Changelog
 
+## v32.2 · 19 Okt 2026
+- KPI atas di HP kini tampil utuh bertiga dalam satu baris (Stok tersedia, Truk di lokasi, Tepat waktu). Sebelumnya deretan KPI harus digeser dan kartu ketiga terpotong dengan efek pudar di tepi kanan yang di mode gelap terlihat seperti bayangan rusak.
+- Di HP ikon kartu dan keterangan kecil disembunyikan supaya angka tetap besar; label "Pengiriman tepat waktu" disingkat jadi "Tepat waktu".
+
 ## v32.1 · 19 Okt 2026
 - **Pencarian di HP diperbaiki**. Sebelumnya kolom pencarian di layar 390 px terpotong jadi satu huruf dan hasilnya berupa dropdown kecil. Sekarang di layar ≤ 820 px kolom pencarian jadi tombol kaca pembesar, dan saat diketuk terbuka layar pencarian penuh: tombol kembali, kolom besar dengan teks 16 px (iOS tidak lagi zoom otomatis), tombol hapus teks, keyboard dengan tombol "Cari", dan daftar hasil yang mudah disentuh (baris ±58 px).
 - Saat kolom masih kosong muncul **Pencarian cepat** (Area tunggu, Check-in gerbang, Memuat, Membongkar, Forklift, Toko, Petugas gerbang) lengkap dengan jumlahnya saat ini, plus daftar lima gudang. Berlaku juga di desktop.
