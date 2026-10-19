@@ -1,10 +1,23 @@
-# CLAUDE.md · Peta Teknis Lumbung v38
+# CLAUDE.md · Peta Teknis Lumbung v39
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v39 (19 Okt 2026), istirahat makan & kantin**:
+- c_sim.js (setelah `walkTo`): `LUNCH={pagi:{h0:12},malam:{h0:0}}`, `lunchNow(h)` → `{key,L,d,wave}` (d = jam sejak mulai, wave 0/1 per 30 mnt), `LUNCH_HOLD` (true selama pemanasan startup di e_ui & harness, karena jam bawaan 12 = jam makan). `canteen(s)`: kantin di `x=W/2+15,6`, `z=-fz-9,5` (lokal), 8 kursi (`seats` {x,z,h,aisle}), `counter`, `staff[2]`, `entry`, `lane=W/2+13,6`; di-cache `s.cant`. `lunchVia(s,p)` jalur dari area kerja ke pintu kantin (QC lewat `x=W/2+7`). Orang dengan `lunchSeat` (operator gudang ×2, QC) di `populateSite`: `lunchWant` → `lunchPlan` (jalan, ambil makanan, duduk `sitchat` dengan aksi `until` sampai gelombangnya lewat dan minimal 15 dtk) → `lunchBack`. `p.lunch={key,phase:'go'|'eat'|'back',t0,via}`, `p.lunchDone`. Bila antrean aksi habis saat `p.lunch` masih ada (mis. serah terima shift memotong), `personStep` memanggil `lunchBack(…,true)`.
+- Pejalan kaki ke/dari kantin hanya antre di belakang orang yang berjalan searah (orang diam dilewati).
+- Forklift: `forkLunch(site,f)` → slot `floor(d·n)` = `restIdx` (satu per gudang, bergiliran, tidak untuk robotic/toko). `decide` memarkir forklift di stasiunnya dan menandai `f.lunch`; `forkStep` melepasnya saat slot berakhir. `findJob` tetap untuk forklift lain. Kasus `away`: truk tanpa bay tidak di-dispatch ke area tunggu selama ada `f.lunch` di site itu (tanpa ini `30 11 siang` gagal `roadQueue` di BGR-01 yang hanya punya 2 forklift).
+- `lunchTick(site)` (dipanggil setelah `shiftTick`) menulis log saat mulai/ganti gelombang/selesai. `PLANS.canteen` = 'Petugas kantin' (seragam putih, topi merah; dikecualikan dari `PROFILE_UNIFORM`).
+- Perbaikan `stepTraffic`: mobil hanya boleh `jRequest` bila mobil di depannya (`lead`) sudah lewat persimpangan atau sedang memegangnya. Sebelumnya lead yang `jDequeue` (mengalah ke zebra) membuat mobil di belakang merebut klaim → saling kunci (terlihat di `13 7 malam` dengan urutan RNG v39).
+- Perbaikan `personStep` (walk): `a.bt` waktu tertahan; >1,5 dtk dan berhadapan dengan pejalan yang juga tertahan → yang `id`-nya lebih besar menyisip aksi jalan 0,9 m ke samping + idle 1,6 dtk; >6 dtk tertahan oleh apa pun → menyingkir juga. Dua operator gudang dulu saling tunggu selamanya di 4 dari 5 gudang (bug sejak v29, tidak tertangkap karena belum ada pemeriksa).
+- `gateTick`: serah bay di palang kini tanpa syarat `!laneRoom`. Truk ber-bay di palang + ada truk `yard_wait` → bay diserahkan ke `gq` terkecil (kegagalan `20 31 siang`: TRK-3104 tertahan di belakang TRK-3357).
+- `xingFree(p,a,b)`: penyeberang mulai hanya bila 2,6 m pertama zebra kosong dari pejalan kaki lain yang tidak sedang menunggu.
+- Pemeriksa baru: `lunch` (>1 forklift istirahat bersamaan > 2 dtk, atau pekerja ke/dari kantin tertahan > 30 dtk), `personStall` (orang di aksi walk dengan v<0,05 > 30 dtk). Metrik `meals`, `forkLunchSec`. `selftestInit({jam})` menerima jam angka (`11.9`), juga di `?selftest&jam=`.
+- View: kantin di `buildSiteView` (sebelum krat di timur): kanopi bergaris, meja saji + makanan, dapur, papan menu, 2 meja + 4 bangku, galon, wastafel, tanaman, jalur bermarka, `View.lampPts`. `makeForklift` punya mesh `empty` (tanpa operator) yang tampil saat `f.lunch`.
+- UI: `lunchInfo(s)` (e_ui, setelah `forkStatus`) untuk baris "Jam makan" di panel gudang; `forkStatus` 'Istirahat'; chip pekerja 'Istirahat'/'Ke/dari kantin'; shot sinematik `kantin<site>`.
 
 **Perubahan v38 (19 Okt 2026), jalan, belokan mobil, penyeberang**:
 - Arah hadap kuadran `h`: 0=+z, 1=+x, 2=−z, 3=−x. Lajur kiri: belok kiri = `h+1`, kanan = `h+3`, putar balik = `h+2`. Sisi zebra: `ENTER_SIDE=['N','W','S','E'][h]`, `EXIT_SIDE=['S','E','N','W'][h]`.
@@ -428,7 +441,7 @@ node tests/headless-sim.mjs 13 7 malam
 node tests/headless-sim.mjs 13 7 cycle
 node tests/headless-sim.mjs 30 11 siang   # ketahanan
 ```
-Regresi lengkap (16 skenario, dipakai sejak v33): `13 7` siang/malam/cycle/pagi/sore, `30 11 siang`, `30 12 malam`, `20 13 pagi`, `20 14 sore`, `20 21 cycle`, `15 3 siang`, `15 5 pagi`, `15 8 sore`, `15 9 malam`, `20 31 siang`, `20 42 cycle`. Semua harus LULUS sebelum push.
+Regresi lengkap (16 skenario, dipakai sejak v33; sejak v39 tambah 4 skenario jam makan `15 7 11.9`, `15 8 12.9`, `15 9 23.9`, `15 10 0.4`): `13 7` siang/malam/cycle/pagi/sore, `30 11 siang`, `30 12 malam`, `20 13 pagi`, `20 14 sore`, `20 21 cycle`, `15 3 siang`, `15 5 pagi`, `15 8 sore`, `15 9 malam`, `20 31 siang`, `20 42 cycle`. Semua harus LULUS sebelum push.
 
 Atau di browser: `index.html?selftest&menit=13&jam=malam&seed=7`. Untuk menyelidiki kegagalan, ulangi seed yang sama: hasilnya identik. Menambah invariant baru: tambahkan label di `SAFETY_LABELS` dan pemeriksaannya di `check()` dalam `makeSafetyChecker`.
 

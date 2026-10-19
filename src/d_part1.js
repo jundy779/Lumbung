@@ -277,6 +277,8 @@ function makeForklift(profile='general'){
   forkParts(P,0,0,0,false,L[0]);
   const day=P.build(.5); gloss(day.material,0.34,0.7); g.add(day);
   const PN=new Parts(); forkParts(PN,0,0,0,false,{...L[1],skin:0xD9A57B}); const night=PN.build(.5); night.material=day.material; night.visible=false; g.add(night);
+  /* v39: kabin kosong saat operator istirahat makan (AGV tidak punya operator) */
+  let empty=null; if(profile!=='robotic'){ const PE=new Parts(); forkParts(PE,0,0,0,false,{...L[0],driver:false}); empty=PE.build(.5); empty.material=day.material; empty.visible=false; g.add(empty); }
   const beacon=new THREE.Mesh(gSph(0.075,10),new THREE.MeshStandardMaterial({color:C(0xFF9F1A),emissive:C(0xFF8A00),emissiveIntensity:0.4,roughness:.3})); beacon.position.set(0.3,2.27,-0.6); if(profile==='robotic') beacon.position.set(0,1.72,-0.38); g.add(beacon);
   const car=new THREE.Group(); g.add(car);
   const CP=new Parts(); CP.box(0.7,0.36,0.06,0.03,K,0,0.26,0.74); CP.box(0.7,0.05,0.05,0.02,K,0,0.44,0.74);
@@ -286,7 +288,7 @@ function makeForklift(profile='general'){
   const a1=makeAxle(0.42,0.22,0.2,wm); a1.position.set(0,0.22,0.36); g.add(a1);
   const rs=new THREE.Group(); rs.position.set(0,0.22,-0.56); g.add(rs); const a2=makeAxle(0.42,0.2,0.18,wm); rs.add(a2);
   blob(g,1.7,2.5,0,0.1,0.85);
-  return {g,car,axles:[a1,a2],rsteer:rs,beacon,day,night};
+  return {g,car,axles:[a1,a2],rsteer:rs,beacon,day,night,empty};
 }
 /* ---------- palet ber-instancing: semua palet di kota = 5 draw call ---------- */
 let PAL=null;

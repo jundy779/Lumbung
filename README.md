@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v38** · oleh PT Fusionify Digital
+**Lumbung v39** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -48,7 +48,7 @@ Truk datang lewat tol, **check-in di gerbang gudang** (petugas mengecek surat ja
 Forklift memindahkan palet antara slot dan truk dengan antrean tugas, anti-kebuntuan, dan stasiun pengisian. Di Hub Robotik, **AGV otonom** memproyeksikan jalurnya di lantai.
 
 ### 👷 Pekerja & Shift
-Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir; operator gudang berkeliling memeriksa rak, palet masuk, dan tumpukan krat.
+Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan nama berbeda. Satpam berjalan ke pos untuk serah terima; sopir truk istirahat di Pos Sopir; operator gudang berkeliling memeriksa rak, palet masuk, dan tumpukan krat. Jam makan (12.00 dan 00.00) dibagi dua gelombang: pekerja berjalan ke kantin di belakang gudang, mengambil makanan, lalu makan bersama, sementara operator forklift istirahat bergiliran satu per gudang supaya dock tetap terlayani.
 
 ### 🌦️ Waktu & Cuaca
 Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, berawan, hujan, badai petir, kabut, dan badai pasir. Cuaca memengaruhi kecepatan truk, forklift, dan jarak pandang.
@@ -243,7 +243,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 
 Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
 
-- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`). Simulasi dipercepat lalu muncul laporan 23 pemeriksaan keselamatan (termasuk validitas angka KPI, gerbang check-in, dan perpindahan truk antar-gudang). Selama uji, "operator uji" otomatis ikut memindah bay, mengalihkan truk, dan mengirim antar-gudang.
+- **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`, atau jam bebas seperti `&jam=11.9`). Simulasi dipercepat lalu muncul laporan 27 pemeriksaan keselamatan (termasuk validitas angka KPI, gerbang check-in, dan perpindahan truk antar-gudang). Selama uji, "operator uji" otomatis ikut memindah bay, mengalihkan truk, dan mengirim antar-gudang.
 - **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
 - **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 
@@ -259,6 +259,8 @@ Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepa
 | Truk sampai di dock tanpa check-in gerbang | **0** |
 | Palang gerbang menutup di atas truk | **0** |
 | Truk antre di jalan raya depan gerbang > 45 dtk | **0** |
+| Pejalan kaki saling tunggu / tertahan > 30 dtk | **0** |
+| Lebih dari 1 forklift per gudang istirahat bersamaan | **0** |
 | Pergantian shift tuntas | 100% |
 | Orang dengan bagian tubuh hilang | **0** dari 99 |
 | Tata letak di 6 ukuran layar (390 px – 1600 px) | Tidak ada yang meluap atau tertutup |
@@ -295,6 +297,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] KRL layang, bayangan awan, suara suasana, dan mode foto · v36
 - [x] Truk mogok + kirim mekanik, jas hujan · v37
 - [x] Jenis jalan dibedakan, mobil belok & putar balik, lampu & penyeberang jalan · v38
+- [x] Istirahat makan bergiliran & kantin pekerja · v39
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

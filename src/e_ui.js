@@ -89,7 +89,10 @@ function truckStatus(t){
     default: return ['Parkir','mut'];
   }
 }
-const forkStatus=f=>f.charging?['Mengisi daya','warn']:forkWorking(f)?['Bekerja','ok']:['Siaga','mut'];
+const forkStatus=f=>f.charging?['Mengisi daya','warn']:forkWorking(f)?['Bekerja','ok']:f.lunch?['Istirahat','info']:['Siaga','mut'];
+/* v39: ringkasan istirahat makan per gudang */
+function lunchInfo(s){ const ln=s&&s.kind!=='store'?lunchNow():null; if(!ln) return null; const eat=s.people.filter(p=>p.lunch&&p.lunch.phase==='eat').length, walk=s.people.filter(p=>p.lunch&&p.lunch.phase!=='eat').length, fk=s.forks.filter(f=>f.lunch).length;
+  return {ln,eat,walk,fk,text:`${ln.L.label} · gelombang ${ln.wave+1}${eat?` · ${eat} makan di kantin`:''}${walk?` · ${walk} di jalan`:''}${fk?` · ${fk} forklift jeda`:''}`}; }
 const dockStatus=b=>{const t=b.truck; if(!t) return ['Tersedia','mut']; if(t.state==='approach'||t.state==='gate') return ['Dijadwalkan','info']; if(t.state==='prep'||t.state==='reverse') return ['Truk tiba','warn']; if(t.state==='docked') return [t.mode==='load'?'Memuat':'Membongkar','ok']; return ['Berangkat','mut'];};
 const chip=([t,c])=>`<span class="chip ${c}">${t}</span>`;
 const bar=(p,cls='')=>`<div class="bar ${cls}"><i style="width:${clamp(p,0,100).toFixed(0)}%"></i></div>`;
@@ -123,7 +126,7 @@ function renderDetail(){
   const s=(e&&e.siteId&&Store.get('stores',e.siteId))||S_();
   if(!e){
     const n=siteNumbers(s);
-    const shNow=s.shiftNow||'pagi'; h=header(img3(ICON3D.depot(),'hd3'),'',`${s.type} · ${s.id}`,s.name,s.address)+dataBlock(s)+`<div class="shiftbar ${shNow}"><i></i><b>${SHIFTS[shNow].label}</b><span>${SHIFTS[shNow].hours} · ${s.people.length+s.forks.length} petugas bertugas</span></div>`+profileLine(s)+
+    const shNow=s.shiftNow||'pagi'; h=header(img3(ICON3D.depot(),'hd3'),'',`${s.type} · ${s.id}`,s.name,s.address)+dataBlock(s)+`<div class="shiftbar ${shNow}"><i></i><b>${SHIFTS[shNow].label}</b><span>${SHIFTS[shNow].hours} · ${s.people.length+s.forks.length} petugas bertugas</span></div>`+(()=>{ const li=lunchInfo(s); return li?`<div class="chips lunch">${chip(['Jam makan','ok'])}<span>${li.text}</span></div>`:''; })()+profileLine(s)+
       `<div class="chips">${chip(['Beroperasi','ok'])}<span>${n.docked} di dock · ${n.arriving} tiba${n.waiting?` · ${n.waiting} di gerbang/area tunggu`:''} · ${n.staged} palet disiapkan</span></div>
       <div class="grid2">
         <div class="stat"><small>Stok tersedia</small><b>${fmt(n.stock)} <span>/ ${fmt(s.capacity)}</span></b>${bar(n.stock/s.capacity*100)}</div>
@@ -182,7 +185,7 @@ function renderDetail(){
       <dl class="kv"><dt>Jumlah</dt><dd>${e.qty} unit</dd><dt>Berat kotor</dt><dd>${e.kg} kg</dd><dt>Lokasi</dt><dd>${where}</dd><dt>Lot</dt><dd>${e.lot}</dd><dt>Diterima</dt><dd>${e.recv}</dd><dt>Site</dt><dd>${s.name}</dd></dl>`;
   } else if(e.kind==='person'){
     h=header(IC.person,'',`Pekerja · ${s.id}`,e.name,e.role)+dataBlock(e)+
-      `<div class="chips">${chip(e.v>0.1?['Berjalan','ok']:['Bertugas','info'])}<span>${e.doing}</span></div>
+      `<div class="chips">${chip(e.lunch?(e.lunch.phase==='eat'?['Istirahat','ok']:['Ke/dari kantin','info']):e.v>0.1?['Berjalan','ok']:['Bertugas','info'])}<span>${e.doing}</span></div>
       <dl class="kv"><dt>Peran</dt><dd>${e.role}</dd><dt>Shift</dt><dd>${e.shift}</dd><dt>APD</dt><dd>Helm, rompi, sepatu safety</dd><dt>Kecepatan</dt><dd>${(e.v*3.6).toFixed(1)} km/j</dd><dt>Site</dt><dd>${s.name}</dd></dl>`;
   } else if(e.kind==='shipment'){
     const t=Store.get('trucks',e.truckId);
@@ -536,6 +539,7 @@ function cineCandidates(){
       else if(t.state==='transfer'&&t.presence>0.9){ const B=Store.get('sites',t.xfer); if(B) c.push({key:t.id+'x',score:6,rec:t,zoom:1.5,phi:0.48,title:`${t.id} antar-gudang ke ${B.name}`,sub:`dari ${s.name} · ${t.cargo.filter(Boolean).length} palet`}); }
       else if(t.state==='to_store'&&t.presence>0.9){ const st=Store.get('stores',t.dest); if(st) c.push({key:t.id+'t',score:5,rec:t,zoom:1.5,phi:0.48,title:`${t.id} mengantar ke ${st.name}`,sub:`dari ${s.name}`}); } }
     for(const f of s.forks) if(f.carryingPalletId) c.push({key:f.id,score:7,rec:f,zoom:2.5,phi:0.55,title:`${f.short} membawa palet`,sub:`${s.name} · ${f.task}`});
+    { const li=lunchInfo(s), ea=li&&s.people.filter(p=>p.lunch&&p.lunch.phase==='eat'); if(ea&&ea.length) c.push({key:'kantin'+s.id,score:4+ea.length,rec:ea[0],zoom:3.0,phi:0.5,title:`Kantin ${s.name}`,sub:`${ea.length} pekerja ${li.ln.L.meal.toLowerCase()} · ${li.fk?'forklift bergiliran istirahat':'operasi tetap jalan'}`}); }
     const sup=s.people.find(p=>p.role==='Pengawas dock'); if(sup&&sup.pose) c.push({key:sup.id,score:3,rec:sup,zoom:3.1,phi:0.42,title:`${sup.name}`,sub:`${sup.doing} · ${s.name}`});
     c.push({key:s.id,score:2,rec:s,zoom:0.95,phi:0.72,title:s.name,sub:`${s.type} · ${siteNumbers(s).docked} truk di dock`});
   }
@@ -721,7 +725,7 @@ function drawLabels(){
 SITE_CONFIG.forEach((C,i)=>createSite(C,i)); STORE_CONFIG.forEach((C,i)=>createStore(C,i));
 SITES().forEach(populateSite); SITES().forEach(seedDocks);
 initTraffic(); initCityWalkers();
-{ const keep=SITES().map(s=>[s.stockDelta,s.arrivals]); for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); } SITES().forEach((s,i)=>{ s.stockDelta=keep[i][0]; s.arrivals=keep[i][1]; }); }
+{ const keep=SITES().map(s=>[s.stockDelta,s.arrivals]); LUNCH_HOLD=true; for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); } SITES().forEach((s,i)=>{ s.stockDelta=keep[i][0]; s.arrivals=keep[i][1]; }); LUNCH_HOLD=false; }
 for(let k=0;k<300;k++) simCity(1/15);
 Store.events.length=0;
 SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.name} menipis (${fmt(i.qty)} unit)`,'#B76E00'); }));
@@ -737,10 +741,10 @@ syncView(0,performance.now());
 let SIM_PAUSED=QS.has('selftest'); /* mode uji: simulasi normal ditahan sejak awal supaya hasilnya sama persis dengan tests/headless-sim.mjs */
 function esc(v){ return String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }   /* deklarasi fungsi: ter-hoist, aman dipakai render pertama */
 async function runSelftest(){
-  const menit=clamp(+(QS.get('menit')||13)||13,1,60), jam=['siang','pagi','sore','malam','cycle'].includes(QS.get('jam'))?QS.get('jam'):'siang';
+  const menit=clamp(+(QS.get('menit')||13)||13,1,60), jq=String(QS.get('jam')||'').replace(',','.'), hh=parseFloat(jq), jam=['siang','pagi','sore','malam','cycle'].includes(jq)?jq:isFinite(hh)&&hh>=0&&hh<24?String(hh):'siang', jamL=TIME_MODES[jam]?TIME_MODES[jam].label:`Pukul ${hhmm(+jam)}`;
   SIM_PAUSED=true; stopCine(); select(null);
   const box=document.createElement('div'); box.id='selftest'; box.setAttribute('role','dialog'); box.setAttribute('aria-live','polite'); document.body.appendChild(box);
-  box.innerHTML=`<div class="sth"><b>Uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(TIME_MODES[jam].label)}</small></div><p id="stP">Menyiapkan simulasi…</p><div class="stbar"><i id="stBar"></i></div>`;
+  box.innerHTML=`<div class="sth"><b>Uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(jamL)}</small></div><p id="stP">Menyiapkan simulasi…</p><div class="stbar"><i id="stBar"></i></div>`;
   const C=selftestInit({jam}), dt=1/15, total=Math.round(menit*60/dt), t0=performance.now(); let k=0;
   while(k<total){ const end=Math.min(total,k+120); for(;k<end;k++) selftestStep(dt,C);
     $('#stP').textContent=`Menjalankan simulasi ${Math.floor(k*dt/60)} dari ${menit} menit…`; $('#stBar').style.width=(k/total*100).toFixed(1)+'%';
@@ -749,7 +753,7 @@ async function runSelftest(){
   Object.assign(R,{pass:R.rows.every(r=>r.ok),seed:SEED,menit,jam,fingerprint:simFingerprint(),durasiMs:Math.round(performance.now()-t0)});
   window.__selftest=R; try{ console.table(R.rows.map(r=>({cek:r.label,jumlah:r.count,lulus:r.ok}))); }catch(_){}
   const m=R.metrics, fail=R.rows.filter(r=>!r.ok);
-  box.innerHTML=`<div class="sth"><b>${R.pass?'✓ Lulus':'✗ Gagal'} · uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(TIME_MODES[jam].label)} · ${(R.durasiMs/1000).toFixed(1)} dtk</small></div>
+  box.innerHTML=`<div class="sth"><b>${R.pass?'✓ Lulus':'✗ Gagal'} · uji mandiri</b><small>seed ${SEED} · ${menit} menit · ${esc(jamL)} · ${(R.durasiMs/1000).toFixed(1)} dtk</small></div>
     <p class="${R.pass?'ok':'bad'}">${R.pass?`Semua ${R.rows.length} pemeriksaan keselamatan bernilai 0.`:`${fail.length} dari ${R.rows.length} pemeriksaan gagal.`}</p>
     <ul>${R.rows.map(r=>`<li class="${r.ok?'ok':'bad'}"><span>${r.ok?'✓':'✗'}</span><div><b>${esc(r.label)}</b>${r.ok?'':`<small>${r.count}× · ${r.examples.map(esc).join(' · ')}</small>`}</div></li>`).join('')}</ul>
     <p class="stm">Truk paling lama tertahan ${m.maxStuckSec} dtk · jarak antre minimum ${m.minQueueGapM??'–'} m · ${m.crossdockChecks.toLocaleString('id-ID')} cek cross-dock · ${m.coldChecks} cek suhu · ${m.gateCheckins} check-in gerbang (antre maks ${m.maxQueueWaitSec} dtk) · sidik jari <code>${R.fingerprint}</code></p>

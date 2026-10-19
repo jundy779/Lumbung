@@ -310,7 +310,8 @@ function gateTick(site,dt){ const g=siteGate(site);
   if(g.armFor){ const o=Store.get('trucks',g.armFor); if(!o||o.state==='away'||(o.gated&&o.pos.x-3.4>g.armX+0.8)){ g.armFor=null; g.want=0; } }
   /* truk ber-bay di palang tidak bisa melewati truk antrean di depannya (lajur tunggal): bay-nya diserahkan ke truk antrean
      paling depan, dan truk di palang ganti mengantre. Urutan fisik di lajur selalu sama dengan urutan dapat bay. */
-  const t=g.truck; if(t&&t.state==='gate'&&t.bay&&!laneRoom(site,t)){ let h=null; for(const o of site.trucks) if(o.queued&&o.state==='yard_wait'&&o.gq!=null&&(!h||o.gq<h.gq)) h=o;
+  /* v39: berlaku juga saat lajur masih longgar. Truk yang lolos palang dengan bay sendiri akan tertahan di belakang truk area tunggu (dulu sampai > 2 menit) */
+  const t=g.truck; if(t&&t.state==='gate'&&t.bay){ let h=null; for(const o of site.trucks) if(o.queued&&o.state==='yard_wait'&&o.gq!=null&&(!h||o.gq<h.gq)) h=o;
     const b=t.bay; if(h&&!(site.profile==='crossdock'&&((h.mode==='unload')!==(b.i<xdHalf(site))))){
       h.queued=false; h.bay=b; b.truck=h; if(h.path) retargetLane(h,b.x+RY); else setPath(h,finalize(linePts(h.pos.x,h.pos.z,b.x+RY,yardZ(site),2)),false,9,3); h.state='approach';
       t.dockId=null; t.queued=true; retargetLane(t,g.headX); /* jalur truk di palang dipotong lagi ke ujung area tunggu */ cutLaneTo(t,g.headX);
@@ -488,7 +489,8 @@ function truckStep(site,t,dt){
         let clear=true; for(const o of Store.tables.trucks.values()){ if(o!==t&&o.solid&&Math.hypot(o.pos.x+o.site.ox-TRUCK_SPAWN.x,o.pos.z+o.site.oz-TRUCK_SPAWN.z)<22){ clear=false; break; } }
         /* bay kosong & antrean kosong: truk langsung dijadwalkan ke bay. Bay penuh: truk boleh datang dan menunggu di area tunggu bila masih muat */
         if(bay&&clear&&pm) dispatch(site,t,bay,pm);
-        else if(pm&&clear&&!bay&&q<siteGate(site).cap){ if(RAND()<0.5) dispatch(site,t,null,pm); else t.wait=3+RAND()*6; }
+        /* v39: selama operator forklift bergiliran istirahat, layanan dock berkurang, jadi truk tanpa bay tidak dikirim ke area tunggu dulu */
+        else if(pm&&clear&&!bay&&q<siteGate(site).cap&&!site.forks.some(f=>f.lunch)){ if(RAND()<0.5) dispatch(site,t,null,pm); else t.wait=3+RAND()*6; }
         else t.wait=1.5; }
       return;
     case 'inbound': {
@@ -657,6 +659,11 @@ function findJob(site,f){
 }
 function decide(site,f,onExit){
   if(f.battery<25||f.forceCharge){ f.task='Menuju stasiun pengisian'; travel(f,site.rest[f.restIdx],onExit); f.q.push({t:'do',fn:()=>{f.charging=true;f.forceCharge=false;f.task='Mengisi daya';logEvent(site,`${f.short} baterai rendah, mulai mengisi daya`,'#B76E00',f);}}); return; }
+  /* v39: giliran operator istirahat makan → parkir di stasiun sendiri, forklift lain tetap melayani dock */
+  { const ln=forkLunch(site,f); if(ln){ const r=site.rest[f.restIdx], lab=`Operator ${ln.L.meal.toLowerCase()} di kantin`;
+      if(Math.hypot(f.pos.x-r.x,f.pos.z-r.z)>0.1){ f.task='Ke stasiun · giliran istirahat'; travel(f,r,onExit); f.q.push({t:'do',fn:()=>{ if(forkLunch(site,f)){ f.lunch=true; f.task=lab; } else f.task='Siaga di stasiun'; }}); }
+      else { if(onExit) onExit(); f.lunch=true; f.task=lab; } return; } }
+  f.lunch=false;
   const job=findJob(site,f);
   if(job){ startJob(site,f,job,onExit); return; }
   const r=site.rest[f.restIdx];
@@ -686,6 +693,7 @@ function startJob(site,f,job,onExit){
   }
 }
 function forkStep(site,f,dt){
+  if(f.lunch&&!forkLunch(site,f)){ f.lunch=false; if(!f.q.length&&!f.charging) f.task='Siaga di stasiun'; }
   if(f.charging){ f.battery=Math.min(100,f.battery+dt*2.2); if(f.battery>=92){ f.charging=false; f.task='Siaga di stasiun'; } }
   let guard=0;
   while(f.q.length && guard++<12){
@@ -728,7 +736,43 @@ function laneTarget(a,b,c,d=0.45){ const l1=Math.hypot(b.x-a.x,b.z-a.z)||1, n1x=
   const k=d/den;
   return {x:b.x+(n1x+n2x)*k,z:b.z+(n1z+n2z)*k}; }
 function faceTo(p,h){ p.act.push({t:'face',h}); }
-function walkTo(p,pts){ p.act.push({t:'walk',pts}); }
+function walkTo(p,pts,label){ p.act.push({t:'walk',pts,label}); }
+
+/* ---------- v39: istirahat makan (kantin di belakang-timur gedung) ----------
+   Shift pagi makan 12.00–13.00, shift malam 00.00–01.00, dibagi dua gelombang 30 menit supaya area kerja tidak pernah kosong.
+   Yang ke kantin: operator gudang (picker) dan petugas QC. Satpam, petugas gerbang, dan pengawas dock tetap berjaga.
+   Operator forklift bergiliran: satu forklift per gudang parkir di stasiunnya, sisanya tetap bekerja. AGV hub robotik tidak ikut makan. */
+const LUNCH={pagi:{h0:12,label:'Istirahat siang',meal:'Makan siang'},malam:{h0:0,label:'Istirahat malam',meal:'Makan malam'}};
+let LUNCH_HOLD=false; /* pemanasan saat startup tidak menjalankan jadwal makan (jam belum diset) */
+function lunchNow(h){ if(LUNCH_HOLD) return null; h=h==null?Store.clock.hour:h; for(const k in LUNCH){ const L=LUNCH[k], d=((h-L.h0)%24+24)%24; if(d<1) return {key:k,L,d,wave:d<0.5?0:1}; } return null; }
+function canteen(s){ if(s.cant) return s.cant; const X=s.W/2, CX=X+15.6, CZ=-s.fz-9.5;
+  const seats=[]; for(const sx of [0,1.4]) for(const [dz,h] of [[-1.9,0],[-0.5,Math.PI],[0.5,0],[1.9,Math.PI]]) seats.push({x:CX+sx,z:CZ+dz,h,aisle:sx?CX+2.55:CX-1.0});
+  hidden(s,'cant',{x:CX,z:CZ,lane:X+13.6,entry:{x:CX-1.0,z:CZ+3.3},counter:{x:CX-1.85,z:CZ+0.1},staff:[{x:CX-3.3,z:CZ-0.6},{x:CX-3.3,z:CZ+0.7}],seats}); return s.cant; }
+/* jalur dari area kerja ke pintu kantin (dibalik untuk kembali). Lajur x=X+14,6 bebas rak, krat, dan truk parkir */
+function lunchVia(s,p){ const X=s.W/2, fz=s.fz, C=canteen(s), v=[];
+  if(p.plan==='qc'){ v.push({x:X+7.0,z:p.pos.z},{x:X+7.0,z:fz-7.3},{x:C.lane,z:fz-7.3}); }
+  else { if(Math.abs(p.pos.z-(fz-7.6))>0.1) v.push({x:p.pos.x,z:fz-7.6}); v.push({x:C.lane,z:fz-7.6}); }
+  v.push({x:C.lane,z:C.entry.z+0.9},C.entry); return v; }
+function lunchWant(s,p){ if(p.lunchSeat==null||p.shifting) return null; const ln=lunchNow();
+  if(!ln){ p.lunchDone=null; return null; } return ln.wave===p.lunchWave&&p.lunchDone!==ln.key&&p.shiftNow===ln.key?ln:null; }
+function lunchPlan(s,p,ln){ const C=canteen(s), S=C.seats[p.lunchSeat], via=lunchVia(s,p);
+  p.lunch={key:ln.key,phase:'go',t0:0,via};
+  walkTo(p,via,'Ke kantin'); walkTo(p,[C.counter],'Ke kantin'); faceTo(p,-Math.PI/2); idle(p,2.2,'point','Ambil makanan');
+  walkTo(p,[{x:S.aisle,z:C.counter.z},{x:S.aisle,z:S.z},{x:S.x,z:S.z}],'Ke meja makan'); faceTo(p,S.h);
+  p.act.push({t:'do',fn:()=>{ p.lunch.phase='eat'; p.lunch.t0=s.t||0; }});
+  p.act.push({t:'until',pose:'sitchat',label:`${ln.L.meal} di kantin`,fn:()=>{ const n=lunchNow(); return !(n&&n.key===p.lunch.key&&n.wave===p.lunchWave)&&(s.t||0)-p.lunch.t0>=15; }});
+  lunchBack(s,p,false); }
+function lunchBack(s,p,fromHere){ const C=canteen(s), S=C.seats[p.lunchSeat], back=[...p.lunch.via].reverse();
+  p.act.push({t:'do',fn:()=>{ p.lunch.phase='back'; }});
+  walkTo(p,fromHere?back:[{x:S.aisle,z:S.z},{x:S.aisle,z:C.entry.z},...back],'Kembali bekerja');
+  p.act.push({t:'do',fn:()=>{ p.lunchDone=p.lunch.key; p.lunch=null; }}); }
+/* forklift: satu operator per gudang istirahat bergantian dalam jendela makan (slot = 60 menit / jumlah forklift) */
+function forkLunch(site,f){ if(site.kind==='store'||site.profile==='robotic') return null; const ln=lunchNow(); if(!ln) return null;
+  const n=site.forks.length; return Math.min(n-1,Math.floor(ln.d*n))===f.restIdx?ln:null; }
+function lunchTick(site){ const ln=lunchNow(), key=ln?ln.key+ln.wave:null; if(site.lunchLog===key) return; const first=site.lunchLog===undefined; hidden(site,'lunchLog',key); if(first||!site.people) return;
+  if(ln&&ln.wave===0) logEvent(site,`${ln.L.label} dimulai · gelombang 1 ke kantin, operator forklift bergiliran`,'#178A55');
+  else if(ln) logEvent(site,`${ln.L.label} gelombang 2 · gelombang 1 kembali bekerja`,'#178A55');
+  else logEvent(site,'Istirahat makan selesai · semua kembali ke pos','#2E5BFF'); }
 function idle(p,d,pose,label){ p.act.push({t:'idle',d,pose,label}); }
 const PLANS={
   supervisor(ctx,p){
@@ -752,7 +796,7 @@ const PLANS={
   cross(ctx,p){ const j=JUNC.get(p.jid), side=['N','E','S','W'][p.ri], P=xingPts(j,side);
     walkTo(p,[P[0]]); faceTo(p,Math.atan2(P[1].x-P[0].x,P[1].z-P[0].z));
     /* penanda menyeberang dipasang pada langkah yang sama dengan keputusan, supaya mobil tidak sempat masuk di antaranya */
-    p.act.push({t:'until',fn:()=>{ if(!pedCanStart(j,side)) return false; p.xing=j.id+side; return true; },pose:null,label:'Menunggu lampu penyeberang'});
+    p.act.push({t:'until',fn:()=>{ if(!pedCanStart(j,side)||!xingFree(p,P[0],P[1])) return false; p.xing=j.id+side; return true; },pose:null,label:'Menunggu lampu penyeberang'});
     p.act.push({t:'do',fn:()=>{ p.doing='Menyeberang jalan'; }});
     walkTo(p,[P[1]]); p.act.push({t:'do',fn:()=>{ p.xing=null; }}); walkTo(p,[P[2]]);
     p.ri=(p.ri+1)%4; if(RAND()<0.25) idle(p,1.5+RAND()*3,RAND()<0.5?'phone':'look','Menunggu di trotoar'); },
@@ -790,18 +834,38 @@ const PLANS={
     let o=pick(opts); if(Math.hypot(o.x-p.pos.x,o.z-p.pos.z)<0.4) o=opts[(opts.indexOf(o)+1)%opts.length];
     const h=Math.atan2(o.x-p.pos.x,o.z-p.pos.z); faceTo(p,h); walkTo(p,[{x:o.x,z:o.z}]); faceTo(p,o.h);
     idle(p,3+RAND()*2,'clipboard',o.label); if(RAND()<0.4) idle(p,1.4,'point',o.label);
-  }
+  },
+  /* v39: petugas kantin di balik meja saji */
+  canteen(ctx,p){ const C=canteen(ctx), sp=C.staff[p.ri%2], busy=ctx.people.some(q=>q.lunch); p.ri++;
+    if(Math.hypot(sp.x-p.pos.x,sp.z-p.pos.z)>0.05){ faceTo(p,Math.atan2(sp.x-p.pos.x,sp.z-p.pos.z)); walkTo(p,[{x:sp.x,z:sp.z}]); }
+    faceTo(p,Math.PI/2);
+    if(busy) idle(p,2.4+RAND()*1.6,RAND()<0.5?'point':'chat','Melayani pekerja');
+    else { const r=RAND(); idle(p,3+RAND()*3,r<0.45?'push':r<0.75?'look':'phone',r<0.45?'Menyiapkan makanan':r<0.75?'Menunggu jam makan':'Mencatat pesanan'); } }
 };
 function personStep(ctx,p,dt){
-  if(!p.act.length){ PLANS[p.plan](ctx,p); if(!p.act.length) idle(p,0.5,null,'Berdiri'); } /* pengaman: rencana kosong tidak boleh menghentikan simulasi */
+  if(!p.act.length){
+    if(p.lunch) lunchBack(ctx,p,true);   /* urutan makan terpotong (mis. serah terima shift saat jam diubah): kembali dulu ke area kerja */
+    else { const ln=lunchWant(ctx,p); if(ln) lunchPlan(ctx,p,ln); else PLANS[p.plan](ctx,p); }
+    if(!p.act.length) idle(p,0.5,null,'Berdiri'); } /* pengaman: rencana kosong tidak boleh menghentikan simulasi */
   const a=p.act[0];
   if(a.t==='face'){ const d=angDiff(p.heading,a.h), st=Math.sign(d)*Math.min(Math.abs(d),2.4*dt); p.heading+=st; p.v=Math.max(0,p.v-dt*3); if(Math.abs(d)<0.03){ p.heading=a.h; p.act.shift(); } }
   else if(a.t==='walk'){
-    if(!a.P){ a.P=polyPath([{x:p.pos.x,z:p.pos.z},...a.pts],0.8); if(a.P.len<0.05){ p.act.shift(); return; } setPath(p,a.P,false,p.vmax,0.55); p.doing='Berjalan'; p.pose=null; }
+    if(!a.P){ a.P=polyPath([{x:p.pos.x,z:p.pos.z},...a.pts],0.8); if(a.P.len<0.05){ p.act.shift(); return; } setPath(p,a.P,false,p.vmax,0.55); p.doing=a.label||'Berjalan'; p.pose=null; }
     const h0=p.heading;
-    const done=moveStep(p,dt,lookAhead(p,ctx.people.filter(q=>q!==p&&(q.v<0.05||Math.cos(q.heading-p.heading)>-0.3))));
+    /* v39: pekerja yang sedang ke/dari kantin hanya antre di belakang orang yang berjalan searah; orang yang diam (sedang bekerja/makan) dilewati */
+    const done=moveStep(p,dt,lookAhead(p,ctx.people.filter(q=>q!==p&&(p.lunch?q.v>=0.05&&Math.cos(q.heading-p.heading)>0.3:(q.v<0.05||Math.cos(q.heading-p.heading)>-0.3)))));
     p.heading=lerpAngle(h0,p.heading,0.45);
-    if(done) p.act.shift();
+    if(done){ p.act.shift(); return; }
+    /* v39: dua orang berpapasan lalu saling tunggu (dulu bisa selamanya, mis. dua operator gudang di lorong rak).
+       Setelah 1,5 dtk tertahan, yang ID-nya lebih besar menyingkir 0,9 m ke kanan, menunggu sebentar, lalu lanjut */
+    if(p.v<0.05){ a.bt=(a.bt||0)+dt;
+      if(a.bt>1.5){ const fx=Math.sin(p.heading), fz=Math.cos(p.heading);
+        const q=ctx.people.find(q=>q!==p&&Math.hypot(q.pos.x-p.pos.x,q.pos.z-p.pos.z)<1.8&&((q.pos.x-p.pos.x)*fx+(q.pos.z-p.pos.z)*fz)>0.2);
+        const headOn=q&&q.v<0.05&&q.act[0]&&q.act[0].t==='walk';
+        if((headOn&&p.id>q.id)||a.bt>6){ /* saling tunggu → yang ID-nya lebih besar mengalah; tertahan lama oleh apa pun → menyingkir */
+          a.bt=0; a.P=null; const k=a.yd=(a.yd||0)+1, sd=k%2?1:-1;
+          p.act.unshift({t:'walk',pts:[{x:p.pos.x+fz*0.9*sd,z:p.pos.z-fx*0.9*sd}],label:'Memberi jalan'},{t:'idle',d:1.6,pose:'look',label:'Memberi jalan'}); } } }
+    else a.bt=0;
   }
   else if(a.t==='do'){ p.act.shift(); a.fn(); }
   else if(a.t==='until'){ p.v=Math.max(0,p.v-dt*3); p.pose=a.pose||null; p.doing=a.label||'Menunggu'; if(a.fn()){ p.act.shift(); p.pose=null; } }
@@ -877,7 +941,7 @@ function simSite(site,dt){
   for(const t of site.trucks) if(t.state!=='parked') truckStep(site,t,dt);
   flushMoves(site);
   for(const f of site.forks) forkStep(site,f,dt);
-  shiftTick(site,dt);
+  shiftTick(site,dt); lunchTick(site);
   for(const p of site.people) personStep(site,p,dt);
   for(const b of site.bays){ const t=b.truck; b.doorState=t&&t.state==='docked'?'open':'closed'; }
   metricsTick(site,dt);
@@ -978,6 +1042,11 @@ function xingPts(j,side){ const x=j.x, z=j.z, a=ROAD/2+1.1, o=ROAD/2+1.6, c1=7.2
   return {N:[{x:x-a,z:z-o},{x:x+a,z:z-o},{x:x+c1,z:z-c2}],E:[{x:x+o,z:z-a},{x:x+o,z:z+a},{x:x+c2,z:z+c1}],S:[{x:x+a,z:z+o},{x:x-a,z:z+o},{x:x-c1,z:z+c2}],W:[{x:x-o,z:z+a},{x:x-o,z:z-a},{x:x-c2,z:z-c1}]}[side]; }
 function zebraRect(j,side){ const o=ROAD/2+1.6, w=ROAD/2+0.9; return side==='N'?{x0:j.x-w,x1:j.x+w,z0:j.z-o-1.4,z1:j.z-o+1.4}:side==='S'?{x0:j.x-w,x1:j.x+w,z0:j.z+o-1.4,z1:j.z+o+1.4}:side==='W'?{x0:j.x-o-1.4,x1:j.x-o+1.4,z0:j.z-w,z1:j.z+w}:{x0:j.x+o-1.4,x1:j.x+o+1.4,z0:j.z-w,z1:j.z+w}; }
 const zebraBusy=(j,side)=>city.people.some(q=>q.xing===j.id+side);
+/* v39: 2,6 m pertama zebra harus kosong dari pejalan kaki lain (yang lewat di trotoar atau penyeberang di depannya) sebelum mulai menyeberang.
+   Dulu penyeberang bisa mulai lalu tertahan beberapa detik oleh pejalan kaki yang lewat, sehingga masih di zebra saat kendaraan hijau */
+function xingFree(p,a,b){ const L=Math.hypot(b.x-a.x,b.z-a.z)||1, ux=(b.x-a.x)/L, uz=(b.z-a.z)/L;
+  for(const q of city.people){ if(q===p||(q.act[0]&&q.act[0].t==='until')) continue; const dx=q.pos.x-a.x, dz=q.pos.z-a.z, t=dx*ux+dz*uz; if(t<-0.6||t>2.6) continue; if(Math.abs(dx*uz-dz*ux)<1.05) return false; }
+  return true; }
 function movSides(m){ /* sisi zebra yang dilalui kendaraan dengan kode gerak m */
   if(m[0]==='U') return [ENTER_SIDE[+m[1]]]; /* putar balik keluar lewat zebra sisi masuknya sendiri */ let hIn, hOut;
   if(m[0]==='T'){ hIn=+m[1]; hOut=+m[2]; } else if(/\d/.test(m[2])){ hIn=hOut=+m[2]; } else { hIn=hOut=m[1]==='x'?(m[2]==='+'?1:3):(m[2]==='+'?0:2); }
@@ -1018,6 +1087,8 @@ function stepTraffic(dt){
           else { if(pl.k!=='S'){ if(c.p>=jc.pIn-2.2){ startTurn(c,L,jc,mv); stepTurn(c,dt); return; } block=Math.min(block,(jc.pIn-2.2-c.p)+mv.vT2); } continue; } }
         const d=jc.pIn-jc.j.pre-(c.p+2.1)-0.2; if(pl.k!=='S') block=Math.min(block,(jc.pIn-2.2-c.p)+mv.vT2); if(d>c.v*c.v/(2*5)+7) break;
         if(red&&d>=-0.1){ jDequeue(c); break; }
+        /* v39: hanya mobil terdepan yang boleh mengklaim persimpangan. Sebelumnya mobil di belakang bisa merebut klaim saat mobil depannya keluar antrean (mengalah ke penyeberang), lalu keduanya saling kunci */
+        if(lead&&lead.p-2.2<=jc.pOut&&!jc.j.occ.has(lead)){ jDequeue(c); block=Math.min(block,d); break; }
         /* penyeberang di zebra yang akan dilalui: berhenti di garis (mobil yang sudah tidak sempat berhenti tetap lewat) */
         if(String(jc.j.id)[0]!=='H'&&movSides(mv.mov).some(sd=>zebraBusy(jc.j,sd))&&(d>c.v*c.v/16||c.v<2)){ jDequeue(c); block=Math.min(block,d); break; }
         /* "jangan menutup persimpangan": masuk hanya bila antrean di seberang menyisakan ruang sampai bemper belakang lewat zebra */
@@ -1252,7 +1323,7 @@ const SAFETY_LABELS={
   redirect:'Truk tiba di tujuan yang salah', crewStall:'Sopir tidak mendekat ke tujuannya > 20 dtk', stuck:'Truk tertahan > 120 dtk',
   teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m', kpi:'KPI gudang tidak valid (NaN / di luar batas)',
   gateSkip:'Truk sampai di dock tanpa check-in gerbang', gateArm:'Palang gerbang menutup di atas truk', roadQueue:'Truk antre di jalan raya depan gerbang gudang > 45 dtk',
-  queueLong:'Truk menunggu di area tunggu > 10 menit',pedHit:'Mobil menyerempet penyeberang jalan',pedRed:'Penyeberang di zebra saat kendaraan arahnya hijau', wrongSite:'Truk merapat di bay milik gudang lain', jump:'Posisi truk melompat (perpindahan gudang salah hitung)'};
+  queueLong:'Truk menunggu di area tunggu > 10 menit',pedHit:'Mobil menyerempet penyeberang jalan',pedRed:'Penyeberang di zebra saat kendaraan arahnya hijau', lunch:'Istirahat: >1 forklift istirahat bersamaan atau pekerja tertahan > 30 dtk ke/dari kantin', personStall:'Pejalan kaki tertahan di tempat > 30 dtk (saling tunggu)', wrongSite:'Truk merapat di bay milik gudang lain', jump:'Posisi truk melompat (perpindahan gudang salah hitung)'};
 function makeSafetyChecker(){
   const V={}; for(const k in SAFETY_LABELS) V[k]={n:0,ex:[]};
   const bad=(k,msg)=>{ const v=V[k]; v.n++; if(v.ex.length<3&&!v.ex.includes(msg)) v.ex.push(msg); };
@@ -1286,6 +1357,11 @@ function makeSafetyChecker(){
       for(const p of s.people){ if(!p.cw) continue; const px=p.pos.x+s.ox, pz=p.pos.z+s.oz;
         for(const o of solid) if(gapW(o,px,pz)<0.34-0.1) bad('personHit',`${p.name} (${p.role}) × ${o.id}`);
         for(const o of F) if(o.cw&&overlapC(p.cw,o.cw,-0.1)) bad('personHit',`${p.name} (${p.role}) × ${o.id}`); }
+      /* v39: istirahat makan */
+      { const nl=F.filter(f=>f.lunch).length, k='L'+s.id, lt=nl>1?(stopT.get(k)||0)+dt:0; stopT.set(k,lt); if(lt>2&&lt-dt<=2) bad('lunch',`${nl} forklift ${s.id} istirahat bersamaan`); if(nl) M.forkLunch=(M.forkLunch||0)+dt;
+        for(const p of s.people){ const L=p.lunch, k2='P'+p.id; if(L&&L.phase==='eat'&&!L.seen){ L.seen=1; M.meals=(M.meals||0)+1; }
+          const go=L&&L.phase!=='eat'&&p.act[0]&&p.act[0].t==='walk'&&p.v<0.05, w=go?(stopT.get(k2)||0)+dt:0; stopT.set(k2,w); if(w>30&&w-dt<=30) bad('lunch',`${p.name} (${p.role}) tertahan ${L.phase==='go'?'menuju':'dari'} kantin ${s.id}`); } }
+      for(const p of s.people){ const k3='W'+p.id, st=p.act[0]&&p.act[0].t==='walk'&&p.v<0.05, w=st?(stopT.get(k3)||0)+dt:0; stopT.set(k3,w); if(w>30&&w-dt<=30) bad('personStall',`${p.name} (${p.role}) ${s.id} · ${p.doing||''}`); }
       for(const t of s.trucks){ const d=t.crew; if(!d||!d.on) continue; const cx=d.x+s.ox, cz=d.z+s.oz;
         for(const o of solid){ if(o===t) continue; if(gapW(o,cx,cz)<-0.05) bad('crewTouch',`sopir ${t.id} (${d.task}/${d.phase}) × ${o.id} (${o.state})`); }
         if(d.route&&d.route.length&&d.v>0.01||(d.route&&d.route.length&&(d.blockT||0)>0)){ const g=d.route[0], key=t.id+':'+g.x.toFixed(1)+','+g.z.toFixed(1), dist=Math.hypot(g.x-d.x,g.z-d.z);
@@ -1347,10 +1423,11 @@ function makeSafetyChecker(){
     report(){ const rows=Object.keys(SAFETY_LABELS).map(k=>({id:k,label:SAFETY_LABELS[k],count:V[k].n,ok:V[k].n===0,examples:V[k].ex}));
       return {pass:rows.every(r=>r.ok),rows,metrics:{simMinutes:Math.round(M.simSec/6)/10,checks:M.checks,maxStuckSec:Math.round(M.maxStuck),maxStuckTruck:M.maxStuckId,
         minQueueGapM:M.minGap===Infinity?null:Math.round(M.minGap*100)/100,crossdockChecks:M.crossdock,coldChecks:M.cold,storeArrivals:M.redirect,stoppedChecks:M.zebraStops,
-        gateCheckins:Store.all('sites').reduce((n,s)=>n+siteGate(s).checked-gate0.get(s.id),0),queuedTrucks:M.queued,maxQueue:M.maxQueue,maxQueueWaitSec:Math.round(M.maxWait),transfers:M.transfers,operatorActions:this.op?{...this.op.n}:null}}; }
+        gateCheckins:Store.all('sites').reduce((n,s)=>n+siteGate(s).checked-gate0.get(s.id),0),queuedTrucks:M.queued,maxQueue:M.maxQueue,maxQueueWaitSec:Math.round(M.maxWait),transfers:M.transfers,meals:M.meals||0,forkLunchSec:Math.round(M.forkLunch||0),operatorActions:this.op?{...this.op.n}:null}}; }
   };
 }
-function selftestInit(opt={}){ setTimeMode(opt.jam&&TIME_MODES[opt.jam]&&opt.jam!=='live'?opt.jam:'siang'); setWeather(opt.cuaca&&WEATHER[opt.cuaca]?opt.cuaca:'clear',true);
+function selftestInit(opt={}){ setTimeMode(opt.jam&&TIME_MODES[opt.jam]&&opt.jam!=='live'?opt.jam:'siang');
+  { const hh=parseFloat(String(opt.jam).replace(',','.')); if(isFinite(hh)&&hh>=0&&hh<24){ Store.clock.base=Store.clock.hour=hh; applyWX(); } } /* jam bebas (mis. 11.8 = 11.48) untuk menguji jendela waktu tertentu */ setWeather(opt.cuaca&&WEATHER[opt.cuaca]?opt.cuaca:'clear',true);
   const C=makeSafetyChecker(); C.op={R:rng((SEED*2654435761+97)>>>0),acc:0,n:{bay:0,incoming:0,xfer:0,store:0,toll:0,fail:0}}; return C; }
 /* operator uji: tiap ±12 dtk menjalankan perintah pengguna secara acak (pindah bay, alihkan truk datang ke gudang lain,
    kirim antar-gudang/toko/tol), supaya fitur pengarahan ikut teruji oleh pemeriksa keselamatan */

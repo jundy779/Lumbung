@@ -87,16 +87,20 @@ function populateSite(s){
     personRecord(s,R,'Petugas keamanan',{plan:'patrol',route,ri:i+1,y:0.08,start:{x:a.x+dx*t+dz/l*0.45,z:a.z+dz*t-dx/l*0.45,h:Math.atan2(dx,dz)},look:{vest:0x2E5BFF,hat:0xFFFFFF}}); }
   { const g=siteGate(s); personRecord(s,R,'Petugas gerbang',{plan:'gatekeeper',y:0.08,start:{x:g.home.x,z:g.home.z,h:Math.PI},look:{vest:0x2E5BFF,hat:0xFFFFFF,clip:true}}); }
   personRecord(s,R,'Pengawas dock',{plan:'supervisor',y:PH,start:{x:s.bays[0].x,z:fz+0.34,h:0},look:{vest:0xF26B1D,hat:0xFFFFFF,clip:true}});
-  personRecord(s,R,'Petugas QC',{plan:'qc',y:GY,start:{x:W/2+2.6,z:fz+2.3,h:0},look:{vest:0xF6C40A,hat:0xF6C40A,clip:true}});
+  const qc=personRecord(s,R,'Petugas QC',{plan:'qc',y:GY,start:{x:W/2+2.6,z:fz+2.3,h:0},look:{vest:0xF6C40A,hat:0xF6C40A,clip:true}});
   /* dua operator gudang di area timur (lihat PLANS.picker) */
-  personRecord(s,R,'Operator gudang',{plan:'picker',ri:0,y:GY,start:{x:W/2+10.4,z:fz-7.6,h:Math.PI},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
-  personRecord(s,R,'Operator gudang',{plan:'picker',ri:5,y:GY,start:{x:W/2+15.2,z:fz-4.2,h:-Math.PI/2},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
+  const pk1=personRecord(s,R,'Operator gudang',{plan:'picker',ri:0,y:GY,start:{x:W/2+10.4,z:fz-7.6,h:Math.PI},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
+  const pk2=personRecord(s,R,'Operator gudang',{plan:'picker',ri:5,y:GY,start:{x:W/2+15.2,z:fz-4.2,h:-Math.PI/2},look:{vest:0xF26B1D,hat:0xF6C40A,clip:true}});
+  /* v39: jadwal makan (kursi kantin & gelombang) + petugas kantin */
+  for(const [p,seat,wave] of [[pk1,0,0],[qc,5,0],[pk2,2,1]]){ hidden(p,'lunchSeat',seat); hidden(p,'lunchWave',wave); }
+  { const C=canteen(s); personRecord(s,R,'Petugas kantin',{plan:'canteen',y:GY,start:{x:C.staff[0].x,z:C.staff[0].z,h:Math.PI/2},look:{vest:0xF4F6FB,hat:0xE5484D}}); }
 }
 const SHIFT_UNIFORM={
   'Petugas keamanan':{pagi:{vest:0x2E5BFF,hat:0xFFFFFF},malam:{vest:0x1E2A55,hat:0x2E5BFF}},
   'Petugas gerbang':{pagi:{vest:0x2E5BFF,hat:0xFFFFFF},malam:{vest:0x1E2A55,hat:0x2E5BFF}},
   'Pengawas dock':{pagi:{vest:0xF26B1D,hat:0xFFFFFF},malam:{vest:0x8BD12A,hat:0xFFFFFF}},
   'Petugas QC':{pagi:{vest:0xF6C40A,hat:0xF6C40A},malam:{vest:0x8BD12A,hat:0xF6C40A}},
+  'Petugas kantin':{pagi:{vest:0xF4F6FB,hat:0xE5484D},malam:{vest:0xF4F6FB,hat:0x7C3AED}},
   default:{pagi:{vest:0xF26B1D,hat:0xF6C40A},malam:{vest:0x8BD12A,hat:0xFFFFFF}}};
 const PROFILE_UNIFORM={
   cold:{pagi:{vest:0x1E40AF,hat:0xFFFFFF},malam:{vest:0x13296B,hat:0x8BD12A}},
@@ -109,7 +113,7 @@ function personRecord(site,R,role,o){
     acc:1.4,dec:2.6,vmax:1.0+R()*0.3,path:null,s:0,circ:PERSON_CIRC,solid:true,act:[],plan:o.plan,route:o.route,ri:o.ri||0,rd:1,lastBay:-1};
   hidden(p,'look',{...o.look,seed:R()*10,skin:pick([0xF0C29C,0xD9A57B,0xB9825A,0xE7B48D],R),pants:pick([0x2E3550,0x3B4462,0x2A2F3D],R)});
   if(site){ hidden(p,'names',{pagi:p.name,malam:pick(WORKERS.filter(n=>n!==p.name),R)}); hidden(p,'shiftNow','pagi');
-    const U=(role!=='Petugas keamanan'&&role!=='Petugas gerbang'&&PROFILE_UNIFORM[site.profile])||SHIFT_UNIFORM[role]||SHIFT_UNIFORM.default; hidden(p,'uniform',{pagi:{...U.pagi,clip:o.look.clip},malam:{...U.malam,clip:o.look.clip}});
+    const U=(role!=='Petugas keamanan'&&role!=='Petugas gerbang'&&role!=='Petugas kantin'&&PROFILE_UNIFORM[site.profile])||SHIFT_UNIFORM[role]||SHIFT_UNIFORM.default; hidden(p,'uniform',{pagi:{...U.pagi,clip:o.look.clip},malam:{...U.malam,clip:o.look.clip}});
     hidden(p,'skins',{pagi:p.look.skin,malam:pick([0xF0C29C,0xD9A57B,0xB9825A,0xE7B48D],R)}); Object.assign(p.look,p.uniform.pagi); }
   if(site){ relate(p,'site','sites','siteId'); site.people.push(p); }
   return Store.add('people',p);

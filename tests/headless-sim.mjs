@@ -20,7 +20,9 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
   const SITES=()=>Store.all('sites');
   SITES().forEach(populateSite); SITES().forEach(seedDocks); initTraffic(); initCityWalkers();
   /* pemanasan sama persis dengan startup aplikasi (e_ui.js), supaya yang diuji kondisi yang dilihat pengguna */
+  LUNCH_HOLD=true;
   for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); }
+  LUNCH_HOLD=false;
   for(let k=0;k<300;k++) simCity(1/15);
   const C = selftestInit({ jam: ${JSON.stringify(JAM)} });
   const dt = 1/15, steps = Math.round(${MIN}*60/dt);

@@ -174,6 +174,36 @@ function buildSiteView(s){
     BB.add(7.4,5.2,LX,LZ,0.07,true);
     const wz=s.walkZ, x0=s.walkX, x1=Math.max(...bxs)+3; for(let x=x0;x<x1;x+=1.4){ LN.box(0.8,0.01,0.1,0,0xFFFFFF,x+0.4,0.1,wz-0.75); LN.box(0.8,0.01,0.1,0,0xFFFFFF,x+0.4,0.1,wz+0.75); }
     for(let z=L.entry.z;z<wz;z+=1.4){ LN.box(0.1,0.01,0.8,0,0xFFFFFF,x0-0.75,0.1,z+0.4); LN.box(0.1,0.01,0.8,0,0xFFFFFF,x0+0.75,0.1,z+0.4); } }
+  /* v39: kantin pekerja (belakang-timur gedung). Titik duduk, meja saji, dan lajur jalan berasal dari canteen(s) di c_sim */
+  { const C=canteen(s), CX=C.x, CZ=C.z, WD=0x9C6B3E, MT=0x5A6178, x0=CX-4.5, x1=CX+3.2, z0=CZ-2.8, z1=CZ+2.75;
+    ST.box(x1-x0,0.04,z1-z0,0.2,0xF1E9DA,(x0+x1)/2,0.1,(z0+z1)/2);
+    for(const [px,pz] of [[x0+0.15,z0+0.15],[x1-0.15,z0+0.15],[x0+0.15,z1-0.15],[x1-0.15,z1-0.15],[(x0+x1)/2,z0+0.15],[(x0+x1)/2,z1-0.15]]) TP.box(0.14,2.9,0.14,0.04,0x9AA3BA,px,1.45,pz);
+    for(const z of [z0+0.15,z1-0.15]) TP.box(x1-x0,0.16,0.16,0.04,0xE5484D,(x0+x1)/2,2.88,z); for(const x of [x0+0.15,x1-0.15]) TP.box(0.16,0.16,z1-z0,0.04,0xE5484D,x,2.88,(z0+z1)/2);
+    for(let i=0;i<11;i++) TP.box(0.14,0.1,z1-z0+0.3,0.03,i%2?0xF4F6FB:0xF8D9D9,x0+0.35+i*(x1-x0-0.7)/10,3.02,(z0+z1)/2);
+    TP.box(x1-x0+0.1,0.24,0.08,0.03,0xF4F6FB,(x0+x1)/2,2.66,z1-0.1);
+    /* meja saji + dapur kecil di belakangnya */
+    TP.box(0.62,0.98,3.1,0.06,0xF4F6FB,CX-2.55,0.49,CZ+0.1); TP.box(0.74,0.06,3.2,0.02,0xC9D2E8,CX-2.55,1.0,CZ+0.1);
+    const food=[0xF0B43C,0x5FB880,0xE0573B,0xF6E7C1,0x9C6B3E,0x5FB880];
+    for(let k=0;k<6;k++){ const fz2=CZ-1.15+k*0.5; TP.box(0.36,0.06,0.36,0.02,0xD7DCEA,CX-2.55,1.06,fz2); TP.box(0.28,0.05,0.28,0.04,food[k],CX-2.55,1.1,fz2); }
+    TP.box(0.5,0.32,3.0,0.03,0x9DB4EE,CX-2.55,1.3,CZ+0.1);
+    TP.box(0.55,0.95,2.9,0.05,0xE9EDF8,CX-4.05,0.48,CZ+0.05); TP.box(0.5,0.06,0.5,0.02,0x23262F,CX-4.05,0.98,CZ-0.75); TP.box(0.5,0.06,0.5,0.02,0x23262F,CX-4.05,0.98,CZ+0.05);
+    TP.add(gCyl(0.2,0.28,12),0xC9D2E8,CX-4.05,1.15,CZ-0.75); TP.add(gCyl(0.16,0.34,12),0xC9D2E8,CX-4.05,1.18,CZ+0.05);
+    TP.box(0.55,1.7,0.6,0.06,0xF4F6FB,CX-4.05,0.85,CZ+1.6); TP.box(0.04,0.5,0.03,0.01,MT,CX-3.77,1.1,CZ+1.6);
+    /* papan menu + nama */
+    TP.box(0.08,0.9,1.5,0.03,0x1E2A55,CX-4.33,2.0,CZ+0.1);
+    decal(g,storeSign('Kantin','#E5484D'),1.6,0.3,(x0+x1)/2,2.66,z1-0.04);
+    /* dua meja panjang + bangku (titik duduk = C.seats) */
+    for(const tz of [CZ-1.2,CZ+1.2]){ TP.box(2.45,0.06,0.74,0.03,WD,CX+0.7,0.76,tz); for(const lx of [-0.45,1.85]) TP.box(0.08,0.72,0.6,0.02,MT,CX+lx,0.38,tz);
+      TP.add(gCyl(0.05,0.16,8),0xFFFFFF,CX+0.7,0.87,tz); TP.add(gCyl(0.04,0.12,8),0xE5484D,CX+0.55,0.86,tz+0.05); }
+    for(const bz of [CZ-1.97,CZ-0.43,CZ+0.43,CZ+1.97]){ TP.box(2.4,0.07,0.34,0.02,WD,CX+0.7,0.47,bz); for(const lx of [-0.35,1.75]) TP.box(0.07,0.44,0.28,0.02,MT,CX+lx,0.22,bz); }
+    /* galon, wastafel, tempat sampah, pot tanaman */
+    TP.box(0.36,0.85,0.36,0.04,0xF4F6FB,x1-0.45,0.43,z0+0.45); TP.add(gCyl(0.15,0.42,12),0x7FC4F0,x1-0.45,1.07,z0+0.45);
+    TP.box(0.7,0.85,0.42,0.04,0xE9EDF8,x0+1.4,0.43,z0+0.4); TP.box(0.5,0.05,0.3,0.02,0x9DB4EE,x0+1.4,0.87,z0+0.4);
+    TP.add(gCyl(0.2,0.55,10),0x178A55,x1-0.45,0.28,z1-0.5); TP.add(gCyl(0.24,0.12,12),MT,x0+0.4,0.06,z1-0.45); TP.add(gSph(0.42,10),0x5FB880,x0+0.4,0.55,z1-0.45);
+    BB.add(x1-x0+0.6,z1-z0+0.6,(x0+x1)/2,(z0+z1)/2,0.07,true);
+    View.lampPts.push([CX-0.6+s.ox,2.6,CZ+s.oz]);
+    /* jalur pejalan kaki dari area kerja ke kantin */
+    const lx=C.lane, za=C.entry.z+0.9, zb=fz-7.6; for(let z=za;z<zb;z+=1.4){ LN.box(0.1,0.01,0.8,0,0xFFFFFF,lx-0.7,0.1,z+0.4); LN.box(0.1,0.01,0.8,0,0xFFFFFF,lx+0.7,0.1,z+0.4); } }
   for(let i=0;i<2;i++) for(let j=0;j<2;j++) for(let l=0;l<(i+j===1?2:1);l++) makePallet_static('crate',R,2,W/2+12.6+i*1.3,GY+l*1.18,fz-3.6-j*1.3,0.9,g);
   /* barisan forklift parkir di stasiun pengisian (dekorasi, seperti referensi) */
   const nPark=s.forks.length>=3?4:3;
@@ -316,7 +346,7 @@ function syncView(dt,now){
     m.g.position.set(f.pos.x,PH,f.pos.z); m.g.rotation.y=f.heading; m.car.position.y=f.lift; m.car.rotation.x=-0.06*clamp(f.lift/0.2,0,1);
     v.spin+=(f.path?f.v*(f.rev?-1:1):0)*dt/0.22; for(const a of m.axles) a.userData.spin.rotation.x=v.spin;
     const want=f.path?clamp(-Math.atan(1.0*f.curv),-0.7,0.7):v.steerA*0.98; v.steerA=lerp(v.steerA,want,Math.min(1,dt*6)); m.rsteer.rotation.y=v.steerA;
-    const ni=f.shiftNow==='malam'; if(m.night.visible!==ni){ m.night.visible=ni; m.day.visible=!ni; }
+    const ni=f.shiftNow==='malam', em=!!(f.lunch&&m.empty); if(m.night.visible!==(ni&&!em)||m.day.visible!==(!ni&&!em)){ m.night.visible=ni&&!em; m.day.visible=!ni&&!em; if(m.empty) m.empty.visible=em; }
     m.beacon.material.emissiveIntensity=forkWorking(f)?0.35+0.65*Math.max(0,Math.sin(now/180+f.restIdx)):0.15;
   }
   const wet=(ENV.rain||0)>0.35;

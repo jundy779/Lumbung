@@ -238,6 +238,8 @@ Siklus: `open` → (aksi) `done` "Sedang ditindaklanjuti" → hilang dari daftar
 | Kendaraan berhenti di atas zebra cross | 0 |
 | Mobil menyerempet penyeberang jalan | 0 |
 | Penyeberang di zebra saat kendaraan arahnya hijau | 0 |
+| Pejalan kaki tertahan di tempat > 30 dtk (saling tunggu) | 0 |
+| Lebih dari 1 forklift per gudang istirahat bersamaan / pekerja tertahan ke-dari kantin | 0 |
 | Pintu truk dibuka di jalan raya | 0 |
 | Cross-dock: truk merapat di dock arah yang salah | 0 |
 | Gudang dingin: palet dipindah sebelum cek suhu | 0 |
@@ -299,10 +301,15 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 | Waktu peringatan ≠ jam di bar atas | `nowWIB()` vs jam simulasi | gunakan `simNow()` untuk semua stempel waktu kejadian |
 | Pintu truk dibuka di jalan raya | titik berhenti sebelum mundur berada di lajur jalan | titik berhenti harus di dalam halaman (`yardZ`) |
 | Truk berhenti di zebra cross | garis stop & titik berhenti di dalam area zebra | garis stop di belakang zebra (`j.pre`), di lajur kiri |
+| Mobil saling kunci di persimpangan (v38→v39) | mobil depan keluar antrean (mengalah ke penyeberang), mobil di belakangnya merebut klaim | hanya kendaraan terdepan di lajurnya yang boleh mengklaim persimpangan |
+| Dua operator gudang berhadapan selamanya (sejak v29) | keduanya menganggap yang lain penghalang diam | pejalan kaki yang tertahan 1,5 dtk mengalah (ID lebih besar) dan menyingkir; selalu ada pemeriksa "tertahan > 30 dtk" untuk setiap jenis agen |
+| Uji bergantung jam dinding | pemanasan startup berjalan di jam 12 bawaan, jendela makan ikut aktif | fitur berbasis jam ditahan selama pemanasan (`LUNCH_HOLD`) |
 
 ---
 
 ## 15. Status & Backlog
+
+**Selesai (v39):** istirahat makan & kantin. c_sim: `LUNCH` (pagi 12.00, malam 00.00, 1 jam, dua gelombang 30 mnt), `lunchNow`, `canteen(s)` (titik duduk, meja saji, lajur jalan, di-cache `s.cant`), `lunchVia`, `lunchWant`/`lunchPlan`/`lunchBack` (antrean aksi orang, label jalan), `forkLunch` (satu forklift per gudang bergiliran, bukan robotic), `lunchTick` (log), `LUNCH_HOLD` saat pemanasan, `PLANS.canteen` (petugas kantin). b_layout: `lunchSeat`/`lunchWave` untuk operator gudang & QC, peran 'Petugas kantin'. View: kantin di `buildSiteView`, `empty` (forklift tanpa operator). UI: `lunchInfo(s)`, chip Istirahat, shot sinematik kantin. Perbaikan: klaim persimpangan hanya untuk mobil terdepan, pejalan kaki mengalah (`a.bt`, sidestep), `xingFree` untuk penyeberang. Pemeriksa baru `lunch`, `personStall`; `selftestInit` menerima jam angka.
 
 **Selesai (v38):** jenis jalan (token `--road-art`, `--road-toll`, garis ganda kuning arteri, `roadInfo` hover, kartu `#roadLegend`), mobil belok/putar balik (`initTurns`, `carPlan` per persimpangan di `c.plans`, `planMove`, `laneRoomAfter`, `startTurn`/`stepTurn` kurva Bezier kubik, `c.home` untuk lajur awal saat muncul ulang), lampu penyeberang (`pedPhase`, `buildPedSignals`, `syncPedSignals`), penyeberang jalan (`PLANS.cross`, `xingPts`, `pedCanStart`, `zebraBusy`, `movSides`, aksi orang `until`), `gateLoad` untuk menolak kiriman/alihan saat antrean gerbang penuh.
 
