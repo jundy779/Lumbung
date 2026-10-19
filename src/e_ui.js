@@ -432,7 +432,7 @@ $('#zOut').onclick=()=>cam.zoomGoal=clamp(cam.zoomGoal/1.3,0.4,3.4);
 $('#rL').onclick=()=>cam.thetaGoal-=Math.PI/2;
 $('#rR').onclick=()=>cam.thetaGoal+=Math.PI/2;
 $('#home').onclick=()=>{select(null);home();};
-function closeMenus(){ $('#siteMenu').hidden=true; $('#siteBtn').setAttribute('aria-expanded','false'); $('#results').hidden=true; $('#notif').hidden=true; $('#bell').setAttribute('aria-expanded','false'); }
+function closeMenus(){ closeSearch(); $('#siteMenu').hidden=true; $('#siteBtn').setAttribute('aria-expanded','false'); $('#results').hidden=true; $('#notif').hidden=true; $('#bell').setAttribute('aria-expanded','false'); }
 $('#siteBtn').onclick=e=>{ e.stopPropagation(); const m=$('#siteMenu'), open=m.hidden; closeMenus(); if(!open) return;
   const r=$('#siteBtn').getBoundingClientRect(); m.style.left=Math.min(r.left,innerWidth-300)+'px';
   m.innerHTML=SITES().map((s,i)=>{const n=siteNumbers(s); return `<button data-site="${i}" aria-current="${i===active}"><span class="sid">${s.id}</span><span class="sname"><b>${s.name}</b><small>${s.type} · ${Math.round(n.stock/s.capacity*100)}% penuh · ${n.docked}/${s.bays.length} di dock</small></span></button>`;}).join('');
@@ -472,16 +472,34 @@ function searchIndex(){
   for(const p of Store.tables.people.values()) if(p.siteId) items.push({label:p.name,sub:`Pekerja · ${p.role} · ${p.siteId}`,icon:IC.person,go:()=>select(p,true)});
   return items;
 }
-function renderResults(){ const v=q.value.trim().toLowerCase(); if(!v){res.hidden=true;return;}
-  hits=searchIndex().filter(it=>(it.label+' '+it.sub).toLowerCase().includes(v)).slice(0,8); hi=0;
-  res.innerHTML=hits.length?hits.map((h,i)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span><b>${h.label}</b><small>${h.sub}</small></span></button>`).join(''):`<div class="empty">Tidak ada yang cocok dengan “${q.value.replace(/</g,'&lt;')}”. Coba ID truk (mis. TRK-3104), forklift, bay, palet, atau nomor pengiriman.</div>`;
+/* v32.1 · pencarian ramah ponsel: layar penuh di ≤820 px, saran cepat saat kolom kosong, teks yang cocok disorot */
+const phoneUI=()=>matchMedia('(max-width:820px)').matches;
+const Q_SUGGEST=['Area tunggu','Check-in gerbang','Memuat','Membongkar','Forklift','Toko','Petugas gerbang'];
+function hl(text,v){ const t=String(text), i=v?t.toLowerCase().indexOf(v):-1; return i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+v.length))+'</mark>'+esc(t.slice(i+v.length)); }
+const rowHTML=(h,i,v)=>`<button data-i="${i}" class="${i===hi?'on':''}"><span class="dic" style="width:30px;height:30px;border-radius:8px">${h.icon}</span><span class="rtx"><b>${hl(h.label,v)}</b><small>${hl(h.sub,v)}</small></span>${phoneUI()?`<span class="rgo">${IC.chev}</span>`:''}</button>`;
+function renderResults(){ const v=q.value.trim().toLowerCase(); $('#qClear').hidden=!q.value;
+  if(!v){ if(document.activeElement!==q&&!document.body.classList.contains('search-open')){ res.hidden=true; return; }
+    hits=SITES().map((s,i)=>({label:s.name,sub:`${s.type} · ${s.id}`,icon:IC.depot,go:()=>switchSite(i)})); hi=-1;
+    const idx=searchIndex().map(it=>(it.label+' '+it.sub).toLowerCase()), cnt=x=>{ const k=x.toLowerCase(); let n=0; for(const t of idx) if(t.includes(k)) n++; return n; };
+    res.innerHTML=`<div class="rh">Pencarian cepat</div><div class="chips2">${Q_SUGGEST.map(x=>{ const n=cnt(x); return `<button data-sug="${esc(x)}" class="${n?'':'nil'}">${esc(x)}<i>${n}</i></button>`; }).join('')}</div><div class="rh">Gudang</div>`+hits.map((h,i)=>rowHTML(h,i,'')).join('');
+    res.hidden=false; return; }
+  const all=searchIndex().filter(it=>(it.label+' '+it.sub).toLowerCase().includes(v)), lim=phoneUI()?12:8; hits=all.slice(0,lim); hi=0;
+  res.innerHTML=hits.length?`<div class="rh">Hasil<span>${all.length>lim?`${lim} dari ${all.length} · ketik lebih spesifik`:`${all.length} ditemukan`}</span></div>`+hits.map((h,i)=>rowHTML(h,i,v)).join('')
+    :`<div class="empty">Tidak ada yang cocok dengan “${esc(q.value)}”. Coba ID truk (mis. TRK-3104), forklift, bay, palet, nomor pengiriman, atau status seperti “area tunggu”.</div>`;
   res.hidden=false; }
-q.addEventListener('input',renderResults); q.addEventListener('focus',renderResults);
+const Q_PH=q.placeholder;
+function openSearch(){ if(document.body.classList.contains('search-open')) return; q.placeholder='Cari truk, palet, gudang, status…'; document.body.classList.add('search-open'); q.focus({preventScroll:true}); renderResults(); }
+function closeSearch(){ if(!document.body.classList.contains('search-open')) return; document.body.classList.remove('search-open'); q.placeholder=Q_PH; q.value=''; $('#qClear').hidden=true; res.hidden=true; q.blur(); }
+$('.search').addEventListener('click',e=>{ if(phoneUI()&&!document.body.classList.contains('search-open')&&!e.target.closest('#results')){ e.stopPropagation(); openSearch(); } });
+$('#qBack').addEventListener('click',e=>{ e.stopPropagation(); closeSearch(); });
+$('#qClear').addEventListener('click',e=>{ e.stopPropagation(); q.value=''; q.focus(); renderResults(); });
+q.addEventListener('input',renderResults); q.addEventListener('focus',()=>{ if(phoneUI()) openSearch(); else renderResults(); });
 q.addEventListener('keydown',e=>{
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!hits.length) return; hi=(hi+(e.key==='ArrowDown'?1:-1)+hits.length)%hits.length; res.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===hi)); }
-  else if(e.key==='Enter'&&hits[hi]){ hits[hi].go(); q.value=''; closeMenus(); q.blur(); }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!hits.length) return; hi=(hi+(e.key==='ArrowDown'?1:-1)+hits.length)%hits.length; res.querySelectorAll('[data-i]').forEach((b,i)=>b.classList.toggle('on',i===hi)); }
+  else if(e.key==='Enter'&&hits[Math.max(0,hi)]){ hits[Math.max(0,hi)].go(); q.value=''; closeMenus(); q.blur(); }
   else if(e.key==='Escape'){ q.value=''; closeMenus(); q.blur(); } });
-res.addEventListener('click',e=>{const b=e.target.closest('[data-i]'); if(!b) return; hits[+b.dataset.i].go(); q.value=''; closeMenus();});
+res.addEventListener('click',e=>{ const sg=e.target.closest('[data-sug]'); if(sg){ e.stopPropagation(); q.value=sg.dataset.sug; renderResults(); if(!phoneUI()) q.focus(); return; }
+  const b=e.target.closest('[data-i]'); if(!b) return; hits[+b.dataset.i].go(); q.value=''; closeMenus(); res.hidden=true; });
 addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement!==$('#tvq')){ e.preventDefault(); q.focus(); } else if(e.key==='Escape'&&document.activeElement!==q){ select(null); document.body.classList.remove('ops-open'); } });
 const busy={};
 ['detail','track','ops'].forEach(id=>{const el=document.getElementById(id);

@@ -1,5 +1,12 @@
 # Changelog
 
+## v32.1 · 19 Okt 2026
+- **Pencarian di HP diperbaiki**. Sebelumnya kolom pencarian di layar 390 px terpotong jadi satu huruf dan hasilnya berupa dropdown kecil. Sekarang di layar ≤ 820 px kolom pencarian jadi tombol kaca pembesar, dan saat diketuk terbuka layar pencarian penuh: tombol kembali, kolom besar dengan teks 16 px (iOS tidak lagi zoom otomatis), tombol hapus teks, keyboard dengan tombol "Cari", dan daftar hasil yang mudah disentuh (baris ±58 px).
+- Saat kolom masih kosong muncul **Pencarian cepat** (Area tunggu, Check-in gerbang, Memuat, Membongkar, Forklift, Toko, Petugas gerbang) lengkap dengan jumlahnya saat ini, plus daftar lima gudang. Berlaku juga di desktop.
+- Teks yang cocok disorot di hasil, jumlah hasil ditampilkan ("8 dari 23 · ketik lebih spesifik"), di HP sampai 12 hasil.
+- Memilih hasil langsung menutup layar pencarian dan membuka panel objek. Tombol kembali atau Esc menutupnya.
+- Teks hasil pencarian kini di-escape (bagian dari temuan audit #2) dan warnanya tidak lagi pudar di desktop.
+
 ## v32 · 19 Okt 2026
 - **Check-in gerbang**: setiap gudang punya pos Check-in dan palang di ujung jalan masuk halaman. Truk berhenti di palang, petugas gerbang berjalan ke jendela sopir untuk mengecek surat jalan, kembali ke pos, lalu membuka palang. Palang turun lagi setelah ekor truk lewat.
 - **Area tunggu truk**: truk tidak lagi menunggu di luar peta saat semua bay penuh. Truk boleh datang, check-in, lalu menunggu di lajur halaman bertanda AREA TUNGGU. Bay yang kosong diberikan berurutan sesuai urutan check-in (FIFO), jadi truk yang sudah dapat bay tidak pernah terjebak di belakang truk yang masih menunggu.

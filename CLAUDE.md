@@ -6,6 +6,8 @@ Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Ka
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
 
+**Perubahan v32.1 (19 Okt 2026), pencarian ponsel**: markup `.search` kini `#qBack` + `.qfield` (ikon, `#q`, `#qClear`, kbd) + `#results`. Di ≤820 px `.search` = tombol 40 px; `openSearch()`/`closeSearch()` mengatur kelas body `search-open` (layar pencarian penuh, `.results` fixed). `renderResults()` menampilkan saran cepat `Q_SUGGEST` (dengan jumlah) + daftar gudang saat kosong, sorotan `hl()`, batas 8 (desktop) / 12 (ponsel). `closeMenus()` ikut menutup pencarian.
+
 **Perubahan v32 (19 Okt 2026), check-in gerbang & area tunggu (backlog C)**:
 - Geometri (koordinat lokal site, sama untuk semua site karena `xL=-51.75`): truk berhenti di gerbang dengan pusat `xc=xL+21` di akhir kurva masuk (`yardTail`), palang di `armX=xL+25.2` membentang `yardZ-1.8..yardZ+2.1`, pos Check-in di sisi selatan lajur (`booth`), petugas berdiri di `home`. Ujung area tunggu `headX=bay0.x-6.4` (depan truk 0,6 m sebelum region bay pertama). Semua di `siteGate(s)` (c_sim.js, setelah `TRUCK_SPAWN`), di-cache di `s.tgate` (hidden).
 - Kapasitas `g.cap` = jumlah truk yang muat sepenuhnya di antara palang dan `headX` (2 untuk BGR-01/BKS-01/BGR-03, 1 untuk BGR-02/DPK-01).
@@ -389,7 +391,7 @@ Atau di browser: `index.html?selftest&menit=13&jam=malam&seed=7`. Untuk menyelid
 | 10 | Rendah | Dua listener `pointermove` mengatur kursor dengan cara berbeda (class `hover` vs `style.cursor`) | e_ui.js:341, 466 | Satukan |
 | 11 | Rendah | Kode mati: `makeGlowPointsOld`, `bodyHit`, `offsetPoly`, `labelTex`, `ribMat`, `SEVL`, `_I`, `ACT_LABEL`, `DIRV`, blok `if(cine.on){}`; `LOWP` dan `LOWPOWER` duplikat | beberapa | Bersihkan saat refactor modul |
 | 12 | Rendah | Dark mode belum konsisten (warna hardcode di splash, shiftbar, toast, kartu peringatan) | shell.html | Pindahkan ke token CSS |
-| 13 | Rendah | Pencarian di ponsel hampir tak terpakai (placeholder terpotong jadi 1 huruf di 390 px) | shell.html @820 | Ikon kaca pembesar yang membuka overlay pencarian |
+| 13 | ✅ Selesai v32.1 | Pencarian di ponsel hampir tak terpakai (placeholder terpotong jadi 1 huruf di 390 px) | shell.html @820 | Ikon kaca pembesar yang membuka overlay pencarian |
 | 14 | Info | README menyebut "~310 KB", hasil build sekarang 321 KB; README menyebut tabel hasil uji otomatis, tetapi skrip ujinya tidak ada di repo (sekarang ada `tests/headless-sim.mjs` sebagai awal) | README | Perbarui |
 | 15 | Info | Teks di trailer truk mencetak `lumbung.id/lacak`, sedangkan domain resmi `lumbung.fusionify.id` | d_part1.js:166 | Samakan, atau pastikan domain itu memang dimiliki |
 | 16 | ✅ Selesai v30 (PT Fusionify Digital) | README (baris 7 & 289), `package.json`, dan KONTEKS-PROYEK.md menulis "PT Fusionify Digital Group", sedangkan nama badan hukum FUSIONIFY yang dipakai di materi lain adalah "PT Fusionify Digital Store" | README, package.json | Pastikan mana yang benar lalu samakan |
