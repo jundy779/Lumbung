@@ -188,7 +188,8 @@ function buildSiteView(s){
     LN.box(0.08,0.01,4.8,0,0xFFFFFF,x-1.45,0.1,z);
     if(prof==='dc'){ if(row===0){ if(R()<0.85) addVan(TP,0xF4F6FB,0x7C3AED,x,z,Math.PI); } else for(let m=0;m<3;m++) if(R()<0.8) addMotor(TP,pick([0x2E5BFF,0xE5484D,0x16A34A,0x23262F],R),x-0.9+m*0.9,z,0); }
     else if(R()<0.72) addCar(PK,pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0x3B4A7A,0xE0573B,0x17A090],R),x,z,row?0:Math.PI); }
-  BB.add(W,15,0,-fz-9.7,0.1,true);
+  /* bayangan lembut parkiran ikut disembunyikan Tampilan Bersih bersama mobil parkir (sebelumnya tertinggal sebagai noda gelap di belakang gedung) */
+  { const PB=new BlobBatch(), pg=new THREE.Group(); PB.add(W,15,0,-fz-9.7,0.1,true); PB.build(pg); g.add(pg); if(prof!=='dc') View.clutter.push(pg); }
   for(let i=0;i<2;i++) rectLine(LN,W/2+9+i*2.8,fz+2,2.5,7.4,0.1);
   const GL=new Parts(), FC=0xC7CFE6;
   const fence=(x0,z0,x1,z1)=>{const len=Math.hypot(x1-x0,z1-z0), n=Math.ceil(len/2.4), ry=Math.atan2(x1-x0,z1-z0);
@@ -347,6 +348,7 @@ function syncView(dt,now){
     updatePallet(v.mesh,false);
   }
   for(const [id,v] of View.pallets){ if(!seen.has(id)){ freePallet(v.mesh); v.mesh.parent&&v.mesh.parent.remove(v.mesh); View.pallets.delete(id); } }
+  syncRail(dt);
   flushPools();
 }
 /* ---------- posisi dunia & picking ---------- */
@@ -471,7 +473,7 @@ function updateWeather(dt,now){
   for(const nm of View.nightMats) nm.m.emissiveIntensity=nm.max*E.n;
   const lon=L>0.05; LAMPG.m.visible=POOLS_L.visible=lon&&!CLEAN; View.dockGlow.m.visible=lon; LAMPG.m.material.opacity=0.9*L; POOLS_L.material.opacity=0.34*L; View.dockGlow.m.material.opacity=0.75*L;
   if(lon){ LAMPG.update(LAMPG.n); View.dockGlow.update(View.dockGlow.n); }
-  updateSignalLamps(dt,now); updateVehicleLights(L);
+  updateSignalLamps(dt,now); updateVehicleLights(L); updateClouds(dt,E);
   /* hujan */
   const rainAmt=Store.weather.condition==='rain'?1:storm?1.6:0; ENV.rain=(ENV.rain||0)+(rainAmt-(ENV.rain||0))*k;
   const R=RAIN; R.m.visible=ENV.rain>0.02;
@@ -623,3 +625,105 @@ function buildStoreView(s){
 /* ---------- mode tampilan bersih: sembunyikan keramaian kota, fokus ke operasi gudang ---------- */
 let CLEAN=false;
 function applyClean(on){ CLEAN=on; for(const o of View.clutter) o.visible=!on; if(SIGPOOL) SIGPOOL.mesh.visible=!on; }
+
+/* ---------- v36: KRL layang ----------
+   Jalur kereta komuter layang di atas Jl. z=-38 (di belakang deretan gudang BKS-01, BGR-01, BGR-02), dengan Stasiun Cibinong di x=0.
+   Murni tampilan: tidak ada perlintasan sebidang, jadi truk & mobil tidak terpengaruh. Pilar diletakkan di median, jauh dari persimpangan. */
+const RAIL={z:-38,y:9.2,x0:-780,x1:780,v:16,acc:0.7,dwell:24,idle:40,t:0,cars:8,carL:19.8,trains:[],stX:0,stName:'Stasiun Cibinong'};
+RAIL.top=RAIL.y+0.66;
+function railSchedule(){ const R=RAIL, D=R.v*R.v/(2*R.acc), L0=R.x1, cruise=(L0-D)/R.v, td=R.v/R.acc; return {D,L0,cruise,td,T:cruise*2+td*2+R.dwell,P:cruise*2+td*2+R.dwell+R.idle}; }
+/* posisi pusat rangkaian (s dari ujung barat/timur), kecepatan, dan fase */
+function trainAt(t){ const R=RAIL, S=railSchedule(); let u=((t%S.P)+S.P)%S.P;
+  if(u<S.cruise) return {s:R.v*u,v:R.v,ph:'jalan'}; u-=S.cruise;
+  if(u<S.td) return {s:S.L0-S.D+R.v*u-0.5*R.acc*u*u,v:R.v-R.acc*u,ph:'melambat'}; u-=S.td;
+  if(u<R.dwell) return {s:S.L0,v:0,ph:'berhenti',left:R.dwell-u}; u-=R.dwell;
+  if(u<S.td) return {s:S.L0+0.5*R.acc*u*u,v:R.acc*u,ph:'berangkat',dep:u}; u-=S.td;
+  if(u<S.cruise) return {s:S.L0+S.D+R.v*u,v:R.v,ph:'jalan'}; return {s:2*S.L0+400,v:0,ph:'luar'}; }
+function railTex(text){ return canvasTex(512,64,(x,w,h)=>{ x.fillStyle='#1B2A6B'; x.fillRect(0,0,w,h); x.fillStyle='#F2B53A'; x.fillRect(0,h-6,w,6);
+  x.fillStyle='#fff'; x.font='700 34px "Plus Jakarta Sans",system-ui,sans-serif'; x.textBaseline='middle'; x.fillText(text,22,h/2-2); x.textAlign='right'; x.font='600 24px system-ui'; x.fillStyle='#BFD0FF'; x.fillText('KRL · Commuter',w-20,h/2-2); }); }
+function buildRailView(){
+  const R=RAIL, Z=R.z, Y=R.y, g=new THREE.Group(); scene.add(g); const P=new Parts(), TOP=Y+0.45;
+  const vx=[]; for(let k=GRID.x0;k<=GRID.x1+1;k++) vx.push((k-0.5)*PX);
+  const nearJ=x=>Math.abs(x)<262&&vx.some(j=>Math.abs(x-j)<13);
+  const STW=82; /* setengah panjang stasiun */
+  /* pilar T di median jalan */
+  for(let x=R.x0+12;x<=R.x1;x+=24){ if(nearJ(x)) continue; const st=Math.abs(x-R.stX)<STW+2;
+    P.box(1.1,Y-0.45,1.3,0.18,0xD3D9E6,x,(Y-0.45)/2,Z); P.box(1.5,0.95,st?13.6:7.8,0.14,0xC6CDDD,x,Y-0.55,Z); }
+  /* dek + parapet + kerikil + rel */
+  P.box(R.x1-R.x0,0.9,7.4,0.08,0xE7EBF4,0,Y,Z); P.box(R.x1-R.x0,0.16,7.5,0.02,0xA9B2C9,0,Y-0.52,Z);
+  for(const s of [-1,1]){ P.box(R.x1-R.x0,0.75,0.26,0.05,0xF3F5FA,0,TOP+0.37,Z+s*3.57); P.box(R.x1-R.x0,0.06,0.3,0.02,0x2E5BFF,0,TOP+0.52,Z+s*3.72); }
+  for(const tz of [-1.8,1.8]){ P.box(R.x1-R.x0,0.13,2.7,0.03,0x8E919C,0,TOP+0.06,Z+tz); for(const rz of [-0.72,0.72]) P.box(R.x1-R.x0,0.09,0.09,0,0x4E5466,0,TOP+0.17,Z+tz+rz); }
+  /* tiang listrik aliran atas (LAA) */
+  for(let x=R.x0+24;x<=R.x1;x+=48){ if(Math.abs(x-R.stX)<STW) continue; for(const s of [-1,1]) P.box(0.2,6.2,0.2,0.04,0x9AA3BA,x,TOP+3.1,Z+s*3.35); P.box(0.14,0.18,6.9,0.03,0x9AA3BA,x,TOP+5.7,Z); }
+  for(const tz of [-1.8,1.8]) P.box(R.x1-R.x0,0.04,0.04,0,0x5A6178,0,TOP+5.35,Z+tz);
+  /* Stasiun Cibinong: peron samping, kanopi, tangga ke trotoar */
+  const sx=R.stX; P.box(STW*2+4,0.9,14.2,0.08,0xE7EBF4,sx,Y,Z);
+  for(const s of [-1,1]){ const pz=Z+s*5.35;
+    P.box(STW*2,1.08,3.3,0.06,0xDDE2EE,sx,TOP+0.54,pz); P.box(STW*2,0.05,0.35,0,0xF2B53A,sx,TOP+1.1,Z+s*3.85);
+    P.box(STW*2,1.1,0.18,0.05,0xF3F5FA,sx,TOP+1.63,Z+s*7.0);
+    for(let x=sx-STW+8;x<=sx+STW-8;x+=16) P.box(0.22,4.3,0.22,0.05,0xB9C1D8,x,TOP+3.25,Z+s*6.6);
+    for(let x=sx-STW+14;x<=sx+STW-14;x+=24) P.box(1.4,0.5,0.45,0.08,0x2E5BFF,x,TOP+1.35,Z+s*6.4); }
+  /* kanopi per peron (bagian tengah terbuka supaya kereta tetap terlihat dari atas) */
+  for(const s of [-1,1]){ P.add(gR(STW*2+4,0.22,4.6,0.1),0xDCE3F2,sx,TOP+5.45,Z+s*5.6,0,1,1,1,s*0.08,0);
+    for(let x=sx-STW;x<=sx+STW;x+=3.2) P.add(gR(0.08,0.05,4.5,0),0xC3CCE2,x,TOP+5.58,Z+s*5.6,0,1,1,1,s*0.08,0);
+    P.box(STW*2+4.2,0.5,0.28,0.06,0x2E5BFF,sx,TOP+5.25,Z+s*7.85); P.box(STW*2+4.2,0.12,0.2,0.03,0xF2B53A,sx,TOP+4.98,Z+s*7.85); }
+  /* tangga: dari peron turun ke trotoar di kedua sisi jalan (di luar zebra persimpangan) */
+  const stair=(x0,x1,pz)=>{ const len=Math.abs(x1-x0), h=TOP+1.08, ang=Math.atan2(h,len), d=Math.sign(x1-x0);
+    P.add(gR(Math.hypot(len,h),0.35,2.4,0.05),0xD8DDE9,(x0+x1)/2,h/2,pz,0,1,1,1,0,-d*ang);
+    for(const s of [-1,1]) P.add(gR(Math.hypot(len,h),0.07,0.07,0),0x9AA3BA,(x0+x1)/2,h/2+1.0,pz+s*1.15,0,1,1,1,0,-d*ang);
+    P.box(2.6,h,2.6,0.1,0xCDD3E2,x0-d*1.3,h/2,pz); };
+  stair(sx+62,sx+82,Z+6.1); stair(sx-62,sx-82,Z-6.1);
+  const m=P.build(.7); m.castShadow=true; m.receiveShadow=true; g.add(m);
+  /* papan nama stasiun di sisi kanopi yang menghadap kamera */
+  const sm=new THREE.MeshBasicMaterial({map:railTex(R.stName)});
+  for(const [dx,s] of [[-40,1],[40,1],[0,-1]]){ const b=new THREE.Mesh(new THREE.PlaneGeometry(10,1.25),sm); b.position.set(sx+dx,TOP+4.25,Z+s*7.98); if(s<0) b.rotation.y=Math.PI; g.add(b); }
+  for(let x=sx-STW+10;x<=sx+STW-10;x+=20) for(const s of [-1,1]) View.lampPts.push([x,TOP+5.1,Z+s*5.4]);
+  /* rangkaian kereta: badan, ujung kabin, jendela (menyala malam) */
+  const B=new Parts(), CB=new Parts(), WN=new Parts(), carL=19.6, base=0.95;
+  const body=(Pp,cab)=>{ Pp.box(carL,3.0,2.9,0.38,0xF4F6FB,0,base+1.5,0); Pp.box(carL-1,0.55,2.5,0.1,0x3A3F4E,0,base-0.2,0);
+    Pp.box(carL+0.02,0.3,2.92,0.05,0x2E5BFF,0,base+0.62,0); Pp.box(carL+0.02,0.08,2.92,0,0xF2B53A,0,base+0.84,0);
+    for(const x of [-6.6,6.6]){ Pp.box(2.7,0.6,2.3,0.1,0x2B2F3A,x,base-0.35,0); for(const s of [-1,1]) for(const xx of [-0.9,0.9]) Pp.add(gCyl(0.42,0.2,12),0x23262F,x+xx,base-0.42,s*1.08,0,1,1,1,Math.PI/2,0); }
+    Pp.box(carL-0.6,0.1,2.5,0.05,0xCDD3E1,0,base+3.02,0); for(let x=-8;x<=8;x+=2) Pp.box(0.08,0.04,2.4,0,0xB9C1D3,x,base+3.08,0);
+    for(const x of [-5,5]){ Pp.box(3.0,0.38,1.7,0.12,0x9AA3BA,x,base+3.25,0); Pp.add(gCyl(0.42,0.06,14),0x5A6178,x+0.6,base+3.46,0); }
+    for(const x of [-7.6,-2.6,2.6,7.6]) for(const s of [-1,1]) Pp.box(1.25,2.05,0.04,0.02,0xC9D0E0,x,base+1.55,s*1.46);
+    if(cab){ Pp.box(0.5,2.3,2.7,0.3,0xF4F6FB,carL/2+0.15,base+1.65,0); Pp.box(0.06,1.15,2.3,0.08,0x16204A,carL/2+0.42,base+2.25,0);
+      for(const s of [-1,1]) Pp.box(0.06,0.18,0.42,0.04,0xFFF6D8,carL/2+0.43,base+0.95,s*0.95); Pp.box(0.06,0.3,1.2,0.02,0xF2B53A,carL/2+0.43,base+1.45,0);
+      Pp.box(1.8,0.12,0.14,0.02,0x3A3F4E,2,base+3.6,0); Pp.add(gR(1.9,0.06,0.06,0),0x3A3F4E,2.4,base+4.05,0,0,1,1,1,0,0.5); } };
+  body(B,false); body(CB,true);
+  for(const x of [-5.1,-0.1,5.1]) for(const s of [-1,1]){ WN.box(3.2,0.95,0.05,0.04,0xFFFFFF,x,base+2.15,s*1.47); }
+  for(const s of [-1,1]) for(const x of [-8.9,8.9]) WN.box(0.7,0.95,0.05,0.04,0xFFFFFF,x,base+2.15,s*1.47);
+  const n=2*R.cars, mat=gloss(stdMat(.35,true),0.3,0.8);
+  const mk=(geo,matr,cnt)=>{ const im=new THREE.InstancedMesh(geo,matr,cnt); im.castShadow=true; im.receiveShadow=true; im.frustumCulled=false; for(let i=0;i<cnt;i++) im.setMatrixAt(i,_hide); g.add(im); return im; };
+  const winMat=new THREE.MeshStandardMaterial({color:0x1B2340,roughness:0.15,metalness:0.1,emissive:C(0xFFE3A6),emissiveIntensity:0}); View.nightMats.push({m:winMat,max:1.1});
+  R.mid=mk(B.geometry(),mat,n), R.cab=mk(CB.geometry(),mat,4), R.win=mk(WN.geometry(),winMat,n); R.win.castShadow=false;
+  /* dua arah: timur (lajur kiri = sisi utara, z-1,8) dan barat (z+1,8), jadwal selang setengah periode */
+  const S=railSchedule(); R.trains=[{dir:1,z:Z-1.8,off:0,name:'Bogor → Jakarta Kota'},{dir:-1,z:Z+1.8,off:S.P*0.5,name:'Jakarta Kota → Bogor'}];
+}
+const _rm=new THREE.Matrix4(), _rq=new THREE.Quaternion(), _rv=new THREE.Vector3(), _rs=new THREE.Vector3(1,1,1), _re=new THREE.Euler();
+function syncRail(dt){ const R=RAIL; if(!R.mid) return; R.t+=dt; let ci=0, mi=0;
+  R.trains.forEach((tr,k)=>{ const st=trainAt(R.t+tr.off), S=railSchedule(); tr.st=st; const X=tr.dir*(st.s-S.L0), out=st.ph==='luar';
+    tr.x=X; for(let i=0;i<R.cars;i++){ const cx=X-tr.dir*(i-(R.cars-1)/2)*R.carL, cab=i===0||i===R.cars-1;
+      _re.set(0,(tr.dir>0?0:Math.PI)+(i===R.cars-1?Math.PI:0),0); _rq.setFromEuler(_re); _rm.compose(_rv.set(cx,R.top,tr.z),_rq,_rs);
+      const hide=out||Math.abs(cx)>R.x1+10;
+      if(cab){ R.cab.setMatrixAt(ci++,hide?_hide:_rm); } else R.mid.setMatrixAt(mi++,hide?_hide:_rm);
+      R.win.setMatrixAt(k*R.cars+i,hide?_hide:_rm); } });
+  R.mid.instanceMatrix.needsUpdate=R.cab.instanceMatrix.needsUpdate=R.win.instanceMatrix.needsUpdate=true; }
+
+/* ---------- v36: bayangan awan berjalan ----------
+   Awan menggelapkan cahaya matahari langsung (bukan cahaya langit) pada semua material standar lewat onBeforeCompile,
+   jadi tanah, atap, truk, dan rel ikut teduh secara konsisten. Tekstur awan disampel dari posisi dunia (x,z). */
+const CLOUD_U={cloudMap:{value:null},cloudOff:{value:new THREE.Vector2()},cloudAmt:{value:0}};
+function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt;
+    sh.vertexShader='varying vec3 vCloudW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;');
+    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\n'+sh.fragmentShader.replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
+/* dipasang di prototipe: semua MeshStandardMaterial (tanah, gedung, truk, kereta) ikut teduh tanpa menyentuh tiap pembuat material */
+THREE.MeshStandardMaterial.prototype.onBeforeCompile=cloudShader;
+let CLOUDS=null;
+function initClouds(){
+  const tex=canvasTex(512,512,(x,w,h)=>{ const r=rng(2611); x.clearRect(0,0,w,h);
+    for(let i=0;i<22;i++){ const cx=r()*w, cy=r()*h, rad=70+r()*120;
+      for(const ox of [-w,0,w]) for(const oy of [-h,0,h]){ const gr=x.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,rad); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(0.5,'rgba(0,0,0,.28)'); gr.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=gr; x.beginPath(); x.arc(cx+ox,cy+oy,rad,0,7); x.fill(); } } });
+  tex.encoding=THREE.LinearEncoding; tex.wrapS=tex.wrapT=THREE.RepeatWrapping; CLOUD_U.cloudMap.value=tex; CLOUDS={o:0}; }
+function updateClouds(dt,E){ if(!CLOUDS) return; const c=Store.weather.condition, want=(c==='clear'?0.3:c==='cloudy'?0.45:0)*(1-clamp(E.n*1.6,0,1))*(reduceMotion?0.6:1);
+  CLOUDS.o+=(want-CLOUDS.o)*Math.min(1,dt*0.8); CLOUD_U.cloudAmt.value=CLOUDS.o; const wind=(Store.weather.windKmh||8)/8;
+  CLOUD_U.cloudOff.value.x+=dt*0.0011*wind; CLOUD_U.cloudOff.value.y+=dt*0.0005*wind; }

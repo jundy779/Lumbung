@@ -344,6 +344,7 @@ function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
   $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
     <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+    <button class="cleanrow seedrow" data-photo="1"><span><b>Mode foto</b><small>Sembunyikan panel, atur kamera, lalu simpan gambar PNG (P)</small></span></button>
     <button class="cleanrow seedrow" data-copyseed="1"><span><b>Seed simulasi ${SEED}</b><small>${SEEDED?'Dipakai dari tautan':'Acak'} · salin tautan untuk mengulang kondisi awal</small></span></button>
     <h4>Waktu</h4><div class="seg">${Object.entries(TIME_MODES).map(([k,m])=>`<button data-time="${k}" aria-pressed="${c.mode===k}">${k==='live'?'● ':''}${m.label.replace(' (WIB)','')}</button>`).join('')}</div>
     <h4>Cuaca</h4><div class="wxg">${WX_ORDER.map(k=>`<button data-wx="${k}" aria-pressed="${w.condition===k}"><b>${WEATHER[k].icon}</b>${WEATHER[k].label}</button>`).join('')}</div>
@@ -372,6 +373,7 @@ $('#wxBtn').onclick=toggleEnv; $('#stormBtn').onclick=toggleEnv;
 $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.clean){ setClean(!CLEAN); renderEnvMenu(); return; }
   if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
+  if(b.dataset.photo){ $('#envMenu').hidden=true; startPhoto(); return; }
   if(b.dataset.copyseed){ const u=new URL(location.href); u.searchParams.set('seed',String(SEED)); const done=()=>showToast(`Tautan seed ${SEED} disalin`,'#16A34A');
     try{ navigator.clipboard.writeText(u.toString()).then(done,()=>showToast(u.toString(),'#2E5BFF')); }catch(_){ showToast(u.toString(),'#2E5BFF'); } return; }
   if(b.dataset.time) setTimeMode(b.dataset.time); if(b.dataset.wx) setWeather(b.dataset.wx); renderEnvMenu(); refreshUI(true); });
@@ -532,6 +534,9 @@ function cineCandidates(){
     const sup=s.people.find(p=>p.role==='Pengawas dock'); if(sup&&sup.pose) c.push({key:sup.id,score:3,rec:sup,zoom:3.1,phi:0.42,title:`${sup.name}`,sub:`${sup.doing} · ${s.name}`});
     c.push({key:s.id,score:2,rec:s,zoom:0.95,phi:0.72,title:s.name,sub:`${s.type} · ${siteNumbers(s).docked} truk di dock`});
   }
+  /* v36: KRL di Stasiun Cibinong (shot tetap di peron, kereta yang bergerak) */
+  for(const tr of RAIL.trains||[]){ const st=tr.st; if(!st||!['melambat','berhenti','berangkat'].includes(st.ph)) continue;
+    c.push({key:'krl',score:5,pos:new THREE.Vector3(RAIL.stX+tr.dir*14,0,RAIL.z),zoom:1.05,phi:0.42,title:st.ph==='melambat'?`KRL ${tr.name} memasuki ${RAIL.stName}`:st.ph==='berhenti'?`KRL berhenti di ${RAIL.stName}`:`KRL berangkat dari ${RAIL.stName}`,sub:tr.name}); break; }
   c.push({key:'jx',score:1.6,pos:new THREE.Vector3(250,0,-38),zoom:1.25,phi:0.55,title:'Persimpangan Jl. Raya',sub:'Lampu lalu lintas & antrean kendaraan'});
   c.push({key:'wide',score:1.3,pos:new THREE.Vector3(40,0,60),zoom:0.42,phi:0.88,title:'Kawasan Gudang Lumbung',sub:`5 site · ${[...Store.tables.trucks.values()].filter(t=>t.state!=='away').length} truk aktif`});
   return c.filter(x=>x.key!==cine.last);
@@ -705,7 +710,7 @@ for(let k=0;k<300;k++) simCity(1/15);
 Store.events.length=0;
 SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.name} menipis (${fmt(i.qty)} unit)`,'#B76E00'); }));
 Store.unread=2;
-document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); bindEntities(); initWeatherFX();
+document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); initClouds(); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
 cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
@@ -844,6 +849,82 @@ addEventListener('keydown',e=>{ if(!RP.on||document.activeElement===q) return;
   else if(e.key===' '){ e.preventDefault(); $('#rpPlay').click(); }
   else if(e.key==='ArrowLeft'&&document.activeElement!==$('#rpRange')){ rpSeek(RP.T-5); rpUI(true); }
   else if(e.key==='ArrowRight'&&document.activeElement!==$('#rpRange')){ rpSeek(RP.T+5); rpUI(true); } },true);
+
+/* ---------- v36: suara suasana (WebAudio sintetis, tanpa file audio) ----------
+   Dengung kota, hujan, angin, guntur, bip mundur truk terdekat, gemuruh & klakson KRL, kicau burung pagi, jangkrik malam.
+   Volume mengikuti jarak sumber ke titik pandang kamera dan tingkat zoom. Default mati; status disimpan di browser. */
+const SND={on:false,ctx:null,n:{},lastFlash:0,trainPh:['',''],birdT:3};
+try{ SND.want=localStorage.getItem('lumbung.sound')==='1'; }catch(_){}
+function sndInit(){ if(SND.ctx) return SND.ctx; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; const c=new AC(); SND.ctx=c;
+  const master=c.createGain(); master.gain.value=0; master.connect(c.destination); SND.master=master;
+  const buf=c.createBuffer(1,c.sampleRate*2,c.sampleRate), d=buf.getChannelData(0); let b=0; for(let i=0;i<d.length;i++){ d[i]=Math.random()*2-1; } SND.noise=buf;
+  const bro=c.createBuffer(1,c.sampleRate*2,c.sampleRate), e=bro.getChannelData(0); for(let i=0;i<e.length;i++){ b=(b+0.02*(Math.random()*2-1))/1.02; e[i]=b*3.5; } SND.brown=bro;
+  const loop=(bufr,filters,gain)=>{ const src=c.createBufferSource(); src.buffer=bufr; src.loop=true; let node=src; for(const f of filters){ node.connect(f); node=f; } const g=c.createGain(); g.gain.value=0; node.connect(g); g.connect(master); src.start(); return g; };
+  const flt=(type,f,q=0.7)=>{ const x=c.createBiquadFilter(); x.type=type; x.frequency.value=f; x.Q.value=q; return x; };
+  SND.n.city=loop(SND.brown,[flt('lowpass',380)]); SND.n.rain=loop(SND.noise,[flt('highpass',1400),flt('lowpass',7000)]);
+  SND.n.wind=loop(SND.noise,[flt('bandpass',480,0.6)]); SND.n.train=loop(SND.brown,[flt('lowpass',140)]);
+  SND.n.cricket=loop(SND.noise,[flt('bandpass',4600,18)]);
+  { const o=c.createOscillator(); o.type='square'; o.frequency.value=1150; const f=flt('lowpass',2400), g=c.createGain(); g.gain.value=0; o.connect(f); f.connect(g); g.connect(master); o.start(); SND.n.beep=g; }
+  return c; }
+function sndSet(g,v,t=0.25){ if(g) g.gain.setTargetAtTime(v,SND.ctx.currentTime,t); }
+function sndOneShot(kind,vol=1,delay=0){ const c=SND.ctx; if(!c||vol<0.01) return; const t0=c.currentTime+delay;
+  if(kind==='thunder'){ const s=c.createBufferSource(); s.buffer=SND.brown; const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=220; const g=c.createGain();
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.9*vol,t0+0.08); g.gain.exponentialRampToValueAtTime(0.001,t0+3.2); s.connect(f); f.connect(g); g.connect(SND.master); s.start(t0); s.stop(t0+3.3); }
+  else if(kind==='horn'){ for(const fr of [349,440]){ const o=c.createOscillator(); o.type='sawtooth'; o.frequency.value=fr; const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1300; const g=c.createGain();
+      g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.09*vol,t0+0.05); g.gain.setValueAtTime(0.09*vol,t0+0.9); g.gain.linearRampToValueAtTime(0,t0+1.15); o.connect(f); f.connect(g); g.connect(SND.master); o.start(t0); o.stop(t0+1.2); } }
+  else if(kind==='chime'){ [659,523,587,392].forEach((fr,i)=>{ const o=c.createOscillator(); o.type='sine'; o.frequency.value=fr; const g=c.createGain(), t=t0+i*0.42;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12*vol,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+1.1); o.connect(g); g.connect(SND.master); o.start(t); o.stop(t+1.2); }); }
+  else if(kind==='bird'){ const o=c.createOscillator(); o.type='sine'; const g=c.createGain(), f0=2600+Math.random()*1400, n=2+Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){ const t=t0+i*0.13; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f0*1.35,t+0.07); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.035*vol,t+0.015); g.gain.linearRampToValueAtTime(0,t+0.09); }
+    o.connect(g); g.connect(SND.master); o.start(t0); o.stop(t0+n*0.13+0.1); } }
+function setSound(on){ SND.want=on; try{ localStorage.setItem('lumbung.sound',on?'1':'0'); }catch(_){}
+  $('#soundBtn').setAttribute('aria-pressed',String(on)); if(on){ const c=sndInit(); if(!c){ showToast('Browser ini tidak mendukung suara','#B76E00'); return; } c.resume&&c.resume(); }
+  SND.on=on&&!!SND.ctx; if(SND.master) sndSet(SND.master,on?0.7:0,0.3); }
+$('#soundBtn').onclick=e=>{ e.stopPropagation(); setSound(!SND.want); if(SND.want) showToast('Suara suasana menyala · M untuk matikan','#2E5BFF'); };
+$('#soundBtn').setAttribute('aria-pressed',String(!!SND.want));
+/* browser butuh interaksi pengguna sebelum audio boleh berbunyi */
+addEventListener('pointerdown',()=>{ if(SND.want&&!SND.on) setSound(true); },{once:true,capture:true});
+addEventListener('keydown',e=>{ if((e.key==='m'||e.key==='M')&&!e.ctrlKey&&!e.metaKey&&document.activeElement!==q&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) setSound(!SND.want); });
+function sndTick(dt){ if(!SND.on||!SND.ctx) return; const T=cam.target, H=82/cam.zoom, near=clamp((cam.zoom-0.4)/1.6,0,1);
+  const dist=(x,z)=>Math.hypot(x-T.x,z-T.z,H*0.6), fall=(d,r)=>clamp(1-d/r,0,1);
+  const w=Store.weather.condition, hour=Store.clock.hour, night=hour<5||hour>=19;
+  sndSet(SND.n.city,(CLEAN?0.05:0.09)*(0.4+WX.density*0.8)*(0.6+0.4*near)*(RP.on?0.6:1),0.8);
+  sndSet(SND.n.rain,(ENV.rain||0)*0.32,0.6);
+  sndSet(SND.n.wind,(w==='sandstorm'?0.5:w==='storm'?0.28:(Store.weather.windKmh||8)>30?0.12:0.015),1.2);
+  sndSet(SND.n.cricket,night&&w!=='rain'&&w!=='storm'?0.05*(0.5+0.5*Math.sin(performance.now()/180)):0,0.05);
+  if(ENV.flash>0.9&&SND.lastFlash<0.5) sndOneShot('thunder',0.8,0.5+Math.random()*1.2); SND.lastFlash=ENV.flash;
+  /* bip mundur: truk mundur terdekat */
+  let best=0; for(const [t,L] of LAMP_ST){ if(!L.truck||!L.rev) continue; const s=t.site; if(!s) continue; best=Math.max(best,fall(dist(t.pos.x+s.ox,t.pos.z+s.oz),70)); }
+  const on=(performance.now()%900)<450; sndSet(SND.n.beep,best*0.05*(on?1:0),0.012);
+  /* KRL: gemuruh, klakson saat berangkat, bel stasiun saat tiba */
+  let tr=0; RAIL.trains.forEach((t,i)=>{ if(!t.st) return; const ph=t.st.ph, d=dist(clamp(T.x,t.x-80,t.x+80),t.z);
+    if(ph!=='luar'&&ph!=='berhenti') tr=Math.max(tr,fall(d,260)*(0.3+0.7*t.st.v/RAIL.v));
+    if(ph!==SND.trainPh[i]){ if(ph==='berangkat') sndOneShot('horn',fall(d,320)); if(ph==='berhenti') sndOneShot('chime',fall(dist(RAIL.stX,RAIL.z),260)); SND.trainPh[i]=ph; } });
+  sndSet(SND.n.train,tr*0.5,0.4);
+  /* burung pagi saat cerah */
+  SND.birdT-=dt; if(SND.birdT<=0){ SND.birdT=1.5+Math.random()*4; if(hour>=5.3&&hour<10&&(w==='clear'||w==='cloudy')) sndOneShot('bird',0.6+0.4*near); } }
+
+/* ---------- v36: mode foto ---------- */
+const PHOTO={on:false};
+function startPhoto(){ if(PHOTO.on) return; stopCine(); if(RP.on) exitReplay(); closeMenus&&closeMenus(); $('#envMenu').hidden=true; select(null); PHOTO.on=true; document.body.classList.add('photo'); }
+function stopPhoto(){ if(!PHOTO.on) return; PHOTO.on=false; document.body.classList.remove('photo','photo-labels'); $('#pbLabels').setAttribute('aria-pressed','false'); }
+function takePhoto(){ renderer.render(scene,camera); const src=renderer.domElement, W=src.width, H=src.height, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+  x.drawImage(src,0,0); const s=S_(), k=Math.max(1,W/1600), pad=28*k;
+  const g=x.createLinearGradient(0,H-150*k,0,H); g.addColorStop(0,'rgba(10,15,40,0)'); g.addColorStop(1,'rgba(10,15,40,.55)'); x.fillStyle=g; x.fillRect(0,H-150*k,W,150*k);
+  x.fillStyle='#fff'; x.font=`800 ${30*k}px "Plus Jakarta Sans",system-ui,sans-serif`; x.textBaseline='alphabetic'; x.fillText('Lumbung',pad,H-pad-30*k);
+  x.font=`600 ${17*k}px "Plus Jakarta Sans",system-ui,sans-serif`; x.fillStyle='rgba(255,255,255,.85)';
+  x.fillText(`${s.name} · ${hhmm(Store.clock.hour)} · ${Store.weather.label}`,pad,H-pad);
+  x.textAlign='right'; x.fillStyle='rgba(255,255,255,.7)'; x.fillText('lumbung.fusionify.id',W-pad,H-pad);
+  const a=document.createElement('a'); a.download=`lumbung-${s.id}-${hhmm(Store.clock.hour).replace(':','')}.png`; a.href=cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+  const f=$('#photoFlash'); f.classList.add('on'); requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.remove('on'))); showToast('Foto disimpan ke folder unduhan','#16A34A'); }
+{ const _select=select; select=(r,...a)=>PHOTO.on&&r?null:_select(r,...a); } /* mode foto: klik peta tidak memilih objek */
+$('#pbShot').onclick=e=>{ e.stopPropagation(); takePhoto(); };
+$('#pbExit').onclick=e=>{ e.stopPropagation(); stopPhoto(); };
+$('#pbLabels').onclick=e=>{ e.stopPropagation(); const on=!document.body.classList.contains('photo-labels'); document.body.classList.toggle('photo-labels',on); e.currentTarget.setAttribute('aria-pressed',String(on)); };
+addEventListener('keydown',e=>{ const ae=document.activeElement; if(ae===q||(ae&&/INPUT|TEXTAREA/.test(ae.tagName))||e.ctrlKey||e.metaKey) return;
+  if(e.key==='p'||e.key==='P'){ PHOTO.on?stopPhoto():startPhoto(); }
+  else if(PHOTO.on&&e.key==='Escape'){ e.preventDefault(); stopPhoto(); }
+  else if(PHOTO.on&&e.key==='Enter'){ e.preventDefault(); takePhoto(); } });
 let last=performance.now(), uiT=0, fno=0, tiltB=-1; const simAcc=new Map();
 function frame(now){
   const rdt=Math.max(0,(now-last)/1000), dt=Math.min(0.05,rdt); last=Math.max(last,now); fno++;
@@ -855,7 +936,7 @@ function frame(now){
   simCity(dt);
   recordTick(dt);
   }
-  syncView(dt,now); updateWeather(Math.min(rdt,0.25),now);
+  syncView(dt,now); updateWeather(Math.min(rdt,0.25),now); sndTick(Math.min(rdt,0.25));
   const k=reduceMotion?1:Math.min(1,dt*6);
   if(cine.on) stepCine(Math.min(rdt,0.1));
   else if(cine.phiBack){ cam.phi+=(0.66-cam.phi)*Math.min(1,dt*2); if(Math.abs(cam.phi-0.66)<0.002){ cam.phi=0.66; cine.phiBack=false; } }

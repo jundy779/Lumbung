@@ -1,10 +1,17 @@
-# CLAUDE.md · Peta Teknis Lumbung v35
+# CLAUDE.md · Peta Teknis Lumbung v36
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v36 (19 Okt 2026), suasana kota (semua di lapis tampilan, sidik jari simulasi tetap `cfcd7f0c` untuk `2 7 siang`)**:
+- KRL layang (d_part2.js akhir): `RAIL={z:-38,y:9.2,x0:-780,x1:780,v:16,acc:0.7,dwell:24,idle:40,...}`. Jalur di atas jalan horizontal z=−38 (median, pilar dilewati di dekat persimpangan `nearJ`). `railSchedule()` + `trainAt(t)` = profil jalan → melambat → berhenti → berangkat → jalan → luar; dua rangkaian (`R.trains`, arah ±1, selang setengah periode, lajur kiri). `syncRail(dt)` dipanggil di akhir `syncView`, menambah `RAIL.t` (waktu tampilan, tidak ikut putar ulang). Instanced: `R.mid` (badan), `R.cab` (ujung kabin, 4), `R.win` (jendela, `View.nightMats`). Shot sinematik `krl` di `cineCandidates`. Rangkaian tidak termasuk `View.clutter` (tetap tampil di Tampilan Bersih).
+- Awan: `CLOUD_U` (uniform tekstur, offset, jumlah) disuntik lewat `THREE.MeshStandardMaterial.prototype.onBeforeCompile=cloudShader` (mengalikan `directDiffuse/directSpecular` dengan 1−amt·awan pada posisi dunia xz/520). Material yang punya `onBeforeCompile` sendiri tidak terkena. `updateClouds(dt,E)` di `updateWeather`: cerah 0,3, berawan 0,45, hilang saat hujan/malam.
+- Suara (e_ui.js): `SND` + `sndInit` (noise putih & coklat, loop berfilter: city, rain, wind, train, cricket; osilator bip), `sndOneShot` (thunder, horn, chime, bird), `sndTick(dt)` dipanggil di frame loop setelah `updateWeather`. Preferensi `localStorage['lumbung.sound']`; AudioContext baru dibuat setelah interaksi pengguna.
+- Mode foto (e_ui.js): `PHOTO`, `startPhoto/stopPhoto/takePhoto` (render lalu salin kanvas + keterangan, unduh PNG), `select` dibungkus agar klik peta tidak memilih objek saat foto. CSS `body.photo` menyembunyikan `#ui` kecuali `#photoBar`; `body.photo-labels` menampilkan label.
+- Parkiran staf: blob bayangan dibangun terpisah dan masuk `View.clutter` (kecuali profil `dc` yang van/motornya tetap tampil).
 
 **Perubahan v35 (19 Okt 2026), garis waktu & putar ulang**:
 - e_ui.js (blok "v35" sebelum frame loop). `REC`: `dt` 0,5 dtk waktu simulasi, `max` 1200 frame (600 di LOWPOWER), `frames[]` berisi `{t,hour,wx,d:Float32Array}`, `pal` (Map palet → riwayat `[t,kunciLokasi]` hanya saat berubah), `ev` (kejadian `Store.on` dengan waktu rekam `rt`), tabel string `str/smap` (`sid()`), entitas tetap `recEnts()` (truk, forklift, orang, mobil, lampu, site, dock).
@@ -560,7 +567,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 ### 16.2 Ide yang pernah diusulkan, belum dipilih
 - Bisnis: ~~garis waktu & putar ulang~~ (selesai v35), laporan & ekspor PDF/Excel, analitik dock.
 - UX: tombol mode gelap manual (token CSS sudah ada, tapi warna hardcode perlu dibereskan dulu, lihat temuan #12), tur perkenalan, pintasan keyboard lengkap, versi bahasa Inggris (semua teks sekarang hardcode di template).
-- Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
+- Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), ~~KRL, suara ambien, mode foto~~ (selesai v36), siluet Gunung Salak, KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
 - Kehidupan: pekerja datang naik motor, istirahat siang, jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).
 - Sinematik: shot bercerita mengikuti satu truk dari gerbang sampai dock, mode foto untuk materi promosi.
 

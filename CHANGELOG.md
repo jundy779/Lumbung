@@ -1,5 +1,12 @@
 # Changelog
 
+## v36 · 19 Okt 2026
+- **KRL layang & Stasiun Cibinong**: jalur kereta komuter layang membentang di atas Jl. z=−38 tepat di belakang deretan gudang BKS-01, BGR-01, dan BGR-02, lengkap dengan pilar di median, tiang listrik aliran atas, peron samping berkanopi, tangga ke trotoar, dan papan nama stasiun. Dua rangkaian 8 kereta (arah Jakarta Kota dan arah Bogor) berjalan bergantian: melambat, berhenti 24 detik di stasiun, lalu berangkat lagi. Jendela kereta menyala di malam hari dan muncul sebagai shot di mode sinematik. Murni tampilan, tidak ada perlintasan sebidang, jadi simulasi truk dan mobil tidak berubah.
+- **Bayangan awan berjalan**: bayangan awan lembut bergerak pelan di seluruh kota mengikuti angin saat cerah atau berawan, lalu menghilang saat hujan dan malam.
+- **Suara suasana** (tombol speaker di kontrol peta atau tombol M, default mati): dengung kota mengikuti kepadatan lalu lintas, hujan, angin, guntur setelah kilat, bip mundur truk yang terdekat dengan kamera, gemuruh KRL, klakson saat berangkat, bel stasiun saat tiba, kicau burung pagi, dan jangkrik malam. Semua disintesis dengan WebAudio, tanpa file audio. Volume mengikuti jarak sumber ke titik pandang kamera.
+- **Mode foto** (menu Waktu & Cuaca atau tombol P): semua panel disembunyikan, kamera tetap bisa digeser, diputar, dan di-zoom, label bisa dinyalakan, lalu "Ambil foto" (atau Enter) menyimpan PNG beresolusi layar dengan keterangan gudang, jam, dan cuaca.
+- Perbaikan: di Tampilan Bersih, bayangan lembut parkiran staf tertinggal sebagai noda gelap di belakang gedung setelah mobil parkirnya disembunyikan. Sekarang ikut tersembunyi.
+
 ## v35 · 19 Okt 2026
 - **Putar ulang (garis waktu)**: tombol jam berpanah baru di kontrol peta merekam 10 menit terakhir (5 menit di HP dan perangkat hemat daya) dan bisa memutarnya ulang. Bilah putar ulang punya tombol putar/jeda, mundur dan maju 10 detik, kecepatan 1×, 4×, 16×, slider waktu, jam kejadian lengkap dengan detik, dan keterangan "x mnt y dtk lalu".
 - Setiap kejadian di log tampil sebagai titik berwarna di garis waktu (kejadian gudang lain tampil pudar). Arahkan kursor untuk melihat isinya; klik untuk lompat ke 3 detik sebelum kejadian dan langsung memilih truk atau objek terkait.

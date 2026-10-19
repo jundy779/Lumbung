@@ -302,6 +302,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 ## 15. Status & Backlog
 
+**Selesai (v36):** suasana kota di lapis tampilan: KRL layang + Stasiun Cibinong (`RAIL`, `railSchedule`, `trainAt`, `buildRailView`, `syncRail` di d_part2.js; waktu kereta `RAIL.t` berjalan di View, bukan simulasi), bayangan awan (`CLOUD_U`, `cloudShader` dipasang di `MeshStandardMaterial.prototype.onBeforeCompile`, `initClouds`, `updateClouds`), suara WebAudio (`SND`, `sndTick`, `setSound`, tombol `#soundBtn`, tombol M), mode foto (`PHOTO`, `startPhoto`, `takePhoto`, tombol P).
+
 **Selesai (v35):** garis waktu & putar ulang (`REC`, `recordTick`, `capture`, `applyRec`, `rpBackup`, `enterReplay`/`exitReplay`, `rpSeek` di e_ui.js; `RP` di d_part2.js). Perekam hanya membaca Store; putar ulang menjeda simulasi dan mengembalikan nilai live persis saat keluar.
 
 **Selesai (v34):** lampu sinyal kendaraan di lapis tampilan (`updateSignalLamps`, `LAMP_ST`, `turnAhead`, `TRUCK_LAMPS`, `CAR_LAMPS` di d_part2.js): rem, mundur, sein, hazard truk + rem mobil; tanpa perubahan simulasi.
@@ -322,7 +324,7 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 **Belum dikerjakan (urutan disarankan):**
 
-1. Ide lain: laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, Gunung Salak, KRL, suara ambien, bloom, mode foto.
+1. Ide lain: laporan/ekspor, analitik dock, tombol mode gelap manual, tur perkenalan, pintasan keyboard, bahasa Inggris, Gunung Salak, bloom.
 2. Jangka panjang: integrasi data nyata / Toko Live FUSIONIFY BOT; migrasi ke TypeScript + Three.js terbaru.
 
 **Batasan yang diketahui:** data masih simulasi; laporan "beberapa glitch" belum terdiagnosis (butuh rekaman layar).
