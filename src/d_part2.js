@@ -355,7 +355,7 @@ function syncView(dt,now){
     updatePallet(v.mesh,false);
   }
   for(const [id,v] of View.pallets){ if(!seen.has(id)){ freePallet(v.mesh); v.mesh.parent&&v.mesh.parent.remove(v.mesh); View.pallets.delete(id); } }
-  syncRail(dt); syncBreakdowns(dt,now);
+  syncRail(dt); syncBreakdowns(dt,now); syncPedSignals(now);
   flushPools();
 }
 /* ---------- posisi dunia & picking ---------- */
@@ -517,6 +517,32 @@ function updateVehicleLights(L){
   for(let i=b;i<BEAMS.count;i++) BEAMS.setMatrixAt(i,_hide); BEAMS.instanceMatrix.needsUpdate=true; BEAMS.material.opacity=0.22*L;
 }
 
+
+/* ---------- v38: lampu penyeberang jalan di setiap zebra persimpangan grid ----------
+   Dua kepala lampu per zebra (satu di tiap ujung, menghadap ujung seberang). Merah = orang berdiri, hijau = orang berjalan,
+   hijau berkedip = jangan mulai menyeberang. Fasenya dari pedPhase() di c_sim.js, jadi sama dengan yang dipatuhi penyeberang. */
+let PEDV=null;
+function pedIconTex(walk){ return canvasTex(64,64,(x,w,h)=>{ x.fillStyle='#0E1120'; x.fillRect(0,0,w,h); x.fillStyle=walk?'#3BE38A':'#FF4545'; x.strokeStyle=x.fillStyle; x.lineCap='round'; x.lineWidth=6;
+  x.beginPath(); x.arc(32,13,6,0,7); x.fill();
+  if(walk){ x.beginPath(); x.moveTo(31,22); x.lineTo(28,38); x.lineTo(20,54); x.moveTo(28,38); x.lineTo(38,52); x.moveTo(30,26); x.lineTo(20,34); x.moveTo(30,26); x.lineTo(41,31); x.stroke(); }
+  else { x.beginPath(); x.moveTo(32,22); x.lineTo(32,40); x.moveTo(27,40); x.lineTo(27,56); x.moveTo(37,40); x.lineTo(37,56); x.moveTo(25,25); x.lineTo(22,39); x.moveTo(39,25); x.lineTo(42,39); x.stroke(); x.fillRect(24,22,16,18); } }); }
+function buildPedSignals(){ const P=new Parts(), heads=[]; const o=ROAD/2+1.6, a=ROAD/2+0.9, out=1.5;
+  for(const sg of Store.all('signals')){ if(sg.z===ZHW) continue; const j=[...JUNC.values()].find(q=>Math.abs(q.x-sg.x)<1&&Math.abs(q.z-sg.z)<1); if(!j) continue;
+    for(const side of ['N','E','S','W']){ const ax=ZEB_AX[side];
+      for(const e of [-1,1]){ let px,pz,ry;
+        if(side==='N'||side==='S'){ const zz=sg.z+(side==='N'?-(o+out):(o+out)); px=sg.x+e*a; pz=zz; ry=e>0?-Math.PI/2:Math.PI/2; }
+        else { const xx=sg.x+(side==='W'?-(o+out):(o+out)); px=xx; pz=sg.z+e*a; ry=e>0?Math.PI:0; }
+        P.add(gCyl(0.05,2.7,6),0x3B4466,px,1.35,pz); P.add(gR(0.36,0.7,0.2,0.05),0x1E2230,px,2.42,pz,ry);
+        heads.push({sg,ax,x:px+Math.sin(ry)*0.105,z:pz+Math.cos(ry)*0.105,ry}); } } }
+  const pm=P.build(.6); pm.castShadow=true; scene.add(pm); View.clutter.push(pm);
+  const mk=walk=>{ const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.32,0.32),new THREE.MeshBasicMaterial({map:pedIconTex(walk)}),heads.length); m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(heads.length*3).fill(0.2),3); m.frustumCulled=false; scene.add(m); View.clutter.push(m); return m; };
+  const R=mk(false), G=mk(true), M4=new THREE.Matrix4(), Q=new THREE.Quaternion(), E=new THREE.Euler(), V=new THREE.Vector3(), S=new THREE.Vector3(1,1,1);
+  heads.forEach((h,i)=>{ E.set(0,h.ry,0); Q.setFromEuler(E); M4.compose(V.set(h.x,2.58,h.z),Q,S); R.setMatrixAt(i,M4); M4.compose(V.set(h.x,2.26,h.z),Q,S); G.setMatrixAt(i,M4); });
+  PEDV={heads,R,G,last:new Map()}; }
+function syncPedSignals(now){ if(!PEDV||CLEAN) return; const blink=Math.floor(now/400)%2; let dirty=false;
+  PEDV.heads.forEach((h,i)=>{ const ph=pedPhase(h.sg,h.ax), key=ph.off?'o':ph.flash?(blink?'f1':'f0'):ph.walk?'w':'r'; if(PEDV.last.get(i)===key) return; PEDV.last.set(i,key); dirty=true;
+    const r=key==='r'?1:0.16, g=key==='w'||key==='f1'?1:0.16; PEDV.R.setColorAt(i,_cA.setRGB(r,r,r)); PEDV.G.setColorAt(i,_cA.setRGB(g,g,g)); });
+  if(dirty){ PEDV.R.instanceColor.needsUpdate=PEDV.G.instanceColor.needsUpdate=true; } }
 /* ---------- v37: tampilan truk mogok: mekanik berjalan, asap dari gril, segitiga pengaman ---------- */
 let BKFX=null;
 function syncBreakdowns(dt,now){ if(!View.mech) return;

@@ -428,6 +428,8 @@ const glassTex=(()=>{const t=canvasTex(64,64,(x,w,h)=>{const g=x.createLinearGra
 function gantryTex(lines){return canvasTex(512,200,(x,w,h)=>{x.fillStyle='#1E7A4E';rr(x,4,4,w-8,h-8,16);x.fill();x.strokeStyle='#FFFFFF';x.lineWidth=5;rr(x,14,14,w-28,h-28,10);x.stroke();
   x.fillStyle='#fff';x.font='800 40px "Plus Jakarta Sans", system-ui, sans-serif';x.textBaseline='middle';
   lines.forEach((l,i)=>x.fillText(l,36,58+i*54));});}
+const ROAD_NAMES_H={'-114':'Jl. Raya Jakarta–Bogor','-38':'Jl. Mayor Oking','38':'Jl. Industri Cibinong','114':'Jl. Tegar Beriman','190':'Jl. Pajajaran'};
+const ROAD_NAMES_V={'-250':'Jl. Sukahati','-150':'Jl. Cikaret','-50':'Jl. Pemda','50':'Jl. Karadenan','150':'Jl. Pakansari','250':'Jl. Raya Citeureup'};
 function buildCityView(){
   const g=new THREE.Group(); scene.add(g);
   const R=rng(4242);
@@ -521,8 +523,9 @@ function buildCityView(){
     for(const x of CAR_V){ strip(x-RW/2,x+RW/2,-660,Z0g); strip(x-RW/2,x+RW/2,Z1g,660);
       for(const [a,b] of [[-660,ZHW-RW/2-4],[ZHW+RW/2+4,Z0g],[Z1g,660]]) for(let z=a+2;z<b-2;z+=5) L.box(0.14,0.01,2.4,0,W,x,0.045,z); }
     const XT0=HWY.xToll-16, XT1=HWY.xToll+16;
-    strip((GRID.x0-0.5)*PX-RW/2,XT0,ZHW-RW/2,ZHW+RW/2);
-    for(let x=(GRID.x0-0.5)*PX+6;x<XT0-2;x+=5){ let skip=false; for(let k=GRID.x0;k<=GRID.x1+1;k++) if(Math.abs(x-(k-0.5)*PX)<8) skip=true; if(Math.abs(x-HWY.xToll)<16) skip=true; if(!skip) L.box(2.4,0.01,0.14,0,W,x,0.045,ZHW); }
+    /* v38: Jalan Lingkar Utara = jalan arteri: aspal lebih gelap dari jalan kota, garis tengah ganda kuning (dilarang menyalip/putar balik di luar persimpangan) */
+    { const RA=new THREE.MeshStandardMaterial({color:C(cssVar('--road-art')),roughness:.92}), x0=(GRID.x0-0.5)*PX-RW/2-40, m=new THREE.Mesh(gR(XT0-x0,0.04,RW,0),RA); m.position.set((x0+XT0)/2,0.021,ZHW); m.receiveShadow=true; g.add(m); }
+    for(let x=(GRID.x0-0.5)*PX-40;x<XT0-2;x+=2){ let skip=false; for(let k=GRID.x0;k<=GRID.x1+1;k++) if(Math.abs(x-(k-0.5)*PX)<8) skip=true; if(Math.abs(x-HWY.xToll)<16) skip=true; if(!skip) for(const s of [-0.16,0.16]) L.box(2.0,0.01,0.12,0,Y,x+1,0.047,ZHW+s); }
     for(const s of [-1,1]) L.box(XT0-((GRID.x0-0.5)*PX),0.01,0.12,0,W,(XT0+(GRID.x0-0.5)*PX)/2,0.045,ZHW+s*(RW/2-0.45));
     for(let k=GRID.x0+1;k<=GRID.x1;k++){ const x=(k-0.5)*PX; strip(x-RW/2,x+RW/2,ZHW+RW/2,Z0g);
       for(let z=ZHW+RW/2+4;z<Z0g-2;z+=5) L.box(0.14,0.01,2.4,0,W,x,0.045,z+1.2);
@@ -532,7 +535,7 @@ function buildCityView(){
       for(const s of [-1,1]){ SH.add(gCyl(0.06,0.7,6),0x9AA3BA,x,0.35,ZHW+s*(RW/2+0.7)); } SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW-(RW/2+0.7)); SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW+(RW/2+0.7)); }
     for(let x=-240;x<640;x+=18+((x*7)%5)){ for(const s of [-1,1]){ const z=ZHW+s*(RW/2+4+((x*13)%3)+(x>XT1?4:0)); SH.add(gCyl(0.11,1.0,6),0xB58B63,x,0.55,z); SH.add(gSph(1,10),0x5FB880,x,1.9,z,0,0.95,1.2,0.95); } }
     /* Jalan tol: lebih lebar, 4 lajur + bahu, median beton, guardrail, lampu median, papan hijau */
-    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=new THREE.MeshStandardMaterial({color:C(0xB3BBD6),roughness:.9});
+    { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=new THREE.MeshStandardMaterial({color:C(cssVar('--road-toll')),roughness:.85});
       const tm=new THREE.Mesh(gR(len,0.04,TW*2,0),RMT); tm.position.set(cx,0.021,ZHW); tm.receiveShadow=true; g.add(tm);
       for(const s of [-1,1]){ L.box(len,0.01,0.16,0,W,cx,0.046,ZHW+s*7.3); L.box(len,0.01,0.12,0,Y,cx,0.046,ZHW+s*0.72);
         for(let x=x0+4;x<x1-4;x+=9) L.box(4.0,0.01,0.15,0,W,x+2,0.046,ZHW+s*3.95); }
@@ -573,12 +576,16 @@ function buildCityView(){
     for(const sd of Store.all('signals')){ const off=sd.z===ZHW?8.2:ROAD/2+3.25;
       const A={W:{dx:-1,dz:0,lz:-2.2,ry:0},E:{dx:1,dz:0,lz:2.2,ry:Math.PI},N:{dx:0,dz:-1,lx:2.2,ry:-Math.PI/2},S:{dx:0,dz:1,lx:-2.2,ry:Math.PI/2}};
       for(const d of ['W','E','N','S']){ if(!has(sd.x,sd.z,d)) continue; const a=A[d];
-        if(a.dx){ const x=sd.x+a.dx*off, z=sd.z+a.lz; MK.box(0.4,0.012,4.0,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x+a.dx*k,0.047,z,a.ry); }
-        else { const z=sd.z+a.dz*off, x=sd.x+a.lx; MK.box(4.0,0.012,0.4,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x,0.047,z+a.dz*k,a.ry); } } }
+        /* v38: di persimpangan tempat mobil boleh belok, panah lajur menunjukkan lurus + belok kiri + belok kanan */
+        const turn=CAR_V.includes(sd.x)&&CAR_H.includes(sd.z);
+        if(a.dx){ const x=sd.x+a.dx*off, z=sd.z+a.lz; MK.box(0.4,0.012,4.0,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x+a.dx*k,0.047,z,a.ry);
+          if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+a.dx*5.7,0.047,z+sgn*0.85,a.ry+sgn*0.8,0.7,1,0.7); }
+        else { const z=sd.z+a.dz*off, x=sd.x+a.lx; MK.box(4.0,0.012,0.4,0,0xFFFFFF,x,0.047,z); for(const k of [5,14]) MK.add(arrow,0xFFFFFF,x,0.047,z+a.dz*k,a.ry);
+          if(turn) for(const sgn of [-1,1]) MK.add(arrow,0xFFFFFF,x+sgn*0.85,0.047,z+a.dz*5.7,a.ry+sgn*0.8,0.7,1,0.7); } } }
     { const mm=MK.build(.9,false); g.add(mm); View.clutter.push(mm); }
     /* atlas rambu */
-    const NAMES_H={'-114':'Jl. Raya Jakarta–Bogor','-38':'Jl. Mayor Oking','38':'Jl. Industri Cibinong','114':'Jl. Tegar Beriman','190':'Jl. Pajajaran'};
-    const NAMES_V={'-250':'Jl. Sukahati','-150':'Jl. Cikaret','-50':'Jl. Pemda','50':'Jl. Karadenan','150':'Jl. Pakansari','250':'Jl. Raya Citeureup'};
+    const NAMES_H=ROAD_NAMES_H;
+    const NAMES_V=ROAD_NAMES_V;
     const names=[...Object.values(NAMES_H),...Object.values(NAMES_V),'Jl. Lingkar Utara'];
     const AW=1024, AH=1024, cells={};
     const atlas=canvasTex(AW,AH,(x)=>{ x.fillStyle='#1E6E43'; x.fillRect(0,0,AW,AH);

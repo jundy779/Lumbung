@@ -236,6 +236,8 @@ Siklus: `open` → (aksi) `done` "Sedang ditindaklanjuti" → hilang dari daftar
 | Sopir tersenggol / menyentuh badan truk | 0 |
 | Truk tertahan permanen / kebuntuan | 0 (tertahan wajar maks ±50 dtk di lampu merah Jalan Lingkar) |
 | Kendaraan berhenti di atas zebra cross | 0 |
+| Mobil menyerempet penyeberang jalan | 0 |
+| Penyeberang di zebra saat kendaraan arahnya hijau | 0 |
 | Pintu truk dibuka di jalan raya | 0 |
 | Cross-dock: truk merapat di dock arah yang salah | 0 |
 | Gudang dingin: palet dipindah sebelum cek suhu | 0 |
@@ -301,6 +303,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 ---
 
 ## 15. Status & Backlog
+
+**Selesai (v38):** jenis jalan (token `--road-art`, `--road-toll`, garis ganda kuning arteri, `roadInfo` hover, kartu `#roadLegend`), mobil belok/putar balik (`initTurns`, `carPlan` per persimpangan di `c.plans`, `planMove`, `laneRoomAfter`, `startTurn`/`stepTurn` kurva Bezier kubik, `c.home` untuk lajur awal saat muncul ulang), lampu penyeberang (`pedPhase`, `buildPedSignals`, `syncPedSignals`), penyeberang jalan (`PLANS.cross`, `xingPts`, `pedCanStart`, `zebraBusy`, `movSides`, aksi orang `until`), `gateLoad` untuk menolak kiriman/alihan saat antrean gerbang penuh.
 
 **Selesai (v37):** truk mogok di dock (`BK_CHANCE` 4%, `startBreakdown`, `sendMechanic`, `crewBreakLife`, `t.broken={t,need,mech,mechAt,cause}`, peringatan `brk:<truk>`), mekanik & asap & segitiga di tampilan (`View.mech`, `syncBreakdowns`), jas hujan (`coatLook`), komit truk saat lampu langsung merah setelah kuning berkedip.
 

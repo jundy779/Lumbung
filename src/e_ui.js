@@ -264,6 +264,7 @@ function renderKPIs(){
   $('#wxBtn').classList.toggle('storm',bad); $('#stormBtn').setAttribute('aria-pressed',bad);
   const live=Store.clock.mode==='live'&&!RP.on; $('#liveLbl').textContent=RP.on?'Putar ulang':live?'Live':TIME_MODES[Store.clock.mode].label; $('#livePill').classList.toggle('sim',!live); $('#livePill').classList.toggle('rp',RP.on);
   if(!$('#envMenu').hidden) renderEnvMenu();
+  document.body.classList.toggle('zoomed-out',cam.zoom<0.95&&!CLEAN);
 }
 function destBlock(t){ const o=destOptions(t); if(!o) return '';
   const btn=x=>`<button class="dopt${x.cur?' on':''}" data-dest="${esc(x.id)}"${x.busy?' disabled':''}><b>${esc(x.name)}</b><small>${esc(x.busy?x.by:x.cur?(t.pendingDest===x.id?'Menunggu keluar persimpangan…':'Tujuan saat ini'):x.type)}</small></button>`;
@@ -628,10 +629,19 @@ function hoverInfo(r){ if(!r) return null; switch(r.kind){
   case 'site': return [r.name,`${r.type} · ${r.id}`];
   case 'store': return [r.name,`${r.type} · tujuan pengiriman`];
   default: return null; } }
+/* v38: info jalan saat kursor di atas aspal (membedakan jalan tol, arteri, dan jalan kota) */
+function roadInfo(x,z){ if(!isFinite(x)) return null; const half=ROAD/2+0.3, XT0=HWY.xToll-16;
+  if(Math.abs(z-ZHW)<9.2&&x>XT0) return Math.abs(x-HWY.xToll)<16?['Gerbang Tol Jagorawi','Gardu tol · semua truk check-out/in di sini']:['Tol Jagorawi','Jalan tol · 4 lajur, median beton · bebas hambatan, tanpa lampu merah'];
+  if(Math.abs(z-ZHW)<half) return ['Jl. Lingkar Utara','Jalan arteri · penghubung kawasan gudang ke tol · garis ganda: dilarang menyalip'];
+  const vx=Object.keys(ROAD_NAMES_V).map(Number).find(v=>Math.abs(x-v)<half), hz=Object.keys(ROAD_NAMES_H).map(Number).find(v=>Math.abs(z-v)<half);
+  if(vx!=null&&hz!=null){ const turn=CAR_V.includes(vx)&&CAR_H.includes(hz); return [`Persimpangan ${ROAD_NAMES_H[hz]} × ${ROAD_NAMES_V[vx]}`,turn?'Lampu lalu lintas & penyeberang · boleh lurus, belok kiri/kanan, putar balik':'Lampu lalu lintas & penyeberang · boleh lurus atau putar balik']; }
+  if(hz!=null) return [ROAD_NAMES_H[hz],CAR_H.includes(hz)?'Jalan kota · 2 lajur · lalu lintas umum':'Jalan kota · akses kawasan gudang'];
+  if(vx!=null){ if(z<(GRID.z0-0.5)*PZ-ROAD/2&&z>ZHW) return ['Jalan akses tol',`${ROAD_NAMES_V[vx]} · menuju Jl. Lingkar Utara`]; return [ROAD_NAMES_V[vx],CAR_V.includes(vx)?'Jalan kota · 2 lajur · lalu lintas umum':'Jalan kota · akses kawasan gudang']; }
+  return null; }
 canvas.addEventListener('pointermove',ev=>{ if(ptrs.size||cine.on||ev.pointerType==='touch'){ tipEl.classList.remove('show'); return; }
   const now=performance.now(); if(now-tipT<70) return; tipT=now;
-  let info=null; try{ info=hoverInfo(recordAt(ev.clientX,ev.clientY)); }catch(_){}
-  if(info){ tipEl.classList.remove('flip'); tipEl.style.right='auto'; tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor='pointer'; }
+  let info=null, road=false; try{ info=hoverInfo(recordAt(ev.clientX,ev.clientY)); if(!info&&cam.zoom<2.4){ const gp=groundAt(ev.clientX,ev.clientY); if(gp){ info=roadInfo(gp.x,gp.z); road=!!info; } } }catch(_){}
+  if(info){ tipEl.classList.remove('flip'); tipEl.style.right='auto'; tipEl.firstChild.textContent=info[0]; tipEl.lastChild.textContent=info[1]; tipEl.style.left=ev.clientX+'px'; tipEl.style.top=ev.clientY+'px'; tipEl.classList.add('show'); canvas.style.cursor=road?'':'pointer'; }
   else { tipEl.classList.remove('show'); canvas.style.cursor=''; } });
 canvas.addEventListener('pointerleave',()=>{ tipEl.classList.remove('show'); canvas.style.cursor=''; });
 /* ---- toast untuk peringatan kritis baru ---- */
@@ -716,7 +726,7 @@ for(let k=0;k<300;k++) simCity(1/15);
 Store.events.length=0;
 SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.name} menipis (${fmt(i.qty)} unit)`,'#B76E00'); }));
 Store.unread=2;
-document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); initClouds(); bindEntities(); initWeatherFX();
+document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); buildPedSignals(); initClouds(); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
 cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
@@ -756,7 +766,7 @@ if(QS.has('selftest')) setTimeout(runSelftest,300);
    ke nilai live saat keluar. Aksi yang mengubah operasi (arahkan truk, aksi peringatan, waktu & cuaca) diblokir selama putar ulang. */
 const REC={dt:0.5,max:LOWPOWER?600:1200,t:0,acc:0,frames:[],pal:new Map(),ev:[],str:[''],smap:new Map([['',0]]),E:null};
 const sid=v=>{ v=v==null?'':String(v); let i=REC.smap.get(v); if(i==null){ i=REC.str.length; REC.str.push(v); REC.smap.set(v,i); } return i; };
-const TS=17, CS=7, FS=6, PS=6, KS=4;
+const TS=17, CS=7, FS=6, PS=6, KS=8;
 function recEnts(){ if(REC.E) return REC.E; const S=Store.all('sites'), D=[...Store.tables.docks.values()];
   REC.E={T:[...Store.tables.trucks.values()],F:[...Store.tables.forklifts.values()],P:[...Store.tables.people.values()],C:[...Store.tables.cars.values()],
     G:[...Store.tables.signals.values()],S,D,sIdx:new Map(S.map((x,i)=>[x.id,i])),dIdx:new Map(D.map((x,i)=>[x.id,i]))}; return REC.E; }
@@ -767,7 +777,7 @@ function capture(){ const E=recEnts(), n=E.T.length*(TS+CS)+E.F.length*FS+E.P.le
     if(c&&c.on){ d[k++]=1; d[k++]=c.x; d[k++]=c.z; d[k++]=c.h; d[k++]=c.v||0; d[k++]=sid(c.pose); d[k++]=c.y||0; } else { d[k++]=0; k+=6; } }
   for(const f of E.F){ d[k++]=f.pos.x; d[k++]=f.pos.z; d[k++]=f.heading; d[k++]=f.v||0; d[k++]=f.lift||0; d[k++]=f.rev?1:0; }
   for(const p of E.P){ d[k++]=p.pos.x; d[k++]=p.pos.z; d[k++]=p.heading; d[k++]=p.v||0; d[k++]=sid(p.pose); d[k++]=p.y||0; }
-  for(const c of E.C){ d[k++]=c.p; d[k++]=c.v; d[k++]=c.active?1:0; d[k++]=c.presence??1; }
+  for(const c of E.C){ d[k++]=c.p; d[k++]=c.v; d[k++]=c.active?1:0; d[k++]=c.presence??1; d[k++]=c.x; d[k++]=c.z; d[k++]=c.heading; d[k++]=c.lane; } /* v38: mobil bisa belok, jadi posisi & lajur direkam langsung */
   for(const g of E.G){ d[k++]=sid(g.stateH); d[k++]=sid(g.stateV); }
   for(const s of E.S){ d[k++]=s.tgate?s.tgate.armT:0; }
   for(const b of E.D){ d[k++]=b.doorState==='open'?1:0; }
@@ -788,8 +798,8 @@ function applyRec(A,B,a){ const E=recEnts(), d=A.d, e=(B||A).d; let k=0; const L
     const c=t.crew; if(c){ c.on=!!d[k]; if(c.on){ c.x=Li(k+1); c.z=Li(k+2); c.h=same?d[k+3]+angDiff(d[k+3],e[k+3])*w:d[k+3]; c.v=d[k+4]; c.pose=REC.str[d[k+5]]||undefined; c.y=d[k+6]; } } k+=CS; }
   for(const f of E.F){ f.pos.x=L(k); f.pos.z=L(k+1); f.heading=LH(k+2); f.v=d[k+3]; f.lift=L(k+4); f.rev=!!d[k+5]; k+=FS; }
   for(const p of E.P){ const jump=Math.hypot(e[k]-d[k],e[k+1]-d[k+1])>6, w=jump?0:a; p.pos.x=d[k]+(e[k]-d[k])*w; p.pos.z=d[k+1]+(e[k+1]-d[k+1])*w; p.heading=d[k+2]+angDiff(d[k+2],e[k+2])*w; p.v=d[k+3]; p.pose=REC.str[d[k+4]]||undefined; p.y=d[k+5]; k+=PS; }
-  for(const c of E.C){ const Ln=LANES[c.lane], wrap=e[k]<d[k]-1, pp=wrap?d[k]:L(k); c.p=pp; c.v=d[k+1]; c.active=!!d[k+2]; c.presence=d[k+3];
-    const coord=Ln.a+Ln.dir*pp; c.x=Ln.ax==='x'?coord:Ln.c; c.z=Ln.ax==='x'?Ln.c:coord; c.heading=Ln.ax==='x'?(Ln.dir>0?Math.PI/2:-Math.PI/2):(Ln.dir>0?0:Math.PI); k+=KS; }
+  for(const c of E.C){ const jump=Math.hypot(e[k+4]-d[k+4],e[k+5]-d[k+5])>8, w=jump?0:a; c.p=d[k]; c.v=d[k+1]; c.active=!!d[k+2]; c.presence=d[k+3];
+    c.x=d[k+4]+(e[k+4]-d[k+4])*w; c.z=d[k+5]+(e[k+5]-d[k+5])*w; c.heading=d[k+6]+angDiff(d[k+6],e[k+6])*w; c.lane=d[k+7]; k+=KS; }
   for(const g of E.G){ g.stateH=REC.str[d[k]]; g.stateV=REC.str[d[k+1]]; k+=2; }
   for(const s of E.S){ if(s.tgate) s.tgate.armT=L(k); k++; }
   for(const b of E.D){ b.doorState=d[k]?'open':'closed'; k++; }
@@ -802,7 +812,7 @@ function rpBackup(){ const E=recEnts(), B=[], keep=(o,ks)=>{ if(o) for(const k o
   for(const t of E.T){ keep(t.pos,['x','z']); keep(t,['heading','v','state','doorsT','cabDoor','presence','rev','siteId','dockId','mode','done','total','curv','stuck']); keep(t.crew,['on','x','z','h','v','pose','y']); }
   for(const f of E.F){ keep(f.pos,['x','z']); keep(f,['heading','v','lift','rev']); }
   for(const p of E.P){ keep(p.pos,['x','z']); keep(p,['heading','v','pose','y']); }
-  for(const c of E.C) keep(c,['p','v','active','presence','x','z','heading']);
+  for(const c of E.C) keep(c,['p','v','active','presence','x','z','heading','lane']);
   for(const g of E.G) keep(g,['stateH','stateV']);
   for(const st of E.S) keep(st.tgate,['armT']);
   for(const b of E.D) keep(b,['doorState']);

@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E7EBFA; --ground:#E1E7F7; --apron:#EEF1FB; --road:#CDD4EE;
+  --bg:#E7EBFA; --ground:#E1E7F7; --apron:#EEF1FB; --road:#CDD4EE; --road-art:#A2ACD2; --road-toll:#6E799F;
   --panel:#FFFFFF; --panel-2:#F4F6FD; --line:#E4E8F4;
   --ink:#17204A; --ink-2:#56608A; --ink-3:#8E96B6;
   --blue:#2E5BFF; --blue-soft:#E8EEFF;
@@ -32,7 +32,7 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#10162E; --ground:#141B38; --apron:#1A2246; --road:#222B55;
+    --bg:#10162E; --ground:#141B38; --apron:#1A2246; --road:#222B55; --road-art:#1B2350; --road-toll:#121735;
     --panel:#1A2143; --panel-2:#222A52; --line:#2C3563;
     --ink:#EEF1FF; --ink-2:#AEB6DA; --ink-3:#7E87AE;
     --blue:#6B8BFF; --blue-soft:#26306A;
@@ -42,7 +42,7 @@
   }
 }
 :root[data-theme="dark"]{
-  --bg:#10162E; --ground:#141B38; --apron:#1A2246; --road:#222B55;
+  --bg:#10162E; --ground:#141B38; --apron:#1A2246; --road:#222B55; --road-art:#1B2350; --road-toll:#121735;
   --panel:#1A2143; --panel-2:#222A52; --line:#2C3563;
   --ink:#EEF1FF; --ink-2:#AEB6DA; --ink-3:#7E87AE;
   --blue:#6B8BFF; --blue-soft:#26306A;
@@ -623,6 +623,20 @@ body.photo:not(.photo-labels) #labels{opacity:0}
 .brk .bh{display:flex;flex-direction:column;gap:2px} .brk .bh b{font-size:13px;color:#C93C3C} .brk .bh span{font-size:12px;color:var(--ink-2)}
 .brk .bbar{height:5px;border-radius:9px;background:var(--line);margin:8px 0 2px;overflow:hidden} .brk .bbar i{display:block;height:100%;background:#E5484D;border-radius:9px}
 .brk .dopt{width:100%;margin-top:8px}
+
+/* ---------- v38: keterangan jenis jalan (tampil saat peta diperkecil) ---------- */
+.legend{left:16px;top:calc(env(safe-area-inset-top,0px) + 172px);padding:10px 12px;display:none;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-2);z-index:2}
+.legend b{font-size:12px;color:var(--ink)} .legend span{display:flex;align-items:center;gap:8px}
+.legend .sw{width:26px;height:9px;border-radius:3px;display:inline-block;flex:none}
+.legend .sw.toll{background:var(--road-toll);box-shadow:inset 0 2px 0 #fff,inset 0 -2px 0 #F0B43C}
+.legend .sw.art{background:var(--road-art);background-image:linear-gradient(transparent 3px,#F0B43C 3px,#F0B43C 4px,transparent 4px,transparent 5px,#F0B43C 5px,#F0B43C 6px,transparent 6px)}
+.legend .sw.city{background:var(--road);background-image:repeating-linear-gradient(90deg,transparent 0 4px,#fff 4px 7px);background-size:100% 1px;background-repeat:repeat-x;background-position:0 4px}
+.legend .pd{width:12px;height:16px;border-radius:3px;background:#0E1120;display:inline-block;position:relative;margin:0 7px}
+.legend .pd::before,.legend .pd::after{content:"";position:absolute;left:3px;width:6px;height:5px;border-radius:2px}
+.legend .pd::before{top:2px;background:#FF4545} .legend .pd::after{bottom:2px;background:#3BE38A}
+body.zoomed-out .legend{display:flex}
+body.cine .legend,body.photo .legend,body.replay .legend{display:none!important}
+@media (max-width:820px){ .legend{display:none!important} }
 </style>
 </head>
 <body>
@@ -692,6 +706,13 @@ body.photo:not(.photo-labels) #labels{opacity:0}
   </nav>
 
   <aside id="detail" class="panel detail" aria-live="polite"></aside>
+  <section id="roadLegend" class="panel legend" aria-label="Keterangan jalan">
+    <b>Keterangan jalan</b>
+    <span><i class="sw toll"></i>Jalan tol · Tol Jagorawi</span>
+    <span><i class="sw art"></i>Jalan arteri · Jl. Lingkar Utara</span>
+    <span><i class="sw city"></i>Jalan kota · lampu di tiap persimpangan</span>
+    <span><i class="pd"></i>Lampu penyeberang jalan</span>
+  </section>
   <section id="track" class="panel track" aria-label="Pelacakan pengiriman"></section>
   <section id="replayBar" class="panel rpbar" aria-label="Putar ulang" hidden>
     <div class="rp-row">

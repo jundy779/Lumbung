@@ -241,6 +241,9 @@ function gateS(site,P){ if(P.gateS!==undefined) return P.gateS; const g=siteGate
   for(let i=1;i<P.p.length;i++){ const a=P.p[i-1], b=P.p[i]; if(a.x<g.xc&&b.x>=g.xc&&Math.max(a.z,b.z)<site.Zr+0.8&&Math.min(a.z,b.z)>yZ-1.5){ s=P.L[i-1]+(P.L[i]-P.L[i-1])*(g.xc-a.x)/(b.x-a.x); break; } }
   P.gateS=s; return s; }
 const queuedCount=site=>site.trucks.reduce((n,o)=>n+(o.queued&&o.state!=='away'?1:0),0)+siteGate(site).incoming.size;
+/* beban gerbang: truk yang masih harus check-in (belum lewat palang) + yang antre, termasuk kiriman antar-gudang yang sedang menuju.
+   Dipakai untuk menolak tambahan truk antre/alihan supaya antrean check-in tidak sampai menunggu di jalan raya */
+const gateLoad=site=>site.trucks.reduce((n,o)=>n+((o.queued||(!o.gated&&['inbound','toll_in','approach','gate'].includes(o.state)))&&o.state!=='away'?1:0),0)+siteGate(site).incoming.size;
 /* ruang di area tunggu: truk berikutnya harus bisa lewat palang sepenuhnya (ekor > palang + 0,8 m) */
 function laneRoom(site,t){ const g=siteGate(site), yZ=yardZ(site); let minRear=Infinity;
   for(const o of site.trucks){ if(o===t||!o.solid||o.state==='parked') continue; if(Math.abs(o.pos.z-yZ)>2.2||o.pos.x<g.armX-1) continue;
@@ -270,7 +273,7 @@ function siteTripPath(A,t,B){ const bay=t.bay||t.lastBay; if(!bay||A===B) return
   return polyPath(toLocal(pre.concat(mid,tail),A),4.6); }
 /* alasan gudang B tidak bisa menerima truk t (null = bisa) */
 function xferCheck(t,B){ const A=t.site; if(!B||B===A) return 'gudang yang sama';
-  if(queuedCount(B)>=siteGate(B).cap+1) return 'area tunggu penuh';   /* +1: truk boleh menunggu di palang gerbang (sudah di dalam halaman) */
+  if(queuedCount(B)>=siteGate(B).cap+1||gateLoad(B)>=siteGate(B).cap+1) return 'area tunggu penuh';   /* +1: truk boleh menunggu di palang gerbang (sudah di dalam halaman) */
   const e=expectedOcc(B), room=B.slots.length-e;
   if(DEST_BEFORE.includes(t.state)){ if(room<Math.max(t.total,t.done)) return 'staging penuh'; if(!siteTripPath(A,t,B)) return 'tidak ada rute'; return null; }
   if(t.mode==='unload'&&room<t.total) return 'staging penuh';
@@ -745,6 +748,14 @@ const PLANS={
     walkTo(p,[tgt]); p.ri=nx;
     if(RAND()<0.35) idle(p,1.5+RAND()*2,'look','Patroli');
   },
+  /* v38: penyeberang jalan di persimpangan: berputar searah jarum jam lewat keempat zebra, menyeberang hanya saat lampu penyeberang hijau */
+  cross(ctx,p){ const j=JUNC.get(p.jid), side=['N','E','S','W'][p.ri], P=xingPts(j,side);
+    walkTo(p,[P[0]]); faceTo(p,Math.atan2(P[1].x-P[0].x,P[1].z-P[0].z));
+    /* penanda menyeberang dipasang pada langkah yang sama dengan keputusan, supaya mobil tidak sempat masuk di antaranya */
+    p.act.push({t:'until',fn:()=>{ if(!pedCanStart(j,side)) return false; p.xing=j.id+side; return true; },pose:null,label:'Menunggu lampu penyeberang'});
+    p.act.push({t:'do',fn:()=>{ p.doing='Menyeberang jalan'; }});
+    walkTo(p,[P[1]]); p.act.push({t:'do',fn:()=>{ p.xing=null; }}); walkTo(p,[P[2]]);
+    p.ri=(p.ri+1)%4; if(RAND()<0.25) idle(p,1.5+RAND()*3,RAND()<0.5?'phone':'look','Menunggu di trotoar'); },
   loop(ctx,p){
     const R=p.route, nx=(p.ri+1)%R.length, c=R[(nx+1)%R.length], tgt=laneTarget(R[p.ri],R[nx],c), h=Math.atan2(tgt.x-p.pos.x,tgt.z-p.pos.z);
     if(Math.abs(angDiff(p.heading,h))>0.6) faceTo(p,h);
@@ -793,6 +804,7 @@ function personStep(ctx,p,dt){
     if(done) p.act.shift();
   }
   else if(a.t==='do'){ p.act.shift(); a.fn(); }
+  else if(a.t==='until'){ p.v=Math.max(0,p.v-dt*3); p.pose=a.pose||null; p.doing=a.label||'Menunggu'; if(a.fn()){ p.act.shift(); p.pose=null; } }
   else if(a.t==='idle'){ a.e=(a.e||0)+dt; p.pose=a.pose; p.doing=a.label||'Berdiri'; p.v=Math.max(0,p.v-dt*3); if(a.e>=a.d){ p.act.shift(); p.pose=null; } }
 }
 
@@ -898,8 +910,9 @@ function initTraffic(){
   LANES.forEach((L,li)=>{ L.len=Math.abs(L.b-L.a);
     L.juncs=[...JUNC.values()].filter(j=>L.ax==='x'?j.z===L.st:j.x===L.st).map(j=>{ const p=((L.ax==='x'?j.x:j.z)-L.a)*L.dir; return {j,pIn:p-j.h,pOut:p+j.h}; }).sort((a,b)=>a.pIn-b.pIn); L.stops=sigs.filter(s=>L.ax==='x'?s.z===L.st:s.x===L.st).map(s=>{ const j=[...JUNC.values()].find(j=>Math.abs(j.x-s.x)<1&&Math.abs(j.z-s.z)<1); return {sig:s,p:((L.ax==='x'?s.x:s.z)-L.a)*L.dir,off:j?j.h+j.pre:ROAD/2+3.4}; });
     const n=Math.round(L.len/80);
-    for(let i=0;i<n;i++) Store.add('cars',{kind:'car',rank:R(),id:'CAR-'+li+'-'+i,lane:li,p:clearOfJunctions(L,(i+R()*0.5)/n*L.len),v:6,vmax:7+R()*3,wait:0,x:0,z:0,heading:0,presence:1,active:true,
+    for(let i=0;i<n;i++) Store.add('cars',{kind:'car',rank:R(),id:'CAR-'+li+'-'+i,lane:li,home:li,p:clearOfJunctions(L,(i+R()*0.5)/n*L.len),v:6,vmax:7+R()*3,wait:0,x:0,z:0,heading:0,presence:1,active:true,
       color:pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0x3B4A7A,0xE0573B,0x17A090,0x1B2340,0xF3F5FB],R)}); });
+  initTurns();
 }
 function exitRoom(L,cs,i,jc){
   let stopAt=Infinity;
@@ -915,6 +928,67 @@ function exitRoom(L,cs,i,jc){
   /* semua mobil di depan (termasuk yang masih di dalam persimpangan) akan ikut antre di depan mobil ini; jarak antre nyata 6,5 m (6,2 + sisa rem 0,3) */
   let m=0; for(let k=i-1;k>=0;k--){ const o=cs[k]; if(o.wait<=0&&o.p<stopAt-0.5) m++; }
   return stopAt-6.5*(m+1)-2.1>jc.pOut+2.6; }
+/* ---------- v38: mobil belok kiri/kanan & putar balik, lampu & penyeberang jalan ----------
+   Arah hadap kuadran h: 0=+z (selatan), 1=+x (timur), 2=−z (utara), 3=−x (barat). Lalu lintas lajur kiri: belok kiri = h+1, belok kanan = h+3.
+   Mobil hanya berpindah lajur di persimpangan tempat dua lajur mobil bertemu (x=±250); putar balik boleh di persimpangan grid mana pun.
+   Gerakan memakai kode persimpangan yang sama dengan truk (S…, T{masuk}{keluar}, U{masuk}) sehingga sistem klaim persimpangan tetap satu. */
+const laneH=L=>L.ax==='x'?(L.dir>0?1:3):(L.dir>0?0:2);
+const laneOf=h=>(h&1)?{ax:'x',dir:h===1?1:-1}:{ax:'z',dir:h===0?1:-1};
+const ENTER_SIDE=['N','W','S','E'], EXIT_SIDE=['S','E','N','W'];
+function laneWorld(L,p){ const k=L.a+L.dir*p; return L.ax==='x'?{x:k,z:L.c}:{x:L.c,z:k}; }
+function findLane(ax,st,dir){ return LANES.findIndex(L=>L.ax===ax&&L.st===st&&L.dir===dir); }
+function initTurns(){ LANES.forEach((L,li)=>{ L.idx=li; const h=laneH(L);
+  for(const jc of L.juncs){ if(String(jc.j.id)[0]==='H') continue; const o={};
+    const tgt=hO=>{ const t=laneOf(hO), st=t.ax==='x'?jc.j.z:jc.j.x; return findLane(t.ax,st,t.dir); };
+    const l=tgt((h+1)&3), r=tgt((h+3)&3), u=findLane(L.ax,L.st,-L.dir);
+    if(l>=0) o.L=l; if(r>=0) o.R=r; if(u>=0) o.U=u; jc.opts=o; } }); }
+/* rencana gerak di persimpangan: diundi sekali saat mobil mendekat (RAND supaya bisa diulang dengan seed) */
+/* rencana disimpan per persimpangan (bukan satu slot), supaya rencana persimpangan yang sedang dilalui tidak tertimpa rencana persimpangan berikutnya */
+function carPlan(c,jc){ if(!c.plans) hidden(c,'plans',{}); if(!('plan' in c)) hidden(c,'plan',null); const id=jc.j.id; let k=c.plans[id];
+  if(k==null){ const o=jc.opts||{}, r=RAND(); k='S'; if(o.L!=null&&o.R!=null){ k=r<0.24?'L':r<0.46?'R':r<0.52&&o.U!=null?'U':'S'; } else if(o.U!=null&&r<0.035) k='U'; c.plans[id]=k; }
+  c.plan={jid:id,k}; return c.plan; }
+const TURN_V={L:4.4,R:5.2,U:3.2};
+function planMove(L,c,jc,k){ const h=laneH(L); if(k==='S') return {mov:'S'+L.ax+(L.dir>0?'+':'-'),hOut:h,li:L.idx,vT2:0};
+  const li=jc.opts[k], hOut=k==='L'?(h+1)&3:k==='R'?(h+3)&3:(h+2)&3; return {mov:k==='U'?'U'+h:'T'+h+hOut,hOut,li,vT2:TURN_V[k]*TURN_V[k]/10}; }
+/* ruang di lajur tujuan setelah persimpangan (pakai aturan "jangan menutup persimpangan" milik lajur tujuan) */
+function laneRoomAfter(li,j,c){ const L2=LANES[li], jc2=L2.juncs.find(x=>x.j===j); if(!jc2) return false;
+  const cs2=Store.all('cars').filter(o=>o.lane===li&&o.wait<=0&&!o.turn&&o!==c).sort((a,b)=>b.p-a.p), pS=jc2.pIn-2.2;
+  if(cs2.some(o=>o.p<jc2.pOut+2.6&&o.p>jc2.pIn-1)) return false; /* ada mobil di dalam/di mulut persimpangan lajur tujuan */
+  /* belok lebih hati-hati daripada lurus: sisakan satu panjang mobil ekstra, karena belokan butuh waktu dan antrean di lajur tujuan bisa bertambah */
+  const i2=cs2.filter(o=>o.p>pS).length, arr=cs2.slice(0,i2).concat([{p:pS,v:Math.max(c.v,4),wait:0}]); return exitRoom(L2,arr,i2,{pOut:jc2.pOut+6.5}); }
+function startTurn(c,L,jc,mv){ const L2=LANES[mv.li], jc2=L2.juncs.find(x=>x.j===jc.j), S=laneWorld(L,c.p), X=laneWorld(L2,jc2.pOut-1.0);
+  const d0=laneWorld(L,1), o0=laneWorld(L,0), dx0=d0.x-o0.x, dz0=d0.z-o0.z, d1a=laneWorld(L2,1), o1=laneWorld(L2,0), dx1=d1a.x-o1.x, dz1=d1a.z-o1.z;
+  let P1,P2; if(c.plan.k==='U'){ const D=jc.pIn+jc.j.h-c.p+0.8; P1={x:S.x+dx0*D,z:S.z+dz0*D}; P2={x:X.x-dx1*D,z:X.z-dz1*D}; }
+  else { const C=L.ax==='x'?{x:L2.c,z:L.c}:{x:L.c,z:L2.c}, a=Math.hypot(C.x-S.x,C.z-S.z)*0.56, b=Math.hypot(X.x-C.x,X.z-C.z)*0.56; P1={x:S.x+dx0*a,z:S.z+dz0*a}; P2={x:X.x-dx1*b,z:X.z-dz1*b}; }
+  const pts=[], cum=[0]; for(let i=0;i<=24;i++){ const u=i/24, v=1-u; pts.push({x:v*v*v*S.x+3*v*v*u*P1.x+3*v*u*u*P2.x+u*u*u*X.x,z:v*v*v*S.z+3*v*v*u*P1.z+3*v*u*u*P2.z+u*u*u*X.z}); if(i) cum.push(cum[i-1]+Math.hypot(pts[i].x-pts[i-1].x,pts[i].z-pts[i-1].z)); }
+  if(!('turn' in c)) hidden(c,'turn',null); c.turn=({pts,cum,len:cum[24],s:0,li:mv.li,p2:jc2.pOut-1.0,vT:TURN_V[c.plan.k],j:jc.j}); }
+function stepTurn(c,dt){ const T=c.turn; const vT=T.vT*Math.min(1,WX.speed+0.2); c.v=c.v>vT?Math.max(vT,c.v-6*dt):Math.min(vT,c.v+2.2*dt); T.s=Math.min(T.len,T.s+c.v*dt);
+  let i=1; while(i<24&&T.cum[i]<T.s) i++; const a=T.pts[i-1], b=T.pts[i], f=(T.s-T.cum[i-1])/Math.max(1e-6,T.cum[i]-T.cum[i-1]);
+  c.x=a.x+(b.x-a.x)*f; c.z=a.z+(b.z-a.z)*f; c.heading=Math.atan2(b.x-a.x,b.z-a.z); c.active=true; c.presence=1;
+  if(T.s>=T.len-1e-6){ c.lane=T.li; c.p=T.p2; c.turn=null; c.plans[T.j.id]='S'; c.plan={jid:T.j.id,k:'S'}; } }
+/* lampu penyeberang: menyeberangi jalan sumbu V (jalan utara–selatan) berjalan saat lampu kendaraan H hijau, dan sebaliknya.
+   start = boleh mulai menyeberang (detik awal hijau), walk = hijau (berkedip setelah jendela mulai habis) */
+function pedPhase(sig,ax,t=traffic.t){ if(!sig||WX.flash) return {walk:false,start:false,flash:false,off:true};
+  if(sig.z===ZHW) return {walk:false,start:false,flash:false,off:true};
+  const u=((t+sig.off)%28+28)%28, [g0,g1]=ax==='H'?[0,9]:[14,23], walk=u>=g0&&u<g1; return {walk,start:walk&&u<g0+4.5,flash:walk&&u>=g0+4.5}; }
+/* zebra di sisi N/S menyeberangi jalan V → mengikuti lampu H; sisi E/W menyeberangi jalan H → mengikuti lampu V */
+const ZEB_AX={N:'H',S:'H',E:'V',W:'V'};
+/* titik penyeberang per sisi: [tunggu di tepi trotoar, tepi seberang, sudut luar] (searah jarum jam N→E→S→W) */
+function xingPts(j,side){ const x=j.x, z=j.z, a=ROAD/2+1.1, o=ROAD/2+1.6, c1=7.2, c2=7.4;
+  return {N:[{x:x-a,z:z-o},{x:x+a,z:z-o},{x:x+c1,z:z-c2}],E:[{x:x+o,z:z-a},{x:x+o,z:z+a},{x:x+c2,z:z+c1}],S:[{x:x+a,z:z+o},{x:x-a,z:z+o},{x:x-c1,z:z+c2}],W:[{x:x-o,z:z+a},{x:x-o,z:z-a},{x:x-c2,z:z-c1}]}[side]; }
+function zebraRect(j,side){ const o=ROAD/2+1.6, w=ROAD/2+0.9; return side==='N'?{x0:j.x-w,x1:j.x+w,z0:j.z-o-1.4,z1:j.z-o+1.4}:side==='S'?{x0:j.x-w,x1:j.x+w,z0:j.z+o-1.4,z1:j.z+o+1.4}:side==='W'?{x0:j.x-o-1.4,x1:j.x-o+1.4,z0:j.z-w,z1:j.z+w}:{x0:j.x+o-1.4,x1:j.x+o+1.4,z0:j.z-w,z1:j.z+w}; }
+const zebraBusy=(j,side)=>city.people.some(q=>q.xing===j.id+side);
+function movSides(m){ /* sisi zebra yang dilalui kendaraan dengan kode gerak m */
+  if(m[0]==='U') return [ENTER_SIDE[+m[1]]]; /* putar balik keluar lewat zebra sisi masuknya sendiri */ let hIn, hOut;
+  if(m[0]==='T'){ hIn=+m[1]; hOut=+m[2]; } else if(/\d/.test(m[2])){ hIn=hOut=+m[2]; } else { hIn=hOut=m[1]==='x'?(m[2]==='+'?1:3):(m[2]==='+'?0:2); }
+  return [ENTER_SIDE[hIn],EXIT_SIDE[hOut]]; }
+function pedCanStart(j,side){ const ph=pedPhase(j.sig,ZEB_AX[side]); if(!ph.start) return false;
+  for(const [o,m] of j.occ) if(movSides(m).includes(side)) return false;
+  const R=zebraRect(j,side); for(const c of Store.tables.cars.values()){ if(!c.active||c.wait>0) continue; if(c.x>R.x0-3&&c.x<R.x1+3&&c.z>R.z0-3&&c.z<R.z1+3) return false;
+    /* mobil yang sudah melaju dekat persimpangan dan akan melewati zebra ini didahulukan (tidak sempat mengerem); mobil yang berhenti/lambat yang mengalah */
+    if(c.turn||c.v<=2) continue; const L=LANES[c.lane], jc=L.juncs.find(x=>x.j===j); if(!jc) continue; const d=jc.pIn-(c.p+2.1); if(d<-1||d>16) continue;
+    const k=(c.plans&&c.plans[j.id])||'S'; if(movSides(planMove(L,c,jc,k).mov).includes(side)) return false; }
+  return true; }
 function stepTraffic(dt){
   traffic.t+=dt;
   for(const s of Store.tables.signals.values()){ s.stateH=sigState(s,'H',traffic.t); s.stateV=sigState(s,'V',traffic.t); }
@@ -922,7 +996,9 @@ function stepTraffic(dt){
   LANES.forEach((L,li)=>{
     const cs=cars.filter(c=>c.lane===li).sort((a,b)=>b.p-a.p);
     cs.forEach((c,i)=>{
-      if(c.wait>0){ if(c._jheld&&c._jheld.size) jReleaseAll(c); c.wait-=dt; c.active=false; if(c.wait<=0){ const busy=cars.some(o=>o!==c&&o.lane===li&&o.wait<=0&&o.p<16); if(busy) c.wait=0.8; else if((c.rank??0)>WX.density) c.wait=2+RAND()*4; else { c.p=0; c.v=5; } } return; }
+      if(c.tt===traffic.t) return; c.tt=traffic.t; /* mobil yang baru pindah lajur tidak dijalankan dua kali dalam satu langkah */
+      if(c.wait>0){ if(c._jheld&&c._jheld.size) jReleaseAll(c); c.wait-=dt; c.active=false; if(c.wait<=0){ const hl=c.home??li, busy=cars.some(o=>o!==c&&o.lane===hl&&o.wait<=0&&o.p<16); if(busy) c.wait=0.8; else if((c.rank??0)>WX.density) c.wait=2+RAND()*4; else { c.lane=hl; c.p=0; c.v=5; c.plan=null; if(c.plans) c.plans={}; } } return; }
+      if(c.turn){ stepTurn(c,dt); return; }
       let block=Infinity, sigStop=false; const redSigs=new Set(); /* lampu yang mengharuskan mobil ini berhenti (per persimpangan, bukan global) */
       const lead=cs.slice(0,i).reverse().find(o=>o.wait<=0);
       /* badan masih di persimpangan / zebra seberang → boleh merapat lebih dekat ke mobil depan supaya persimpangan & zebra cepat bersih */
@@ -935,14 +1011,18 @@ function stepTraffic(dt){
         const need=c.v*c.v/(2*(st==='A'?6:8))+0.3;
         if(d>need||c.v<2){ block=Math.min(block,d); sigStop=true; redSigs.add(s.sig); } else hidden(c,'commit',s); }
       for(const jc of L.juncs){
-        if(c.p-2.2>jc.pOut){ if(jc.j.occ.has(c)) jRelease(jc.j,c); continue; }
+        if(c.p-2.2>jc.pOut){ if(jc.j.occ.has(c)) jRelease(jc.j,c); if(c.plans) delete c.plans[jc.j.id]; continue; }
         const red=!!(jc.j.sig&&redSigs.has(jc.j.sig));
-        if(jc.j.occ.has(c)){ if(red&&c.p+2.1<jc.pIn) jRelease(jc.j,c); else continue; }
-        const d=jc.pIn-jc.j.pre-(c.p+2.1)-0.2; if(d>c.v*c.v/(2*5)+7) break;
+        const pl=carPlan(c,jc), mv=planMove(L,c,jc,pl.k);
+        if(jc.j.occ.has(c)){ if(red&&c.p+2.1<jc.pIn) jRelease(jc.j,c);
+          else { if(pl.k!=='S'){ if(c.p>=jc.pIn-2.2){ startTurn(c,L,jc,mv); stepTurn(c,dt); return; } block=Math.min(block,(jc.pIn-2.2-c.p)+mv.vT2); } continue; } }
+        const d=jc.pIn-jc.j.pre-(c.p+2.1)-0.2; if(pl.k!=='S') block=Math.min(block,(jc.pIn-2.2-c.p)+mv.vT2); if(d>c.v*c.v/(2*5)+7) break;
         if(red&&d>=-0.1){ jDequeue(c); break; }
+        /* penyeberang di zebra yang akan dilalui: berhenti di garis (mobil yang sudah tidak sempat berhenti tetap lewat) */
+        if(String(jc.j.id)[0]!=='H'&&movSides(mv.mov).some(sd=>zebraBusy(jc.j,sd))&&(d>c.v*c.v/16||c.v<2)){ jDequeue(c); block=Math.min(block,d); break; }
         /* "jangan menutup persimpangan": masuk hanya bila antrean di seberang menyisakan ruang sampai bemper belakang lewat zebra */
-        let exitOk=exitRoom(L,cs,i,jc); if(!exitOk&&c.v>4&&d<c.v*c.v/16) exitOk=true; /* sudah tidak sempat berhenti sebelum garis: ikut masuk, jangan berhenti di zebra */
-        if(!jRequest(jc.j,c,'S'+L.ax+(L.dir>0?'+':'-'),exitOk)){ block=Math.min(block,d); }
+        let exitOk=pl.k==='S'?exitRoom(L,cs,i,jc):laneRoomAfter(mv.li,jc.j,c); if(!exitOk&&pl.k==='S'&&c.v>4&&d<c.v*c.v/16) exitOk=true; /* sudah tidak sempat berhenti sebelum garis: ikut masuk, jangan berhenti di zebra */
+        if(!jRequest(jc.j,c,mv.mov,exitOk)){ block=Math.min(block,d); }
         break;
       }
       const allow=Math.min(c.vmax*WX.speed,Math.sqrt(2*5*Math.max(0,block-0.3)));
@@ -958,6 +1038,11 @@ function stepTraffic(dt){
 const city={people:[],bays:[],holds:[]};
 function initCityWalkers(){
   const R=rng(777);
+  /* v38: dua penyeberang di tiap persimpangan yang dilewati lajur mobil (x = ±250) */
+  for(const j of JUNC.values()){ if(String(j.id)[0]==='H'||!LANES.some(L=>L.ax==='z'&&L.st===j.x)||!LANES.some(L=>L.ax==='x'&&L.st===j.z)) continue;
+    for(let k=0;k<2;k++){ const ri=(k*2+(strHash(j.id)%2))%4, st=xingPts(j,['N','E','S','W'][ri])[0];
+      const p=personRecord(null,R,'Pejalan kaki',{plan:'cross',route:null,ri,y:0.08,start:{x:st.x,z:st.z,h:0},look:{vest:pick([0xFFFFFF,0x2E5BFF,0xE0573B,0x17A090,0xF2B53A,0x7C3AED],R),hat:pick([0x2A2622,0x3B2A20,0x1B1B1B],R),civ:true}});
+      p.jid=j.id; p.vmax=1.45; hidden(p,'xing',null); city.people.push(p); } }
   const blocks=[[-1,1],[2,0],[-2,0],[0,-1],[1,-1],[-1,-1],[0,2],[1,2],[2,1]].filter(([gx,gz])=>siteAt(gx,gz)<0&&!STORE_CONFIG.some(S=>S.gx===gx&&S.gz===gz));
   for(const [gx,gz] of blocks){ const cx=gx*PX, cz=gz*PZ, hx=(PX-ROAD)/2-1.9, hzz=(PZ-ROAD)/2-1.9;
     const route=[{x:cx-hx,z:cz-hzz},{x:cx+hx,z:cz-hzz},{x:cx+hx,z:cz+hzz},{x:cx-hx,z:cz+hzz}];
@@ -1167,7 +1252,7 @@ const SAFETY_LABELS={
   redirect:'Truk tiba di tujuan yang salah', crewStall:'Sopir tidak mendekat ke tujuannya > 20 dtk', stuck:'Truk tertahan > 120 dtk',
   teleport:'Truk "diteleport" pengaman macet (> 300 dtk)', gap:'Jarak antre truk < 1,5 m', kpi:'KPI gudang tidak valid (NaN / di luar batas)',
   gateSkip:'Truk sampai di dock tanpa check-in gerbang', gateArm:'Palang gerbang menutup di atas truk', roadQueue:'Truk antre di jalan raya depan gerbang gudang > 45 dtk',
-  queueLong:'Truk menunggu di area tunggu > 10 menit', wrongSite:'Truk merapat di bay milik gudang lain', jump:'Posisi truk melompat (perpindahan gudang salah hitung)'};
+  queueLong:'Truk menunggu di area tunggu > 10 menit',pedHit:'Mobil menyerempet penyeberang jalan',pedRed:'Penyeberang di zebra saat kendaraan arahnya hijau', wrongSite:'Truk merapat di bay milik gudang lain', jump:'Posisi truk melompat (perpindahan gudang salah hitung)'};
 function makeSafetyChecker(){
   const V={}; for(const k in SAFETY_LABELS) V[k]={n:0,ex:[]};
   const bad=(k,msg)=>{ const v=V[k]; v.n++; if(v.ex.length<3&&!v.ex.includes(msg)) v.ex.push(msg); };
@@ -1223,6 +1308,11 @@ function makeSafetyChecker(){
         if(t.dockId!==(Store.get('stores',t.dest)||{bays:[{}]}).bays[0].id||(sh&&sh.storeId&&sh.storeId!==t.dest)) bad('redirect',`${t.id} tiba di ${t.dockId}, seharusnya ${sh&&sh.storeId}`); } }
     }
     for(const c of cars) if(c.v<0.05){ const k='c'+c.id, st=(stopT.get(k)||0)+dt; stopT.set(k,st); if(st>=1&&body(c.x,c.z,c.heading,C_OFF).some(p=>onZebra(p.x,p.z))) bad('zebra',`${c.id}`); } else stopT.delete('c'+c.id);
+    /* v38: penyeberang jalan */
+    for(const q of city.people){ if(q.plan!=='cross') continue;
+      for(const c of cars){ if(Math.abs(c.x-q.pos.x)>3||Math.abs(c.z-q.pos.z)>3) continue; if(carCirc(c).some(k=>Math.hypot(k.x-q.pos.x,k.z-q.pos.z)<k.r+0.3)) bad('pedHit',`${c.id} × ${q.id}`); }
+      if(q.xing&&q.v>0.05){ const j=JUNC.get(q.jid), side=q.xing.slice(-1), R=zebraRect(j,side), on=q.pos.x>R.x0+1.2&&q.pos.x<R.x1-1.2&&q.pos.z>R.z0&&q.pos.z<R.z1;
+        if(on&&j.sig&&!WX.flash){ const st=ZEB_AX[side]==='H'?j.sig.stateV:j.sig.stateH; if(st==='G') bad('pedRed',`${q.id} di ${q.xing}`); } } }
     /* gerbang & area tunggu */
     for(const s of Store.all('sites')){ const g=siteGate(s), q=queuedCount(s); if(q>M.maxQueue) M.maxQueue=q;
       if(g.armT<0.9){ const ax=g.armX+s.ox, z0=g.zArm0+s.oz, z1=g.zArm1+s.oz;

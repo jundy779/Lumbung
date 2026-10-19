@@ -4,7 +4,7 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v37** · oleh PT Fusionify Digital
+**Lumbung v38** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -121,6 +121,7 @@ Aturan keselamatan yang dijaga simulator:
 - Pintu belakang dibuka **di halaman gudang**, tidak di jalan raya.
 - Truk berhenti bila ada sopir atau pekerja di jalurnya.
 - Bay dibagikan sesuai urutan check-in, dan palang hanya dibuka bila truk muat sepenuhnya di area tunggu, jadi antrean tidak meluber ke jalan raya.
+- Mobil belok kiri/kanan atau putar balik mengikuti lampu dan hanya bila lajur tujuan punya ruang; mobil yang belok mengalah pada penyeberang jalan, dan penyeberang hanya mulai saat lampu penyeberang hijau.
 - Truk menyalakan sein sebelum berbelok, lampu rem saat mengerem atau antre, lampu mundur saat mundur ke dock, dan hazard bila tertahan lama. Mobil kota ikut menyalakan lampu rem.
 
 ---
@@ -293,6 +294,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Garis waktu & putar ulang 10 menit terakhir · v35
 - [x] KRL layang, bayangan awan, suara suasana, dan mode foto · v36
 - [x] Truk mogok + kirim mekanik, jas hujan · v37
+- [x] Jenis jalan dibedakan, mobil belok & putar balik, lampu & penyeberang jalan · v38
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 
