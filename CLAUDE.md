@@ -1,10 +1,12 @@
-# CLAUDE.md · Peta Teknis Lumbung v42
+# CLAUDE.md · Peta Teknis Lumbung v42.1
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v42.1 (20 Okt 2026), warga memutari tangga stasiun**: `STATION_STAIRS` (c_sim, sebelum `initCityWalkers`, koordinat dunia: tangga 62..82 di z −31,9 dan −44,1 + kolom 2,6 m) dan `stairDetour(pts,cz)`: ruas rute `loop` yang melewati tangga mendapat 4 titik tambahan (masuk ±2,3 m ke dalam blok, lewat, kembali). Titik sudut asli tetap objek yang sama, jadi `ri` awal dicari dengan `route.indexOf(corner)`. Hanya blok (−1,−1) yang terkena. Jejak tangga di `buildRailView` (d_part2) dan `STATION_STAIRS` harus diubah bersamaan. Sidik jari simulasi berubah (posisi warga), uji keselamatan tetap lulus.
 
 **Perubahan v42 (20 Okt 2026), gerak manusia alami & burung (hanya tampilan)**:
 - `animPerson` (d_part2) ditulis ulang. `spr(o,k,target,w,dt)` = pegas teredam kritis bentuk tertutup (state kecepatan di `o.userData.sv`), menggantikan `jl` (masih ada, tidak dipakai). Kekakuan per kelompok: kaki `lerp(9,26,w)`, lengan `lerp(7.5,17,w)`, badan `lerp(7,14,w)`, kepala 6. Posisi & arah tampilan `v.rx/v.rz/v.rh` dihaluskan (posisi `1-e^(-16dt)`, arah maks 6,5 rad/dtk saat berjalan, 4,2 saat diam; lompat >2,5 m langsung disamakan). **Rig yang dipakai ulang di tempat jauh harus `v.rx=null`** (sudah di rig sopir saat muncul).

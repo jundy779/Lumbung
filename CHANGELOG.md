@@ -1,5 +1,8 @@
 # Changelog
 
+## v42.1 · 20 Okt 2026
+- Perbaikan: warga yang berjalan di trotoar sisi utara Stasiun Cibinong (blok barat laut) menembus kaki tangga dan kolom stasiun. Rute mereka kini memutar sekitar 2,3 m ke dalam blok saat melewati tangga, lalu kembali ke trotoar. Aturannya berlaku otomatis untuk setiap ruas rute warga yang melewati tangga stasiun. Teruji 10 menit simulasi: jarak terdekat pejalan kaki ke tangga 0,55 m, tidak ada yang menembus, dan 6 skenario regresi lulus.
+
 ## v42 · 20 Okt 2026
 - **Gerak manusia lebih alami**: semua figur (staf, sopir, warga, penyeberang, mekanik, pengendara motor) kini digerakkan sendi berpegas teredam, jadi lengan, kepala, dan badan bergerak dengan percepatan dan perlambatan seperti orang sungguhan, tidak lagi "klik" pindah posisi. Posisi dan arah badan di layar dihaluskan, sehingga belokan tidak patah dan gerak tetap mulus di HP yang menyimulasikan gudang lain selang-seling. Terukur: lompatan arah hadap per frame turun dari 122 kali per 40 detik menjadi 0.
 - Saat berjalan: pinggul berayun dan miring, badan berputar berlawanan arah langkah, kepala tetap menatap ke depan, panjang ayunan ikut kecepatan. Saat diam: memindah tumpuan berat badan, bernapas, sesekali menoleh.

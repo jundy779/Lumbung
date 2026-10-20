@@ -303,6 +303,7 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 | Truk berhenti di zebra cross | garis stop & titik berhenti di dalam area zebra | garis stop di belakang zebra (`j.pre`), di lajur kiri |
 | Mobil saling kunci di persimpangan (v38→v39) | mobil depan keluar antrean (mengalah ke penyeberang), mobil di belakangnya merebut klaim | hanya kendaraan terdepan di lajurnya yang boleh mengklaim persimpangan |
 | Dua operator gudang berhadapan selamanya (sejak v29) | keduanya menganggap yang lain penghalang diam | pejalan kaki yang tertahan 1,5 dtk mengalah (ID lebih besar) dan menyingkir; selalu ada pemeriksa "tertahan > 30 dtk" untuk setiap jenis agen |
+| Warga menembus tangga stasiun (v36→v42.1) | tangga KRL ditambahkan di lapis tampilan tanpa memberi tahu rute pejalan kaki di simulasi | objek tampilan yang berdiri di jalur pejalan kaki wajib didaftarkan ke simulasi (`STATION_STAIRS` → `stairDetour`) |
 | Uji bergantung jam dinding | pemanasan startup berjalan di jam 12 bawaan, jendela makan ikut aktif | fitur berbasis jam ditahan selama pemanasan (`LUNCH_HOLD`) |
 
 ---

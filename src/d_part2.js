@@ -967,7 +967,7 @@ function buildRailView(){
     P.add(gR(Math.hypot(len,h),0.35,2.4,0.05),0xD8DDE9,(x0+x1)/2,h/2,pz,0,1,1,1,0,-d*ang);
     for(const s of [-1,1]) P.add(gR(Math.hypot(len,h),0.07,0.07,0),0x9AA3BA,(x0+x1)/2,h/2+1.0,pz+s*1.15,0,1,1,1,0,-d*ang);
     P.box(2.6,h,2.6,0.1,0xCDD3E2,x0-d*1.3,h/2,pz); };
-  stair(sx+62,sx+82,Z+6.1); stair(sx-62,sx-82,Z-6.1);
+  stair(sx+62,sx+82,Z+6.1); stair(sx-62,sx-82,Z-6.1); /* jejak tangga dicatat di STATION_STAIRS (c_sim) supaya rute warga memutarinya; ubah keduanya bersamaan */
   const m=P.build(.7); m.castShadow=true; m.receiveShadow=true; g.add(m);
   /* papan nama stasiun di sisi kanopi yang menghadap kamera */
   const sm=new THREE.MeshBasicMaterial({map:railTex(R.stName)});

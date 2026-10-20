@@ -1107,6 +1107,17 @@ function stepTraffic(dt){
   });
 }
 const city={people:[],bays:[],holds:[]};
+/* v42.1: tangga Stasiun Cibinong (KRL layang, lihat buildRailView: tangga x 62..82 di kedua ujung, kolom 2,6 m di ujung atas) turun ke trotoar.
+   Rute warga yang lewat di bawahnya memutar ±2,3 m ke dalam blok supaya tidak menembus kaki tangga dan kolom. Koordinat dunia. */
+const STATION_STAIRS=[{xa:59.2,xb:82.8,z:-31.9},{xa:-82.8,xb:-59.2,z:-44.1}];
+function stairDetour(pts,cz){ const out=[];
+  for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; out.push(a); if(Math.abs(a.z-b.z)>1e-6) continue;
+    const dir=Math.sign(b.x-a.x), zin=a.z+Math.sign(cz-a.z)*2.3;
+    for(const S of STATION_STAIRS){ if(Math.abs(S.z-a.z)>2) continue; const lo=S.xa-1.6, hi=S.xb+1.6;
+      if(Math.max(a.x,b.x)<lo||Math.min(a.x,b.x)>hi) continue;
+      const en=dir<0?Math.min(a.x,hi):Math.max(a.x,lo), ex=dir<0?Math.max(b.x,lo):Math.min(b.x,hi);
+      if(Math.abs(en-a.x)>0.3) out.push({x:en,z:a.z}); out.push({x:en+dir*1.2,z:zin},{x:ex-dir*1.2,z:zin}); if(Math.abs(ex-b.x)>0.3) out.push({x:ex,z:a.z}); } }
+  return out; }
 function initCityWalkers(){
   const R=rng(777);
   /* v38: dua penyeberang di tiap persimpangan yang dilewati lajur mobil (x = ±250) */
@@ -1116,8 +1127,8 @@ function initCityWalkers(){
       p.jid=j.id; p.vmax=1.45; hidden(p,'xing',null); city.people.push(p); } }
   const blocks=[[-1,1],[2,0],[-2,0],[0,-1],[1,-1],[-1,-1],[0,2],[1,2],[2,1]].filter(([gx,gz])=>siteAt(gx,gz)<0&&!STORE_CONFIG.some(S=>S.gx===gx&&S.gz===gz));
   for(const [gx,gz] of blocks){ const cx=gx*PX, cz=gz*PZ, hx=(PX-ROAD)/2-1.9, hzz=(PZ-ROAD)/2-1.9;
-    const route=[{x:cx-hx,z:cz-hzz},{x:cx+hx,z:cz-hzz},{x:cx+hx,z:cz+hzz},{x:cx-hx,z:cz+hzz}];
-    for(let i=0;i<2;i++){ const ri=i*2, a=route[ri], b=route[(ri+1)%4], t=0.2+R()*0.6, dx=b.x-a.x, dz=b.z-a.z, l=Math.hypot(dx,dz);
+    const corners=[{x:cx-hx,z:cz-hzz},{x:cx+hx,z:cz-hzz},{x:cx+hx,z:cz+hzz},{x:cx-hx,z:cz+hzz}], route=stairDetour(corners,cz);
+    for(let i=0;i<2;i++){ const ri=route.indexOf(corners[i*2]), a=route[ri], b=route[(ri+1)%route.length], t=0.2+R()*0.6, dx=b.x-a.x, dz=b.z-a.z, l=Math.hypot(dx,dz);
       city.people.push(personRecord(null,R,'Warga',{plan:'loop',route,ri,y:0.08,start:{x:a.x+dx*t+dz/l*0.45,z:a.z+dz*t-dx/l*0.45,h:Math.atan2(dx,dz)},
         look:{vest:pick([0xFFFFFF,0x2E5BFF,0x9AA4C2,0xE0573B,0x17A090,0xF2B53A],R),hat:pick([0x2A2622,0x3B2A20,0x1B1B1B],R),civ:true}})); } }
 }
