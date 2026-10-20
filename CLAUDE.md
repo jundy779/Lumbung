@@ -1,10 +1,16 @@
-# CLAUDE.md · Peta Teknis Lumbung v42.2
+# CLAUDE.md · Peta Teknis Lumbung v43
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v43 (20 Okt 2026), analitik dock (hanya mengukur, sidik jari simulasi tetap `26dd78b3` untuk `3 7 siang`)**:
+- c_sim.js (blok "v43" setelah `kpiOnPull`): `DOCK_BUSY` (reverse/docked/pull), `initDockStats(site,m)` → `m.dk={h,n,hours[24]{w,occ[n],seed,pw},mins[60]{k,w,occ[n]},waits[≤16]{id,mode,bay,min},bay[n]{n,sum},seedH}`. Riwayat perkiraan dari `rng(SEED^strHash(id+'#dock'))`, bukan RAND. `dockTick(site,m,dt)` dipanggil di akhir `metricsTick`: isi bucket jam (`m.h`) & irisan menit (`floor(site.t/60)%60`), dan pasang `t.gateT` (hidden) saat truk di `gate`; dibersihkan di away/transfer/depart. `kpiOnDock` mencatat tunggu `site.t-t.gateT`; `kpiOnPull` menambah `bay` ke entri dwell dan akumulasi `dk.bay[i]`. `dockHourPct(b,i)`, `quant(a,p)`, `dockSummary(site)` → `{windowMin,occupancyPct,medianWaitMin,p90WaitMin,waitSamples,busiestDockId,bays[{dockId,label,occupancyPct,trucksToday,avgDwellMin}]}` (ikut `SCHEMA.sites.dockStats`).
+- `kpiUnwarm(hours,h,seed)`: saat jam berganti, bucket yang tidak pernah menerima data setelah pemanasan (`pw` hanya dipasang bila `!LUNCH_HOLD`) dikembalikan ke salinan perkiraan (`m.seedH`, `dk.seedH`). Berlaku juga untuk `m.hours` KPI v31.
+- e_ui.js (sebelum `HEAT_RAMP`): `niceMax`, `fpct`, `bayTag`/`bayRole` (crossdock ↓/↑), `dockGrid(s,only)` (SVG bay × 24 jam, opasitas = persen, `.dcell.sd` perkiraan, `.dnow` kolom jam berjalan, sel `.khit` punya `data-sel` dock + `data-tip`), `dockBlock(s)` (di panel gudang setelah `kpiBlock`: `.dtiles`, kartu peta + jam puncak (bucket ≥120 dtk), kartu tunggu `kBars`, tabel `.dtab`), `bayBlock(e)` (panel dock). `TABLES.docks` +2 kolom. CSS di shell.html blok "v43 · Analitik dock".
+- Harness Node mencetak `dock` per site. Pemeriksa `kpi` memvalidasi okupansi 0..100 dan tunggu ≥ 0.
 
 **Perubahan v42.2 (20 Okt 2026), logo resmi (hanya tampilan)**: `LOGO_SRC` (data URI PNG 256 px, 48 warna) + `LOGO_IMG`, `logoReady`, `drawLogo(ctx,cx,cy,size)`, `logoTex(w,h,draw)` di d_part1 tepat sebelum `canvasTex`. `logoTex` = `canvasTex` yang menggambar ulang dan `needsUpdate` saat `LOGO_IMG` selesai didekode (data URI tetap asinkron). Dipakai `roofDecal`, `signTex`, dan `trailerTex` khusus `car.name==='Lumbung'` (armada mitra tetap ikon rumah generik). Logo di sisi trailer tertutup daun pintu belakang saat truk di dock (pintu terlipat ke sisi), terlihat saat truk berjalan. shell.html: favicon PNG 64 px data URI, `apple-touch-icon` dan `og:image` ke `/assets/…`, `.brand-logo` (32 px) di bilah atas, `.splash-logo` (72 px, data URI 128 px) di layar pemuatan, `#tour .tlogo` (langkah pertama & terakhir). e_ui `takePhoto` menggambar logo sebelum teks "Lumbung". `build.mjs` menyalin `assets/*` ke `public/assets/`. Sumber logo: `assets/lumbung-logo.png` 512 px; untuk mengganti logo, buat ulang ketiga data URI (64/128/256) dari file itu.
 
@@ -618,7 +624,7 @@ Urutan pengerjaan yang disarankan: **B → A → C → D**. Fondasi uji dulu, su
 - Mengarahkan truk yang sedang datang ke dock lain: perlu melepas reservasi bay lama (`bay.truck`, `t.res`, klaim persimpangan) dan menghitung ulang `approachPath`. Perhatikan batasan penempatan gx di bagian 5.
 
 ### 16.2 Ide yang pernah diusulkan, belum dipilih
-- Bisnis: ~~garis waktu & putar ulang~~ (selesai v35), laporan & ekspor PDF/Excel, analitik dock.
+- Bisnis: ~~garis waktu & putar ulang~~ (selesai v35), laporan & ekspor PDF/Excel, ~~analitik dock~~ (selesai v43).
 - UX: tombol mode gelap manual (token CSS sudah ada, tapi warna hardcode perlu dibereskan dulu, lihat temuan #12), tur perkenalan, pintasan keyboard lengkap, versi bahasa Inggris (semua teks sekarang hardcode di template).
 - Suasana: ~~lampu sein, rem, mundur~~ (selesai v34), ~~KRL, suara ambien, mode foto~~ (selesai v36), siluet Gunung Salak (tidak bisa terlihat dengan sudut kamera sekarang, lihat v41), KRL melintas, suara ambien, bloom lampu malam (butuh post-processing, berat untuk ponsel).
 - Kehidupan: ~~pekerja datang naik motor~~ (v41), ~~istirahat siang~~ (v39), jas hujan saat hujan (`p.look` + `recolorPerson`), kejadian tak terduga seperti truk mogok (bisa memakai jalur peringatan `stuck`).

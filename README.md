@@ -6,7 +6,7 @@
 
 <img src="assets/lumbung-logo.png" width="96" alt="Logo Lumbung">
 
-**Lumbung v42.2** · oleh PT Fusionify Digital
+**Lumbung v43** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -79,7 +79,7 @@ Pusat peringatan memantau operasi terus-menerus dan setiap peringatan punya **to
 Peringatan selesai otomatis saat kondisinya pulih, dan semuanya tercatat di riwayat.
 
 ### 📊 Panel & KPI
-Kartu KPI dengan grafik tren mini, grafik **Kinerja khas** per jenis gudang (suhu ruang 24 jam, waktu transit cross-dock, paket per jam, peta panas AGV, waktu truk di dock) yang dihitung langsung dari simulasi, panel detail per objek, pelacakan pengiriman, notifikasi toast, tooltip saat hover, mode gelap, dan tata letak responsif dari ponsel sampai layar lebar.
+Kartu KPI dengan grafik tren mini, grafik **Kinerja khas** per jenis gudang (suhu ruang 24 jam, waktu transit cross-dock, paket per jam, peta panas AGV, waktu truk di dock) yang dihitung langsung dari simulasi, **Analitik dock** (okupansi bay × 24 jam, waktu tunggu gerbang → dock, bay tersibuk, tabel per bay), panel detail per objek, pelacakan pengiriman, notifikasi toast, tooltip saat hover, mode gelap, dan tata letak responsif dari ponsel sampai layar lebar.
 
 ---
 
@@ -308,6 +308,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Pekerja naik motor saat ganti shift & ojol antar makanan · v41
 - [x] Gerak manusia alami & burung merpati · v42
 - [x] Logo resmi di aplikasi, ikon, atap gudang & armada · v42.2
+- [x] Analitik dock: okupansi bay per jam, waktu tunggu, bay tersibuk · v43
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

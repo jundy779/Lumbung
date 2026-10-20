@@ -531,6 +531,28 @@ body.cine .vignette{background:radial-gradient(120% 90% at 50% 45%,transparent 5
 .kheatw{border-radius:8px;overflow:hidden}
 .kheat{display:block;width:100%}
 .kempty{padding:18px 6px;text-align:center;color:var(--ink-3);font-size:11.5px}
+/* v43 · Analitik dock */
+.kcard+.kcard,.dtiles+.kcard,.kcard+.dtab{margin-top:8px}
+.dtiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.dtiles .stat{padding:8px 9px;min-width:0}
+.dtiles .stat small{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dtiles .stat b{display:block;font-size:16px;margin-top:1px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dtiles .stat b i{font-style:normal;font-size:11px;font-weight:600;color:var(--ink-3)}
+.dtiles .stat>span{display:block;font-size:10px;color:var(--ink-3);line-height:1.3;margin-top:1px}
+.kchart .dcell0{fill:color-mix(in srgb,var(--ink-3) 10%,transparent)}
+.kchart .dcell{fill:var(--blue)}
+.kchart .dcell.sd{fill:var(--sd)}
+.kchart .dnow{fill:none;stroke:var(--ink-2);stroke-width:1.2}
+.kchart .kt.dl{font-size:10px;fill:var(--ink-2)}
+.dgrid24 .khit{cursor:pointer}
+.klg .kramp.dk i{background:linear-gradient(90deg,color-mix(in srgb,var(--blue) 12%,transparent),var(--blue))}
+.dtab{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px;table-layout:fixed}
+.dtab th:nth-child(1){width:34px}.dtab th:nth-child(3){width:34px}.dtab th:nth-child(5){width:46px}.dtab th:nth-child(2){width:96px}
+.dtab th{font-size:10px;font-weight:700;color:var(--ink-3);text-align:left;padding:0 4px 4px;white-space:nowrap}
+.dtab td{padding:5px 4px;border-top:1px solid var(--line);white-space:nowrap}
+.dtab .n{text-align:right;font-variant-numeric:tabular-nums}
+.dtab .chip{font-size:10px;padding:2px 6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block}
+.docc{display:flex;align-items:center;gap:6px}.docc .bar{flex:1;min-width:28px;margin:0}.docc span{width:30px;text-align:right;font-variant-numeric:tabular-nums}
 .dest{margin:10px 0 4px;padding:10px;border-radius:12px;background:var(--panel-2)}
 .dest .dh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}.dest .dh b{font-size:12.5px}.dest .dh span{font-size:11px;color:var(--ink-3)}
 .dsec{margin:8px 0 5px;font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
@@ -896,7 +918,7 @@ function hidden(obj,key,val){ Object.defineProperty(obj,key,{value:val,writable:
 const r2=v=>Math.round(v*100)/100;
 const SCHEMA={
   stores:    r=>({id:r.id,name:r.name,type:r.type,address:r.address,dockId:r.bays[0].id,dockTruckId:r.bays[0].truckId,receivingSlots:r.slots.map(s=>({code:s.code,palletId:s.palletId})),receivedToday:r.receivedToday,returnsToday:r.returnsToday}),
-  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,kpi:kpiSummary(r),gate:r.tgate?{checkins:r.tgate.checked,waiting:r.trucks.filter(t=>t.state==='gate'||t.state==='yard_wait').length,capacity:r.tgate.cap}:null,inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
+  sites:     r=>({id:r.id,name:r.name,type:r.type,address:r.address,capacity:r.capacity,stockOnHand:siteStock(r),stockDelta:r.stockDelta,outboundToday:r.outToday,putawayToday:r.putToday,arrivalsToday:r.arrivals,ontimePct:r.ontimePct,kpi:kpiSummary(r),dockStats:dockSummary(r),gate:r.tgate?{checkins:r.tgate.checked,waiting:r.trucks.filter(t=>t.state==='gate'||t.state==='yard_wait').length,capacity:r.tgate.cap}:null,inventory:r.inv.map(i=>({item:i.name,qty:i.qty}))}),
   docks:     r=>({id:r.id,siteId:r.siteId,label:r.label,truckId:r.truckId,doorState:r.doorState,trucksToday:r.today}),
   slots:     r=>({id:r.id,siteId:r.siteId,code:r.code,palletId:r.palletId,reserved:r.reserved}),
   pallets:   r=>({id:r.id,siteId:r.siteId,item:r.item,qty:r.qty,kg:r.kg,lot:r.lot,received:r.recv,packing:r.packing,hold:!!r.hold,location:r.location}),
@@ -1962,12 +1984,15 @@ function initMetrics(site){
   else if(p==='crossdock'){ m.transit=[]; }
   else if(p==='robotic'){ const x0=site.xs0-0.5, x1=site.xs1+0.5, z0=site.fz-3.5, z1=site.fz+8;
     m.heat={x0,z0,cols:Math.ceil(x1-x0),rows:Math.ceil(z1-z0),acc:0}; m.heat.g=new Float32Array(m.heat.cols*m.heat.rows); m.util=null; }
-  m.dwell=[];
+  m.dwell=[]; if(m.hours) hidden(m,'seedH',m.hours.map(b=>({...b})));
   return m; }
+/* jam yang hanya berisi data pemanasan startup (LUNCH_HOLD aktif) dikembalikan ke perkiraan riwayat saat jam berganti,
+   supaya pemanasan di jam bawaan tidak tampil sebagai jam "terukur" yang palsu */
+function kpiUnwarm(hours,h,seed){ if(!hours||!seed||h<0) return; const b=hours[h]; if(b&&!b.seed&&!b.pw) hours[h]=Array.isArray(seed[h].occ)?{...seed[h],occ:[...seed[h].occ]}:{...seed[h]}; }
 function metricsTick(site,dt){
   const m=site.metrics||initMetrics(site); site.t+=dt;
-  const H=Math.floor(Store.clock.hour)%24; if(H!==m.h){ m.h=H; if(m.hours) m.hours[H]={s:0,w:0,seed:false}; }
-  const b=m.hours&&m.hours[H];
+  const H=Math.floor(Store.clock.hour)%24; if(H!==m.h){ kpiUnwarm(m.hours,m.h,m.seedH); m.h=H; if(m.hours) m.hours[H]={s:0,w:0,seed:false}; }
+  const b=m.hours&&m.hours[H]; if(b&&!LUNCH_HOLD) b.pw=1;
   if(site.profile==='cold'){ const open=site.bays.filter(x=>x.doorState==='open').length; m.open=open;
     m.temp+=(-(m.temp-KPI_COLD.set)/KPI_COLD.tau+KPI_COLD.door*open)*dt; b.s+=m.temp*dt; b.w+=dt; }
   else if(site.profile==='dc'){ b.w+=dt; while(m.recent.length&&site.t-m.recent[0].t>600) m.recent.shift(); }
@@ -1976,13 +2001,44 @@ function metricsTick(site,dt){
       let w=0; for(const f of site.forks){ if(forkWorking(f)) w++; const cx=Math.floor(f.pos.x-g.x0), cz=Math.floor(f.pos.z-g.z0);
         for(let dz=-1;dz<=1;dz++) for(let dx=-1;dx<=1;dx++){ const X=cx+dx, Z=cz+dz; if(X>=0&&Z>=0&&X<g.cols&&Z<g.rows) g.g[Z*g.cols+X]+=(dx?0.5:1)*(dz?0.5:1); } }   /* kernel 3×3 supaya jejak terbaca sebagai area, bukan titik */
       const u=w/Math.max(1,site.forks.length); m.util=m.util==null?u:m.util+(u-m.util)*(1-Math.exp(-0.5/120)); } }
+  dockTick(site,m,dt);
 }
 function kpiOnUnload(site,pid){ const P=pid&&Store.get('pallets',pid); if(P) P.inT=site.t||0; }
 function kpiOnLoad(site,pid){ const m=site.metrics; if(!m) return; const P=pid&&Store.get('pallets',pid); if(!P) return;
   if(site.profile==='crossdock'&&P.inT!=null){ m.transit.push({id:P.id,min:(site.t-P.inT)/60}); if(m.transit.length>16) m.transit.shift(); }
   if(site.profile==='dc'){ m.recent.push({t:site.t,q:P.qty}); if(m.hours&&m.hours[m.h]) m.hours[m.h].s+=P.qty; } }
-function kpiOnDock(site,t){ hidden(t,'dockT',site.t||0); }
-function kpiOnPull(site,t){ const m=site.metrics; if(!m||t.dockT==null) return; m.dwell.push({id:t.id,mode:t.mode,n:t.done,min:(site.t-t.dockT)/60}); if(m.dwell.length>12) m.dwell.shift(); t.dockT=null; }
+function kpiOnDock(site,t){ hidden(t,'dockT',site.t||0); const dk=site.metrics&&site.metrics.dk;
+  if(dk&&t.gateT!=null&&t.bay){ dk.waits.push({id:t.id,mode:t.mode,bay:t.bay.i,min:Math.max(0,site.t-t.gateT)/60}); if(dk.waits.length>16) dk.waits.shift(); }
+  if(t.gateT!=null) t.gateT=null; }
+function kpiOnPull(site,t){ const m=site.metrics; if(!m||t.dockT==null) return; const min=(site.t-t.dockT)/60; m.dwell.push({id:t.id,mode:t.mode,n:t.done,min,bay:t.bay?t.bay.i:null}); if(m.dwell.length>12) m.dwell.shift();
+  if(m.dk&&t.bay&&m.dk.bay[t.bay.i]){ m.dk.bay[t.bay.i].n++; m.dk.bay[t.bay.i].sum+=min; } t.dockT=null; }
+/* ---------- v43: analitik dock ----------
+   Hanya membaca keadaan simulasi, tanpa RAND, jadi sidik jari simulasi tidak berubah.
+   Bay dihitung terpakai saat truknya mundur masuk, menempel di dock, atau menarik keluar (jalur dock tertutup bagi truk lain).
+   Per jam jam dinding (24 bucket, riwayat sebelum aplikasi dibuka = perkiraan ber-seed) + 60 irisan 1 menit waktu simulasi untuk okupansi 60 menit terakhir.
+   Waktu tunggu = dari truk berhenti di palang gerbang sampai menempel di dock (termasuk antre di area tunggu dan manuver mundur). */
+const DOCK_BUSY=new Set(['reverse','docked','pull']);
+function initDockStats(site,m){ const r=rng((SEED^strHash(site.id+'#dock'))>>>0), n=site.bays.length;
+  const dk={h:-1,n,hours:Array.from({length:24},(_,h)=>({w:3600,occ:Array.from({length:n},()=>3600*Math.max(0.03,Math.min(0.92,kpiAct(h)*(0.48+r()*0.38)))),seed:true})),
+    mins:Array.from({length:60},()=>({k:-1,w:0,occ:new Array(n).fill(0)})), waits:[], bay:Array.from({length:n},()=>({n:0,sum:0}))};
+  dk.seedH=dk.hours.map(b=>({...b,occ:[...b.occ]})); m.dk=dk; return dk; }
+function dockTick(site,m,dt){ const dk=m.dk||initDockStats(site,m), n=dk.n;
+  if(dk.h!==m.h){ kpiUnwarm(dk.hours,dk.h,dk.seedH); dk.h=m.h; dk.hours[m.h]={w:0,occ:new Array(n).fill(0),seed:false}; }
+  const k=Math.floor(site.t/60), sl=dk.mins[k%60]; if(sl.k!==k){ sl.k=k; sl.w=0; sl.occ.fill(0); }
+  const hb=dk.hours[dk.h]; hb.w+=dt; sl.w+=dt; if(!LUNCH_HOLD) hb.pw=1;
+  for(let i=0;i<n;i++){ const b=site.bays[i], t=b.truck; if(t&&t.bay===b&&DOCK_BUSY.has(t.state)){ hb.occ[i]+=dt; sl.occ[i]+=dt; } }
+  for(const t of site.trucks){ if(t.state==='gate'){ if(t.gateT==null) hidden(t,'gateT',site.t); } else if(t.gateT!=null&&(t.state==='away'||t.state==='transfer'||t.state==='depart')) t.gateT=null; } }
+const dockHourPct=(b,i)=>b&&b.w>0?Math.min(100,b.occ[i]/b.w*100):null;
+const quant=(a,p)=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=(s.length-1)*p, lo=Math.floor(k); return s[lo]+(s[Math.min(s.length-1,lo+1)]-s[lo])*(k-lo); };
+/* ringkasan publik (ikut SCHEMA.sites → dockStats) */
+function dockSummary(site){ const dk=site.metrics&&site.metrics.dk; if(!dk) return null; const r1=v=>v==null?null:Math.round(v*10)/10;
+  const now=Math.floor(site.t/60); let W=0; const occ=new Array(dk.n).fill(0);
+  for(const sl of dk.mins) if(sl.k>=0&&sl.k>now-60){ W+=sl.w; for(let i=0;i<dk.n;i++) occ[i]+=sl.occ[i]; }
+  const per=occ.map(v=>W>0?Math.round(Math.min(1,v/W)*100):null), ws=dk.waits.map(x=>x.min);
+  let bi=-1; per.forEach((v,i)=>{ if(v!=null&&(bi<0||v>per[bi])) bi=i; });
+  return {windowMin:Math.round(W/60),occupancyPct:W>0?Math.round(Math.min(1,occ.reduce((a,v)=>a+v,0)/(W*dk.n))*100):null,
+    medianWaitMin:r1(median(ws)),p90WaitMin:r1(quant(ws,0.9)),waitSamples:ws.length,busiestDockId:bi>=0&&per[bi]>0?site.bays[bi].id:null,
+    bays:site.bays.map((b,i)=>({dockId:b.id,label:b.label,occupancyPct:per[i],trucksToday:b.today,avgDwellMin:dk.bay[i].n?r1(dk.bay[i].sum/dk.bay[i].n):null}))}; }
 const kpiHourVal=(site,b)=>!b?null:site.profile==='dc'?(b.w>=(Store.clock.mode==='cycle'?8:30)?b.s/b.w*3600:null):(b.w>0?b.s/b.w:null);
 const median=a=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=s.length>>1; return s.length%2?s[k]:(s[k-1]+s[k])/2; };
 /* ringkasan publik (ikut SCHEMA.sites → kpi) */
@@ -2480,7 +2536,10 @@ function makeSafetyChecker(){
       if(m.transit) for(const x of m.transit) if(!fin(x.min)||x.min<0) bad('kpi',`${s.id} transit ${x.id} ${x.min}`);
       for(const x of m.dwell) if(!fin(x.min)||x.min<=0) bad('kpi',`${s.id} dwell ${x.id} ${x.min}`);
       if(m.heat){ for(const v of m.heat.g) if(!fin(v)||v<0){ bad('kpi',`${s.id} peta panas`); break; } if(m.util!=null&&!(m.util>=0&&m.util<=1)) bad('kpi',`${s.id} utilisasi ${m.util}`); }
-      const k=kpiSummary(s); for(const key in k) if(k[key]!=null&&!fin(k[key])) bad('kpi',`${s.id} ${key}`); }
+      const k=kpiSummary(s); for(const key in k) if(k[key]!=null&&!fin(k[key])) bad('kpi',`${s.id} ${key}`);
+      if(m.dk){ for(let h=0;h<24;h++) for(let i=0;i<m.dk.n;i++){ const v=dockHourPct(m.dk.hours[h],i); if(v!=null&&!(v>=0&&v<=100)) bad('kpi',`${s.id} okupansi bay ${i+1} jam ${h}: ${v}`); }
+        for(const x of m.dk.waits) if(!fin(x.min)||x.min<0) bad('kpi',`${s.id} tunggu ${x.id} ${x.min}`);
+        const d=dockSummary(s); if(d.occupancyPct!=null&&!(d.occupancyPct>=0&&d.occupancyPct<=100)) bad('kpi',`${s.id} okupansi ${d.occupancyPct}`); } }
     /* jarak antre: truk diam beruntun di jalan */
     const q=solid.filter(t=>t.v<0.05&&ROADST.includes(t.state)&&!TIGHT_STATES.includes(t.state));
     for(let i=0;i<q.length;i++) for(let j=0;j<q.length;j++){ if(i===j) continue; const a=q[i], b=q[j]; if(Math.abs(angDiff(a.heading,b.heading))>0.35) continue;
@@ -4312,6 +4371,7 @@ function renderDetail(){
         <div class="stat"><small>Put-away hari ini</small><b>${s.putToday} <span>palet</span></b></div>
       </div>
       ${kpiBlock(s)}
+      ${dockBlock(s)}
       <div class="sec"><h3>Inventaris</h3><small>unit</small></div>
       <ul class="inv">${s.inv.map(i=>`<li>${img3(ICON3D.item(i.name))}<span class="n">${i.name}</span><span class="q">${fmt(i.qty)}</span>${chip(i.qty<STOCK_LOW?['Stok menipis','warn']:['Tersedia','ok'])}</li>`).join('')}</ul>
       <div class="sec"><h3>Armada forklift</h3><small>${n.working}/${s.forks.length} bekerja</small></div>
@@ -4354,7 +4414,7 @@ function renderDetail(){
     h=header(IC.bay,'',`Dock bay · ${s.id}`,e.label,'Pintu dock dengan leveler')+dataBlock(e)+
       `<div class="chips">${chip(st)}<span>${sub}</span></div>
       <dl class="kv"><dt>Truk</dt><dd>${t?link(t.id,t.id+' · '+t.carrier.name):'—'}</dd><dt>Pintu belakang truk</dt><dd>${t?(t.doorsT>0.9?'Terbuka':t.doorsT>0.05?'Bergerak':'Tertutup'):'—'}</dd>
-      <dt>Pintu dock</dt><dd>${e.doorState==='open'?'Terbuka':'Tertutup'}</dd><dt>Truk hari ini</dt><dd>${e.today}</dd><dt>Site</dt><dd>${s.name}</dd></dl>`;
+      <dt>Pintu dock</dt><dd>${e.doorState==='open'?'Terbuka':'Tertutup'}</dd><dt>Truk hari ini</dt><dd>${e.today}</dd><dt>Site</dt><dd>${s.name}</dd></dl>`+bayBlock(e);
   } else if(e.kind==='pallet'){
     const where=palletWhere(e), L=e.location||{};
     h=header(img3(ICON3D.item(e.retur?'retur':e.item),'hd3'),'t',`Palet · ${e.id}`,e.item,where)+dataBlock(e)+
@@ -4509,6 +4569,42 @@ function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s)
     else { const items=D.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt di dock · ${x.mode==='load'?'muat':'bongkar'} ${x.n} palet`]}));
       card=kCard('Waktu truk di dock',n1(k.avgDockDwellMin),'mnt rata-rata',`${D.length} truk terakhir · dari dock sampai keluar`,kBars(items,{fmtv:v=>n1(v,0),cap:12}),''); } }
   return `<div class="sec"><h3>Kinerja khas</h3><small>dihitung dari simulasi</small></div>${card}`; }
+/* ---------- v43: Analitik dock (site.metrics.dk, lihat dockSummary di c_sim) ----------
+   Peta okupansi bay × 24 jam (SVG, opasitas = persen terpakai), tiga angka ringkas, waktu tunggu gerbang → dock, dan tabel per bay. */
+const niceMax=v=>{ const st=v<=4?1:v<=10?2:v<=25?5:10, mx=Math.max(st*2,Math.ceil(v*1.12/st/2)*st*2); return {max:mx,ticks:[0,mx/2,mx],fmtv:x=>fmt(x)}; };
+const fpct=v=>v==null?'–':Math.round(v)+'%';
+const bayTag=(s,i)=>s.profile==='crossdock'?(i<Math.ceil(s.bays.length/2)?'↓':'↑'):'';
+const bayRole=(s,i)=>s.profile==='crossdock'?(i<Math.ceil(s.bays.length/2)?' · inbound (bongkar)':' · outbound (muat)'):'';
+function dockGrid(s,only){ const dk=s.metrics.dk, H=dk.h<0?Math.floor(Store.clock.hour):dk.h, order=Array.from({length:24},(_,i)=>(H+1+i)%24);
+  const rows=only==null?s.bays.map((b,i)=>i):[only], L=only==null?34:8, R=6, T=2, rh=only==null?15:20, gap=2, W=300, cw=(W-L-R)/24, Hs=T+rows.length*(rh+gap)+14, out=[];
+  rows.forEach((i,r)=>{ const b=s.bays[i], y=T+r*(rh+gap);
+    if(only==null) out.push(`<text class="kt dl" x="${L-6}" y="${(y+rh/2+3.3).toFixed(1)}" text-anchor="end">B${i+1}${bayTag(s,i)}</text>`);
+    order.forEach((h,c)=>{ const hb=dk.hours[h], v=dockHourPct(hb,i), x=L+c*cw, cur=c===23;
+      out.push(`<rect class="dcell0" x="${(x+0.5).toFixed(1)}" y="${y}" width="${(cw-1.5).toFixed(1)}" height="${rh}" rx="2"/>`);
+      if(v!=null&&v>0.5) out.push(`<rect class="dcell${hb.seed?' sd':''}" x="${(x+0.5).toFixed(1)}" y="${y}" width="${(cw-1.5).toFixed(1)}" height="${rh}" rx="2" fill-opacity="${(0.12+0.88*v/100).toFixed(2)}"/>`);
+      const used=hb&&!hb.seed?Math.round(hb.occ[i]/60):Math.round(v/100*60);
+      out.push(`<rect class="khit" x="${x.toFixed(1)}" y="${y}" width="${cw.toFixed(1)}" height="${rh}" data-sel="${b.id}"${kTip(`${b.label}${bayRole(s,i)} · ${hh(h)}${cur?' · jam berjalan':''}`,v==null?'belum ada data':`terpakai ${fpct(v)}${hb.seed?' · perkiraan riwayat':` · ${used} mnt dari ${Math.max(1,Math.round(hb.w/60))} mnt terukur`}`)}/>`); }); });
+  const cx=L+23*cw; out.push(`<rect class="dnow" x="${(cx-0.2).toFixed(1)}" y="${T-1.5}" width="${(cw+0.4).toFixed(1)}" height="${(rows.length*(rh+gap)+1).toFixed(1)}" rx="3"/>`);
+  order.forEach((h,c)=>{ if(c%6===5||c===23) out.push(`<text class="kt" x="${(L+c*cw+cw/2).toFixed(1)}" y="${Hs-2}" text-anchor="${c===23?'end':'middle'}">${c===23?'kini':hh(h)}</text>`); });
+  return `<svg class="kchart dgrid24" viewBox="0 0 ${W} ${Hs}" role="img" aria-label="Okupansi bay per jam, 24 jam terakhir">${out.join('')}</svg>`; }
+function dockBlock(s){ const dk=s.metrics&&s.metrics.dk; if(!dk) return ''; const d=dockSummary(s), bi=s.bays.findIndex(b=>b.id===d.busiestDockId);
+  const tiles=`<div class="dtiles"><div class="stat"><small>Okupansi bay</small><b>${fpct(d.occupancyPct)}</b><span>${d.windowMin?`${d.windowMin} menit terakhir`:'mengukur…'}</span></div>
+    <div class="stat"><small>Tunggu ke dock</small><b>${d.medianWaitMin==null?'–':n1(d.medianWaitMin)}<i> mnt</i></b><span>${d.p90WaitMin==null?'menunggu truk tiba':`median · 90% ≤ ${n1(d.p90WaitMin)} mnt`}</span></div>
+    <div class="stat"><small>Bay tersibuk</small><b>${bi<0?'–':link(s.bays[bi].id,'B'+(bi+1)+bayTag(s,bi))}</b><span>${bi<0?'belum ada truk':`terpakai ${fpct(d.bays[bi].occupancyPct)}`}</span></div></div>`;
+  let pk=-1, pv=-1; for(let h=0;h<24;h++){ const b=dk.hours[h]; if(!b||b.w<120) continue;   /* jam terukur kurang dari 2 menit terlalu berisik untuk jadi jam puncak */ let a=0; for(let i=0;i<dk.n;i++) a+=dockHourPct(b,i)||0; a/=dk.n; if(a>pv){ pv=a; pk=h; } }
+  const grid=kCard('Okupansi bay per jam',pk<0?'–':hh(pk),'jam puncak',`rata-rata ${fpct(pv)} bay terpakai di jam itu · ${s.profile==='crossdock'?'↓ inbound, ↑ outbound · ':''}ketuk sel untuk membuka bay`,dockGrid(s),
+    `<div class="klg"><span><i class="m"></i>Terukur</span><span><i class="s"></i>Perkiraan sebelum dibuka</span><span class="kramp dk"><i></i>0 → 100%</span></div>`);
+  const W=dk.waits, med=d.medianWaitMin;
+  const wait=!W.length?kCard('Waktu tunggu truk','–','mnt','dari berhenti di palang gerbang sampai menempel di dock',`<div class="kempty">Belum ada truk yang selesai menunggu${(()=>{ const q=s.trucks.filter(t=>t.gateT!=null); return q.length?`<br>${q.length} truk sedang menunggu · terlama ${n1((s.t-Math.min(...q.map(t=>t.gateT)))/60)} mnt`:''; })()}</div>`)
+    :kCard('Waktu tunggu truk',n1(med),'mnt median',`${W.length} truk terakhir · gerbang → dock · garis putus = median`,kBars(W.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt menunggu · ke ${s.bays[x.bay]?s.bays[x.bay].label:'bay'} · ${x.mode==='load'?'muat':'bongkar'}`]})),{ref:med,cap:16,...niceMax(Math.max(...W.map(x=>x.min)))}),'');
+  const rows=s.bays.map((b,i)=>{ const x=d.bays[i], st=dockStatus(b); return `<tr><td>${link(b.id,'B'+(i+1)+bayTag(s,i))}</td><td>${chip(st)}</td><td class="n">${x.trucksToday}</td><td><div class="docc">${bar(x.occupancyPct||0,(x.occupancyPct||0)>=85?'a':'')}<span>${fpct(x.occupancyPct)}</span></div></td><td class="n">${x.avgDwellMin==null?'–':n1(x.avgDwellMin)+'m'}</td></tr>`; }).join('');
+  const table=`<table class="dtab"><thead><tr><th>Bay</th><th>Status</th><th class="n" title="Truk yang menempel di bay ini hari ini">Truk</th><th title="Persen waktu bay ditempati truk, 60 menit terakhir">Okupansi</th><th class="n" title="Rata-rata lama truk di dock">Di dock</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<div class="sec"><h3>Analitik dock</h3><small>dihitung dari simulasi</small></div>${tiles}${grid}${wait}${table}`; }
+function bayBlock(e){ const s=Store.get('sites',e.siteId), dk=s&&s.metrics&&s.metrics.dk; if(!dk) return ''; const i=s.bays.indexOf(e); if(i<0) return ''; const d=dockSummary(s), x=d.bays[i];
+  const W=dk.waits.filter(w=>w.bay===i), med=median(W.map(w=>w.min));
+  return `<div class="sec"><h3>Analitik bay</h3><small>${bayRole(s,i).replace(' · ','')||'24 jam terakhir'}</small></div>
+    <div class="dtiles"><div class="stat"><small>Okupansi</small><b>${fpct(x.occupancyPct)}</b><span>${d.windowMin} menit terakhir</span></div><div class="stat"><small>Rata-rata di dock</small><b>${x.avgDwellMin==null?'–':n1(x.avgDwellMin)}<i> mnt</i></b><span>${dk.bay[i].n} truk selesai</span></div><div class="stat"><small>Tunggu</small><b>${med==null?'–':n1(med)}<i> mnt</i></b><span>${W.length?`median ${W.length} truk`:'belum ada data'}</span></div></div>
+    <div class="kcard">${dockGrid(s,i)}<div class="klg"><span><i class="m"></i>Terukur</span><span><i class="s"></i>Perkiraan</span><span class="kramp dk"><i></i>0 → 100%</span></div></div>`; }
 const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
 function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
   cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
@@ -4569,7 +4665,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#envMenu,#wxBtn,#st
 /* ---------- tampilan Tabel: antarmuka lain untuk data yang sama ---------- */
 const TABLES={
   trucks:{label:'Truk',cols:['ID','Site','Status','Mode','Dock','Pengiriman','Palet','Kecepatan'],row:t=>[t.id,t.siteId,truckStatus(t)[0],t.mode==='load'?'Muat':'Bongkar',t.bay?t.bay.label:'—',t.shipmentId||'—',t.total?`${t.done}/${t.total}`:'—',`${Math.round(t.v*5)} km/j`]},
-  docks:{label:'Dock',cols:['ID','Site','Bay','Status','Truk','Pintu','Truk hari ini'],row:d=>[d.id,d.siteId,d.label,dockStatus(d)[0],d.truckId||'—',d.doorState==='open'?'Terbuka':'Tertutup',d.today]},
+  docks:{label:'Dock',cols:['ID','Site','Bay','Status','Truk','Pintu','Truk hari ini','Okupansi 60 mnt','Rata-rata di dock'],row:d=>{ const st=Store.get('sites',d.siteId), ds=st&&dockSummary(st), x=ds&&ds.bays.find(b=>b.dockId===d.id); return [d.id,d.siteId,d.label,dockStatus(d)[0],d.truckId||'—',d.doorState==='open'?'Terbuka':'Tertutup',d.today,x?fpct(x.occupancyPct):'—',x&&x.avgDwellMin!=null?n1(x.avgDwellMin)+' mnt':'—']; }},
   forklifts:{label:'Forklift',cols:['ID','Site','Status','Tugas','Baterai','Membawa','Pindah'],row:f=>[f.id,f.siteId,forkStatus(f)[0],f.task,Math.round(f.battery)+'%',f.carryingPalletId||'—',f.moves]},
   pallets:{label:'Stok (palet)',cols:['ID','Site','Barang','Qty','Berat','Lot','Lokasi'],row:p=>[p.id,p.siteId,p.item,p.qty,p.kg+' kg',p.lot,palletWhere(p)]},
   shipments:{label:'Pengiriman',cols:['ID','Site','Arah','Pelanggan','Asal','Tujuan','Status','Palet'],row:s=>[s.id,s.siteId,s.direction==='outbound'?'Keluar':'Masuk',s.customer,s.origin,s.destination,s.status,s.total]},

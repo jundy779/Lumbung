@@ -314,6 +314,8 @@ Ponsel/perangkat lemah (`LOWPOWER`): shadow map 1024, bayangan orang dimatikan, 
 
 **Selesai (v42.2):** logo resmi (lencana biru #0D6CD7 dengan lumbung putih) di favicon, apple-touch-icon, og:image, bilah atas, layar pemuatan, tur, mode foto, atap & papan gudang, dan trailer armada Lumbung (`LOGO_SRC`, `drawLogo`, `logoTex` di d_part1). File sumber `assets/lumbung-logo.png`. Temuan audit #15 (domain di trailer) selesai. Hanya tampilan.
 
+**Selesai (v43):** analitik dock (backlog ide "analitik dock"): `dockTick`/`dockSummary` di c_sim (hanya membaca, tanpa RAND), `dockBlock`/`bayBlock`/`dockGrid` di e_ui, `SCHEMA.sites.dockStats`. Okupansi = bay ditempati truk berstatus reverse/docked/pull. Tunggu = palang gerbang sampai docked.
+
 **Selesai (v41):** motor staf & ojol (hanya tampilan, d_part2): `staffLot(s)` (pintu belakang `GX=W/2+17,8`, 8 slot parkir di belakang kantin, pintu staf `X-2`, jalur `walkX/walkZ`), dibangun di `buildSiteView` (pagar belakang dipotong, pohon/semak di celah dilewati), `SM`/`initStaffMotos`/`syncStaffMotos` (jadwal `SM_IN`/`SM_OUT` dari jam simulasi, rig pengendara 4 per gudang + 1 ojol, deteksi lompatan jam), `staffMotoInfo(s)` untuk panel & sinematik. Pool orang `+36`.
 
 **Selesai (v40):** tema gelap manual (`THEME`, `isDark()`, `MQ_DARK` di a_core; skrip `<head>` memasang `data-theme`; `applyTheme(pref)` di e_ui; token CSS baru untuk semua warna yang dulu hardcode; scene 3D: `THEME_U.uDark` di shader global `cloudShader` memetakan warna netral terang ke biru tua, `THEMED`/`themedMat` untuk material bertoken, `noTheme()` untuk marka), tombol `#themeBtn`, tur perkenalan (`TOUR_STEPS`, `startTour`/`tourGo`/`tourPlace`/`endTour`, `localStorage['lumbung.tour']`, tombol `?`, `?notour`). Sidik jari simulasi tidak berubah.

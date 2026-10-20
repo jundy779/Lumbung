@@ -31,6 +31,7 @@ const code = core + '\n' + src('b_layout.js') + '\n' + src('c_sim.js') + `
   globalThis.__report = { seed: SEED, jam: ${JSON.stringify(JAM)}, pass: R.pass && dups.length === 0, fingerprint: simFingerprint(),
     ...R.metrics, shipmentIdCollisions: dups.length,
     kpi: Object.fromEntries(SITES().map(s => [s.id, kpiSummary(s)])),
+    dock: Object.fromEntries(SITES().map(s => { const d = dockSummary(s); return [s.id, d && { occ: d.occupancyPct, tunggu: d.medianWaitMin, p90: d.p90WaitMin, n: d.waitSamples, bay: d.bays.map(b => b.occupancyPct) }]; })),
     failed: R.rows.filter(r => !r.ok).map(r => ({ cek: r.label, jumlah: r.count, contoh: r.examples })),
     passed: R.rows.filter(r => r.ok).map(r => r.label) };
 })();`;

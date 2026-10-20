@@ -1,5 +1,17 @@
 # Changelog
 
+## v43 · 20 Okt 2026
+- **Analitik dock** di panel setiap gudang, dihitung langsung dari simulasi:
+  - Tiga angka ringkas: okupansi bay 60 menit terakhir, waktu tunggu truk dari palang gerbang sampai menempel di dock (median dan batas 90%), dan bay tersibuk.
+  - Peta okupansi bay × 24 jam: setiap sel menunjukkan berapa lama bay ditempati truk di jam itu (makin pekat makin sibuk), lengkap dengan jam puncak. Kolom jam berjalan diberi bingkai, riwayat sebelum aplikasi dibuka tampil sebagai perkiraan berwarna muda. Ketuk sel untuk membuka bay itu. Di Cross-Dock Sentul bay ditandai ↓ inbound dan ↑ outbound.
+  - Grafik waktu tunggu 16 truk terakhir dengan garis median.
+  - Tabel per bay: status, truk hari ini, okupansi 60 menit, dan rata-rata lama di dock.
+- Panel **bay** kini punya bagian "Analitik bay": okupansi, rata-rata di dock, waktu tunggu ke bay itu, dan strip 24 jam.
+- Tabel data tab Dock mendapat kolom "Okupansi 60 mnt" dan "Rata-rata di dock". Data publik gudang (`SCHEMA.sites`) mendapat field `dockStats`.
+- Bay dihitung terpakai saat truknya mundur masuk, menempel di dock, atau menarik keluar, karena selama itu jalur bay tertutup bagi truk lain.
+- Perbaikan kecil: jam yang hanya berisi data pemanasan startup tidak lagi tampil sebagai jam "terukur" di grafik Kinerja khas; jam itu kembali ke perkiraan riwayat saat jam berganti.
+- Hanya mengukur, tidak mengubah keputusan simulasi: sidik jari simulasi sama dengan v42.2. Pemeriksa `kpi` ikut memvalidasi angka analitik dock (persen 0 sampai 100, waktu tunggu tidak negatif).
+
 ## v42.2 · 20 Okt 2026
 - **Logo resmi Lumbung** (lencana biru bergelombang dengan lumbung putih) kini dipakai di seluruh aplikasi: ikon tab browser, ikon layar utama iPhone/iPad, gambar pratinjau saat tautan dibagikan, logo di bilah atas, layar pemuatan, kartu sambutan dan penutup tur, keterangan di mode foto, atap setiap gudang, papan nama di muka gedung, dan sisi trailer armada Lumbung sendiri. Armada mitra (Nusa Logistik dan lainnya) tetap memakai ikon generik supaya logo Lumbung tidak menempel di truk perusahaan lain.
 - Alamat di trailer diganti dari `lumbung.id/lacak` ke domain resmi `lumbung.fusionify.id`.

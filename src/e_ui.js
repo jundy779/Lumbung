@@ -135,6 +135,7 @@ function renderDetail(){
         <div class="stat"><small>Put-away hari ini</small><b>${s.putToday} <span>palet</span></b></div>
       </div>
       ${kpiBlock(s)}
+      ${dockBlock(s)}
       <div class="sec"><h3>Inventaris</h3><small>unit</small></div>
       <ul class="inv">${s.inv.map(i=>`<li>${img3(ICON3D.item(i.name))}<span class="n">${i.name}</span><span class="q">${fmt(i.qty)}</span>${chip(i.qty<STOCK_LOW?['Stok menipis','warn']:['Tersedia','ok'])}</li>`).join('')}</ul>
       <div class="sec"><h3>Armada forklift</h3><small>${n.working}/${s.forks.length} bekerja</small></div>
@@ -177,7 +178,7 @@ function renderDetail(){
     h=header(IC.bay,'',`Dock bay · ${s.id}`,e.label,'Pintu dock dengan leveler')+dataBlock(e)+
       `<div class="chips">${chip(st)}<span>${sub}</span></div>
       <dl class="kv"><dt>Truk</dt><dd>${t?link(t.id,t.id+' · '+t.carrier.name):'—'}</dd><dt>Pintu belakang truk</dt><dd>${t?(t.doorsT>0.9?'Terbuka':t.doorsT>0.05?'Bergerak':'Tertutup'):'—'}</dd>
-      <dt>Pintu dock</dt><dd>${e.doorState==='open'?'Terbuka':'Tertutup'}</dd><dt>Truk hari ini</dt><dd>${e.today}</dd><dt>Site</dt><dd>${s.name}</dd></dl>`;
+      <dt>Pintu dock</dt><dd>${e.doorState==='open'?'Terbuka':'Tertutup'}</dd><dt>Truk hari ini</dt><dd>${e.today}</dd><dt>Site</dt><dd>${s.name}</dd></dl>`+bayBlock(e);
   } else if(e.kind==='pallet'){
     const where=palletWhere(e), L=e.location||{};
     h=header(img3(ICON3D.item(e.retur?'retur':e.item),'hd3'),'t',`Palet · ${e.id}`,e.item,where)+dataBlock(e)+
@@ -332,6 +333,42 @@ function kpiBlock(s){ const m=s.metrics; if(!m) return ''; const k=kpiSummary(s)
     else { const items=D.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt di dock · ${x.mode==='load'?'muat':'bongkar'} ${x.n} palet`]}));
       card=kCard('Waktu truk di dock',n1(k.avgDockDwellMin),'mnt rata-rata',`${D.length} truk terakhir · dari dock sampai keluar`,kBars(items,{fmtv:v=>n1(v,0),cap:12}),''); } }
   return `<div class="sec"><h3>Kinerja khas</h3><small>dihitung dari simulasi</small></div>${card}`; }
+/* ---------- v43: Analitik dock (site.metrics.dk, lihat dockSummary di c_sim) ----------
+   Peta okupansi bay × 24 jam (SVG, opasitas = persen terpakai), tiga angka ringkas, waktu tunggu gerbang → dock, dan tabel per bay. */
+const niceMax=v=>{ const st=v<=4?1:v<=10?2:v<=25?5:10, mx=Math.max(st*2,Math.ceil(v*1.12/st/2)*st*2); return {max:mx,ticks:[0,mx/2,mx],fmtv:x=>fmt(x)}; };
+const fpct=v=>v==null?'–':Math.round(v)+'%';
+const bayTag=(s,i)=>s.profile==='crossdock'?(i<Math.ceil(s.bays.length/2)?'↓':'↑'):'';
+const bayRole=(s,i)=>s.profile==='crossdock'?(i<Math.ceil(s.bays.length/2)?' · inbound (bongkar)':' · outbound (muat)'):'';
+function dockGrid(s,only){ const dk=s.metrics.dk, H=dk.h<0?Math.floor(Store.clock.hour):dk.h, order=Array.from({length:24},(_,i)=>(H+1+i)%24);
+  const rows=only==null?s.bays.map((b,i)=>i):[only], L=only==null?34:8, R=6, T=2, rh=only==null?15:20, gap=2, W=300, cw=(W-L-R)/24, Hs=T+rows.length*(rh+gap)+14, out=[];
+  rows.forEach((i,r)=>{ const b=s.bays[i], y=T+r*(rh+gap);
+    if(only==null) out.push(`<text class="kt dl" x="${L-6}" y="${(y+rh/2+3.3).toFixed(1)}" text-anchor="end">B${i+1}${bayTag(s,i)}</text>`);
+    order.forEach((h,c)=>{ const hb=dk.hours[h], v=dockHourPct(hb,i), x=L+c*cw, cur=c===23;
+      out.push(`<rect class="dcell0" x="${(x+0.5).toFixed(1)}" y="${y}" width="${(cw-1.5).toFixed(1)}" height="${rh}" rx="2"/>`);
+      if(v!=null&&v>0.5) out.push(`<rect class="dcell${hb.seed?' sd':''}" x="${(x+0.5).toFixed(1)}" y="${y}" width="${(cw-1.5).toFixed(1)}" height="${rh}" rx="2" fill-opacity="${(0.12+0.88*v/100).toFixed(2)}"/>`);
+      const used=hb&&!hb.seed?Math.round(hb.occ[i]/60):Math.round(v/100*60);
+      out.push(`<rect class="khit" x="${x.toFixed(1)}" y="${y}" width="${cw.toFixed(1)}" height="${rh}" data-sel="${b.id}"${kTip(`${b.label}${bayRole(s,i)} · ${hh(h)}${cur?' · jam berjalan':''}`,v==null?'belum ada data':`terpakai ${fpct(v)}${hb.seed?' · perkiraan riwayat':` · ${used} mnt dari ${Math.max(1,Math.round(hb.w/60))} mnt terukur`}`)}/>`); }); });
+  const cx=L+23*cw; out.push(`<rect class="dnow" x="${(cx-0.2).toFixed(1)}" y="${T-1.5}" width="${(cw+0.4).toFixed(1)}" height="${(rows.length*(rh+gap)+1).toFixed(1)}" rx="3"/>`);
+  order.forEach((h,c)=>{ if(c%6===5||c===23) out.push(`<text class="kt" x="${(L+c*cw+cw/2).toFixed(1)}" y="${Hs-2}" text-anchor="${c===23?'end':'middle'}">${c===23?'kini':hh(h)}</text>`); });
+  return `<svg class="kchart dgrid24" viewBox="0 0 ${W} ${Hs}" role="img" aria-label="Okupansi bay per jam, 24 jam terakhir">${out.join('')}</svg>`; }
+function dockBlock(s){ const dk=s.metrics&&s.metrics.dk; if(!dk) return ''; const d=dockSummary(s), bi=s.bays.findIndex(b=>b.id===d.busiestDockId);
+  const tiles=`<div class="dtiles"><div class="stat"><small>Okupansi bay</small><b>${fpct(d.occupancyPct)}</b><span>${d.windowMin?`${d.windowMin} menit terakhir`:'mengukur…'}</span></div>
+    <div class="stat"><small>Tunggu ke dock</small><b>${d.medianWaitMin==null?'–':n1(d.medianWaitMin)}<i> mnt</i></b><span>${d.p90WaitMin==null?'menunggu truk tiba':`median · 90% ≤ ${n1(d.p90WaitMin)} mnt`}</span></div>
+    <div class="stat"><small>Bay tersibuk</small><b>${bi<0?'–':link(s.bays[bi].id,'B'+(bi+1)+bayTag(s,bi))}</b><span>${bi<0?'belum ada truk':`terpakai ${fpct(d.bays[bi].occupancyPct)}`}</span></div></div>`;
+  let pk=-1, pv=-1; for(let h=0;h<24;h++){ const b=dk.hours[h]; if(!b||b.w<120) continue;   /* jam terukur kurang dari 2 menit terlalu berisik untuk jadi jam puncak */ let a=0; for(let i=0;i<dk.n;i++) a+=dockHourPct(b,i)||0; a/=dk.n; if(a>pv){ pv=a; pk=h; } }
+  const grid=kCard('Okupansi bay per jam',pk<0?'–':hh(pk),'jam puncak',`rata-rata ${fpct(pv)} bay terpakai di jam itu · ${s.profile==='crossdock'?'↓ inbound, ↑ outbound · ':''}ketuk sel untuk membuka bay`,dockGrid(s),
+    `<div class="klg"><span><i class="m"></i>Terukur</span><span><i class="s"></i>Perkiraan sebelum dibuka</span><span class="kramp dk"><i></i>0 → 100%</span></div>`);
+  const W=dk.waits, med=d.medianWaitMin;
+  const wait=!W.length?kCard('Waktu tunggu truk','–','mnt','dari berhenti di palang gerbang sampai menempel di dock',`<div class="kempty">Belum ada truk yang selesai menunggu${(()=>{ const q=s.trucks.filter(t=>t.gateT!=null); return q.length?`<br>${q.length} truk sedang menunggu · terlama ${n1((s.t-Math.min(...q.map(t=>t.gateT)))/60)} mnt`:''; })()}</div>`)
+    :kCard('Waktu tunggu truk',n1(med),'mnt median',`${W.length} truk terakhir · gerbang → dock · garis putus = median`,kBars(W.map(x=>({v:x.min,tip:[x.id,`${n1(x.min)} mnt menunggu · ke ${s.bays[x.bay]?s.bays[x.bay].label:'bay'} · ${x.mode==='load'?'muat':'bongkar'}`]})),{ref:med,cap:16,...niceMax(Math.max(...W.map(x=>x.min)))}),'');
+  const rows=s.bays.map((b,i)=>{ const x=d.bays[i], st=dockStatus(b); return `<tr><td>${link(b.id,'B'+(i+1)+bayTag(s,i))}</td><td>${chip(st)}</td><td class="n">${x.trucksToday}</td><td><div class="docc">${bar(x.occupancyPct||0,(x.occupancyPct||0)>=85?'a':'')}<span>${fpct(x.occupancyPct)}</span></div></td><td class="n">${x.avgDwellMin==null?'–':n1(x.avgDwellMin)+'m'}</td></tr>`; }).join('');
+  const table=`<table class="dtab"><thead><tr><th>Bay</th><th>Status</th><th class="n" title="Truk yang menempel di bay ini hari ini">Truk</th><th title="Persen waktu bay ditempati truk, 60 menit terakhir">Okupansi</th><th class="n" title="Rata-rata lama truk di dock">Di dock</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<div class="sec"><h3>Analitik dock</h3><small>dihitung dari simulasi</small></div>${tiles}${grid}${wait}${table}`; }
+function bayBlock(e){ const s=Store.get('sites',e.siteId), dk=s&&s.metrics&&s.metrics.dk; if(!dk) return ''; const i=s.bays.indexOf(e); if(i<0) return ''; const d=dockSummary(s), x=d.bays[i];
+  const W=dk.waits.filter(w=>w.bay===i), med=median(W.map(w=>w.min));
+  return `<div class="sec"><h3>Analitik bay</h3><small>${bayRole(s,i).replace(' · ','')||'24 jam terakhir'}</small></div>
+    <div class="dtiles"><div class="stat"><small>Okupansi</small><b>${fpct(x.occupancyPct)}</b><span>${d.windowMin} menit terakhir</span></div><div class="stat"><small>Rata-rata di dock</small><b>${x.avgDwellMin==null?'–':n1(x.avgDwellMin)}<i> mnt</i></b><span>${dk.bay[i].n} truk selesai</span></div><div class="stat"><small>Tunggu</small><b>${med==null?'–':n1(med)}<i> mnt</i></b><span>${W.length?`median ${W.length} truk`:'belum ada data'}</span></div></div>
+    <div class="kcard">${dockGrid(s,i)}<div class="klg"><span><i class="m"></i>Terukur</span><span><i class="s"></i>Perkiraan</span><span class="kramp dk"><i></i>0 → 100%</span></div></div>`; }
 const HEAT_RAMP=['#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
 function drawHeat(s){ const cv=$('#kHeat'), m=s.metrics; if(!cv||!m||!m.heat) return; const g=m.heat, wrap=cv.parentElement, W=wrap.clientWidth||280, cs=W/g.cols, Hh=Math.round(cs*g.rows), dpr=Math.min(2,devicePixelRatio||1);
   cv.width=Math.round(W*dpr); cv.height=Math.round(Hh*dpr); cv.style.height=Hh+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
@@ -392,7 +429,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#envMenu,#wxBtn,#st
 /* ---------- tampilan Tabel: antarmuka lain untuk data yang sama ---------- */
 const TABLES={
   trucks:{label:'Truk',cols:['ID','Site','Status','Mode','Dock','Pengiriman','Palet','Kecepatan'],row:t=>[t.id,t.siteId,truckStatus(t)[0],t.mode==='load'?'Muat':'Bongkar',t.bay?t.bay.label:'—',t.shipmentId||'—',t.total?`${t.done}/${t.total}`:'—',`${Math.round(t.v*5)} km/j`]},
-  docks:{label:'Dock',cols:['ID','Site','Bay','Status','Truk','Pintu','Truk hari ini'],row:d=>[d.id,d.siteId,d.label,dockStatus(d)[0],d.truckId||'—',d.doorState==='open'?'Terbuka':'Tertutup',d.today]},
+  docks:{label:'Dock',cols:['ID','Site','Bay','Status','Truk','Pintu','Truk hari ini','Okupansi 60 mnt','Rata-rata di dock'],row:d=>{ const st=Store.get('sites',d.siteId), ds=st&&dockSummary(st), x=ds&&ds.bays.find(b=>b.dockId===d.id); return [d.id,d.siteId,d.label,dockStatus(d)[0],d.truckId||'—',d.doorState==='open'?'Terbuka':'Tertutup',d.today,x?fpct(x.occupancyPct):'—',x&&x.avgDwellMin!=null?n1(x.avgDwellMin)+' mnt':'—']; }},
   forklifts:{label:'Forklift',cols:['ID','Site','Status','Tugas','Baterai','Membawa','Pindah'],row:f=>[f.id,f.siteId,forkStatus(f)[0],f.task,Math.round(f.battery)+'%',f.carryingPalletId||'—',f.moves]},
   pallets:{label:'Stok (palet)',cols:['ID','Site','Barang','Qty','Berat','Lot','Lokasi'],row:p=>[p.id,p.siteId,p.item,p.qty,p.kg+' kg',p.lot,palletWhere(p)]},
   shipments:{label:'Pengiriman',cols:['ID','Site','Arah','Pelanggan','Asal','Tujuan','Status','Palet'],row:s=>[s.id,s.siteId,s.direction==='outbound'?'Keluar':'Masuk',s.customer,s.origin,s.destination,s.status,s.total]},

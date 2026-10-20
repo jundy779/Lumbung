@@ -903,12 +903,15 @@ function initMetrics(site){
   else if(p==='crossdock'){ m.transit=[]; }
   else if(p==='robotic'){ const x0=site.xs0-0.5, x1=site.xs1+0.5, z0=site.fz-3.5, z1=site.fz+8;
     m.heat={x0,z0,cols:Math.ceil(x1-x0),rows:Math.ceil(z1-z0),acc:0}; m.heat.g=new Float32Array(m.heat.cols*m.heat.rows); m.util=null; }
-  m.dwell=[];
+  m.dwell=[]; if(m.hours) hidden(m,'seedH',m.hours.map(b=>({...b})));
   return m; }
+/* jam yang hanya berisi data pemanasan startup (LUNCH_HOLD aktif) dikembalikan ke perkiraan riwayat saat jam berganti,
+   supaya pemanasan di jam bawaan tidak tampil sebagai jam "terukur" yang palsu */
+function kpiUnwarm(hours,h,seed){ if(!hours||!seed||h<0) return; const b=hours[h]; if(b&&!b.seed&&!b.pw) hours[h]=Array.isArray(seed[h].occ)?{...seed[h],occ:[...seed[h].occ]}:{...seed[h]}; }
 function metricsTick(site,dt){
   const m=site.metrics||initMetrics(site); site.t+=dt;
-  const H=Math.floor(Store.clock.hour)%24; if(H!==m.h){ m.h=H; if(m.hours) m.hours[H]={s:0,w:0,seed:false}; }
-  const b=m.hours&&m.hours[H];
+  const H=Math.floor(Store.clock.hour)%24; if(H!==m.h){ kpiUnwarm(m.hours,m.h,m.seedH); m.h=H; if(m.hours) m.hours[H]={s:0,w:0,seed:false}; }
+  const b=m.hours&&m.hours[H]; if(b&&!LUNCH_HOLD) b.pw=1;
   if(site.profile==='cold'){ const open=site.bays.filter(x=>x.doorState==='open').length; m.open=open;
     m.temp+=(-(m.temp-KPI_COLD.set)/KPI_COLD.tau+KPI_COLD.door*open)*dt; b.s+=m.temp*dt; b.w+=dt; }
   else if(site.profile==='dc'){ b.w+=dt; while(m.recent.length&&site.t-m.recent[0].t>600) m.recent.shift(); }
@@ -917,13 +920,44 @@ function metricsTick(site,dt){
       let w=0; for(const f of site.forks){ if(forkWorking(f)) w++; const cx=Math.floor(f.pos.x-g.x0), cz=Math.floor(f.pos.z-g.z0);
         for(let dz=-1;dz<=1;dz++) for(let dx=-1;dx<=1;dx++){ const X=cx+dx, Z=cz+dz; if(X>=0&&Z>=0&&X<g.cols&&Z<g.rows) g.g[Z*g.cols+X]+=(dx?0.5:1)*(dz?0.5:1); } }   /* kernel 3×3 supaya jejak terbaca sebagai area, bukan titik */
       const u=w/Math.max(1,site.forks.length); m.util=m.util==null?u:m.util+(u-m.util)*(1-Math.exp(-0.5/120)); } }
+  dockTick(site,m,dt);
 }
 function kpiOnUnload(site,pid){ const P=pid&&Store.get('pallets',pid); if(P) P.inT=site.t||0; }
 function kpiOnLoad(site,pid){ const m=site.metrics; if(!m) return; const P=pid&&Store.get('pallets',pid); if(!P) return;
   if(site.profile==='crossdock'&&P.inT!=null){ m.transit.push({id:P.id,min:(site.t-P.inT)/60}); if(m.transit.length>16) m.transit.shift(); }
   if(site.profile==='dc'){ m.recent.push({t:site.t,q:P.qty}); if(m.hours&&m.hours[m.h]) m.hours[m.h].s+=P.qty; } }
-function kpiOnDock(site,t){ hidden(t,'dockT',site.t||0); }
-function kpiOnPull(site,t){ const m=site.metrics; if(!m||t.dockT==null) return; m.dwell.push({id:t.id,mode:t.mode,n:t.done,min:(site.t-t.dockT)/60}); if(m.dwell.length>12) m.dwell.shift(); t.dockT=null; }
+function kpiOnDock(site,t){ hidden(t,'dockT',site.t||0); const dk=site.metrics&&site.metrics.dk;
+  if(dk&&t.gateT!=null&&t.bay){ dk.waits.push({id:t.id,mode:t.mode,bay:t.bay.i,min:Math.max(0,site.t-t.gateT)/60}); if(dk.waits.length>16) dk.waits.shift(); }
+  if(t.gateT!=null) t.gateT=null; }
+function kpiOnPull(site,t){ const m=site.metrics; if(!m||t.dockT==null) return; const min=(site.t-t.dockT)/60; m.dwell.push({id:t.id,mode:t.mode,n:t.done,min,bay:t.bay?t.bay.i:null}); if(m.dwell.length>12) m.dwell.shift();
+  if(m.dk&&t.bay&&m.dk.bay[t.bay.i]){ m.dk.bay[t.bay.i].n++; m.dk.bay[t.bay.i].sum+=min; } t.dockT=null; }
+/* ---------- v43: analitik dock ----------
+   Hanya membaca keadaan simulasi, tanpa RAND, jadi sidik jari simulasi tidak berubah.
+   Bay dihitung terpakai saat truknya mundur masuk, menempel di dock, atau menarik keluar (jalur dock tertutup bagi truk lain).
+   Per jam jam dinding (24 bucket, riwayat sebelum aplikasi dibuka = perkiraan ber-seed) + 60 irisan 1 menit waktu simulasi untuk okupansi 60 menit terakhir.
+   Waktu tunggu = dari truk berhenti di palang gerbang sampai menempel di dock (termasuk antre di area tunggu dan manuver mundur). */
+const DOCK_BUSY=new Set(['reverse','docked','pull']);
+function initDockStats(site,m){ const r=rng((SEED^strHash(site.id+'#dock'))>>>0), n=site.bays.length;
+  const dk={h:-1,n,hours:Array.from({length:24},(_,h)=>({w:3600,occ:Array.from({length:n},()=>3600*Math.max(0.03,Math.min(0.92,kpiAct(h)*(0.48+r()*0.38)))),seed:true})),
+    mins:Array.from({length:60},()=>({k:-1,w:0,occ:new Array(n).fill(0)})), waits:[], bay:Array.from({length:n},()=>({n:0,sum:0}))};
+  dk.seedH=dk.hours.map(b=>({...b,occ:[...b.occ]})); m.dk=dk; return dk; }
+function dockTick(site,m,dt){ const dk=m.dk||initDockStats(site,m), n=dk.n;
+  if(dk.h!==m.h){ kpiUnwarm(dk.hours,dk.h,dk.seedH); dk.h=m.h; dk.hours[m.h]={w:0,occ:new Array(n).fill(0),seed:false}; }
+  const k=Math.floor(site.t/60), sl=dk.mins[k%60]; if(sl.k!==k){ sl.k=k; sl.w=0; sl.occ.fill(0); }
+  const hb=dk.hours[dk.h]; hb.w+=dt; sl.w+=dt; if(!LUNCH_HOLD) hb.pw=1;
+  for(let i=0;i<n;i++){ const b=site.bays[i], t=b.truck; if(t&&t.bay===b&&DOCK_BUSY.has(t.state)){ hb.occ[i]+=dt; sl.occ[i]+=dt; } }
+  for(const t of site.trucks){ if(t.state==='gate'){ if(t.gateT==null) hidden(t,'gateT',site.t); } else if(t.gateT!=null&&(t.state==='away'||t.state==='transfer'||t.state==='depart')) t.gateT=null; } }
+const dockHourPct=(b,i)=>b&&b.w>0?Math.min(100,b.occ[i]/b.w*100):null;
+const quant=(a,p)=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=(s.length-1)*p, lo=Math.floor(k); return s[lo]+(s[Math.min(s.length-1,lo+1)]-s[lo])*(k-lo); };
+/* ringkasan publik (ikut SCHEMA.sites → dockStats) */
+function dockSummary(site){ const dk=site.metrics&&site.metrics.dk; if(!dk) return null; const r1=v=>v==null?null:Math.round(v*10)/10;
+  const now=Math.floor(site.t/60); let W=0; const occ=new Array(dk.n).fill(0);
+  for(const sl of dk.mins) if(sl.k>=0&&sl.k>now-60){ W+=sl.w; for(let i=0;i<dk.n;i++) occ[i]+=sl.occ[i]; }
+  const per=occ.map(v=>W>0?Math.round(Math.min(1,v/W)*100):null), ws=dk.waits.map(x=>x.min);
+  let bi=-1; per.forEach((v,i)=>{ if(v!=null&&(bi<0||v>per[bi])) bi=i; });
+  return {windowMin:Math.round(W/60),occupancyPct:W>0?Math.round(Math.min(1,occ.reduce((a,v)=>a+v,0)/(W*dk.n))*100):null,
+    medianWaitMin:r1(median(ws)),p90WaitMin:r1(quant(ws,0.9)),waitSamples:ws.length,busiestDockId:bi>=0&&per[bi]>0?site.bays[bi].id:null,
+    bays:site.bays.map((b,i)=>({dockId:b.id,label:b.label,occupancyPct:per[i],trucksToday:b.today,avgDwellMin:dk.bay[i].n?r1(dk.bay[i].sum/dk.bay[i].n):null}))}; }
 const kpiHourVal=(site,b)=>!b?null:site.profile==='dc'?(b.w>=(Store.clock.mode==='cycle'?8:30)?b.s/b.w*3600:null):(b.w>0?b.s/b.w:null);
 const median=a=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=s.length>>1; return s.length%2?s[k]:(s[k-1]+s[k])/2; };
 /* ringkasan publik (ikut SCHEMA.sites → kpi) */
@@ -1421,7 +1455,10 @@ function makeSafetyChecker(){
       if(m.transit) for(const x of m.transit) if(!fin(x.min)||x.min<0) bad('kpi',`${s.id} transit ${x.id} ${x.min}`);
       for(const x of m.dwell) if(!fin(x.min)||x.min<=0) bad('kpi',`${s.id} dwell ${x.id} ${x.min}`);
       if(m.heat){ for(const v of m.heat.g) if(!fin(v)||v<0){ bad('kpi',`${s.id} peta panas`); break; } if(m.util!=null&&!(m.util>=0&&m.util<=1)) bad('kpi',`${s.id} utilisasi ${m.util}`); }
-      const k=kpiSummary(s); for(const key in k) if(k[key]!=null&&!fin(k[key])) bad('kpi',`${s.id} ${key}`); }
+      const k=kpiSummary(s); for(const key in k) if(k[key]!=null&&!fin(k[key])) bad('kpi',`${s.id} ${key}`);
+      if(m.dk){ for(let h=0;h<24;h++) for(let i=0;i<m.dk.n;i++){ const v=dockHourPct(m.dk.hours[h],i); if(v!=null&&!(v>=0&&v<=100)) bad('kpi',`${s.id} okupansi bay ${i+1} jam ${h}: ${v}`); }
+        for(const x of m.dk.waits) if(!fin(x.min)||x.min<0) bad('kpi',`${s.id} tunggu ${x.id} ${x.min}`);
+        const d=dockSummary(s); if(d.occupancyPct!=null&&!(d.occupancyPct>=0&&d.occupancyPct<=100)) bad('kpi',`${s.id} okupansi ${d.occupancyPct}`); } }
     /* jarak antre: truk diam beruntun di jalan */
     const q=solid.filter(t=>t.v<0.05&&ROADST.includes(t.state)&&!TIGHT_STATES.includes(t.state));
     for(let i=0;i<q.length;i++) for(let j=0;j<q.length;j++){ if(i===j) continue; const a=q[i], b=q[j]; if(Math.abs(angDiff(a.heading,b.heading))>0.35) continue;
