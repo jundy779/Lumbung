@@ -1,10 +1,12 @@
-# CLAUDE.md · Peta Teknis Lumbung v42.1
+# CLAUDE.md · Peta Teknis Lumbung v42.2
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v42.2 (20 Okt 2026), logo resmi (hanya tampilan)**: `LOGO_SRC` (data URI PNG 256 px, 48 warna) + `LOGO_IMG`, `logoReady`, `drawLogo(ctx,cx,cy,size)`, `logoTex(w,h,draw)` di d_part1 tepat sebelum `canvasTex`. `logoTex` = `canvasTex` yang menggambar ulang dan `needsUpdate` saat `LOGO_IMG` selesai didekode (data URI tetap asinkron). Dipakai `roofDecal`, `signTex`, dan `trailerTex` khusus `car.name==='Lumbung'` (armada mitra tetap ikon rumah generik). Logo di sisi trailer tertutup daun pintu belakang saat truk di dock (pintu terlipat ke sisi), terlihat saat truk berjalan. shell.html: favicon PNG 64 px data URI, `apple-touch-icon` dan `og:image` ke `/assets/…`, `.brand-logo` (32 px) di bilah atas, `.splash-logo` (72 px, data URI 128 px) di layar pemuatan, `#tour .tlogo` (langkah pertama & terakhir). e_ui `takePhoto` menggambar logo sebelum teks "Lumbung". `build.mjs` menyalin `assets/*` ke `public/assets/`. Sumber logo: `assets/lumbung-logo.png` 512 px; untuk mengganti logo, buat ulang ketiga data URI (64/128/256) dari file itu.
 
 **Perubahan v42.1 (20 Okt 2026), warga memutari tangga stasiun**: `STATION_STAIRS` (c_sim, sebelum `initCityWalkers`, koordinat dunia: tangga 62..82 di z −31,9 dan −44,1 + kolom 2,6 m) dan `stairDetour(pts,cz)`: ruas rute `loop` yang melewati tangga mendapat 4 titik tambahan (masuk ±2,3 m ke dalam blok, lewat, kembali). Titik sudut asli tetap objek yang sama, jadi `ri` awal dicari dengan `route.indexOf(corner)`. Hanya blok (−1,−1) yang terkena. Jejak tangga di `buildRailView` (d_part2) dan `STATION_STAIRS` harus diubah bersamaan. Sidik jari simulasi berubah (posisi warga), uji keselamatan tetap lulus.
 
@@ -488,7 +490,7 @@ Atau di browser: `index.html?selftest&menit=13&jam=malam&seed=7`. Untuk menyelid
 | 12 | ✅ Selesai v40 | Dark mode belum konsisten (warna hardcode di splash, shiftbar, toast, kartu peringatan) | shell.html | Pindahkan ke token CSS |
 | 13 | ✅ Selesai v32.1 | Pencarian di ponsel hampir tak terpakai (placeholder terpotong jadi 1 huruf di 390 px) | shell.html @820 | Ikon kaca pembesar yang membuka overlay pencarian |
 | 14 | Info | README menyebut "~310 KB", hasil build sekarang 321 KB; README menyebut tabel hasil uji otomatis, tetapi skrip ujinya tidak ada di repo (sekarang ada `tests/headless-sim.mjs` sebagai awal) | README | Perbarui |
-| 15 | Info | Teks di trailer truk mencetak `lumbung.id/lacak`, sedangkan domain resmi `lumbung.fusionify.id` | d_part1.js:166 | Samakan, atau pastikan domain itu memang dimiliki |
+| 15 | ✅ Selesai v42.2 | Teks di trailer truk mencetak `lumbung.id/lacak`, sedangkan domain resmi `lumbung.fusionify.id` | d_part1.js:166 | Samakan, atau pastikan domain itu memang dimiliki |
 | 16 | ✅ Selesai v30 (PT Fusionify Digital) | README (baris 7 & 289), `package.json`, dan KONTEKS-PROYEK.md menulis "PT Fusionify Digital Group", sedangkan nama badan hukum FUSIONIFY yang dipakai di materi lain adalah "PT Fusionify Digital Store" | README, package.json | Pastikan mana yang benar lalu samakan |
 | 17 | Info | Salinan kerja di zip punya `src/shell.html`, `CHANGELOG.md`, dan `index.html` ber-CRLF (Windows), sedangkan repo `jundy779/Lumbung` menyimpan LF. Isinya sama, tetapi `git status` menganggap 3 file berubah total dan `index.html` hasil build jadi campuran CRLF/LF | root | Tambah `.gitattributes` berisi `* text=auto eol=lf` |
 | 18 | ✅ Selesai v30 | Tabel gudang di KONTEKS-PROYEK.md §7 mengosongkan kolom forklift untuk toko, padahal tiap toko punya 1 forklift `FL-T` (b_layout.js:135) yang membongkar dan memuat retur | KONTEKS-PROYEK.md | Koreksi tabelnya |

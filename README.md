@@ -4,7 +4,9 @@
 
 # Dashboard Operasional Gudang 3D
 
-**Lumbung v42.1** · oleh PT Fusionify Digital
+<img src="assets/lumbung-logo.png" width="96" alt="Logo Lumbung">
+
+**Lumbung v42.2** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -179,6 +181,7 @@ Lumbung/
 │   ├── d_part1.js     # model 3D, pool instancing, kota & jalan
 │   ├── d_part2.js     # bangunan gudang, sinkronisasi tampilan per frame
 │   └── e_ui.js        # antarmuka, panel, KPI, interaksi
+├── assets/            # logo Lumbung (og:image, apple-touch-icon), disalin ke public/assets saat build
 ├── tests/
 │   └── headless-sim.mjs  # uji simulator tanpa browser: node tests/headless-sim.mjs 30
 ├── index.html         # hasil rakitan — file yang di-deploy
@@ -304,6 +307,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Tema gelap manual & tur perkenalan · v40
 - [x] Pekerja naik motor saat ganti shift & ojol antar makanan · v41
 - [x] Gerak manusia alami & burung merpati · v42
+- [x] Logo resmi di aplikasi, ikon, atap gudang & armada · v42.2
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

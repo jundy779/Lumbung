@@ -941,9 +941,10 @@ function stopPhoto(){ if(!PHOTO.on) return; PHOTO.on=false; document.body.classL
 function takePhoto(){ renderer.render(scene,camera); const src=renderer.domElement, W=src.width, H=src.height, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
   x.drawImage(src,0,0); const s=S_(), k=Math.max(1,W/1600), pad=28*k;
   const g=x.createLinearGradient(0,H-150*k,0,H); g.addColorStop(0,'rgba(10,15,40,0)'); g.addColorStop(1,'rgba(10,15,40,.55)'); x.fillStyle=g; x.fillRect(0,H-150*k,W,150*k);
-  x.fillStyle='#fff'; x.font=`800 ${30*k}px "Plus Jakarta Sans",system-ui,sans-serif`; x.textBaseline='alphabetic'; x.fillText('Lumbung',pad,H-pad-30*k);
+  const L=64*k; drawLogo(x,pad+L/2,H-pad-L/2+4*k,L); const tx=pad+L+14*k; /* v42.2: logo di keterangan foto */
+  x.fillStyle='#fff'; x.font=`800 ${30*k}px "Plus Jakarta Sans",system-ui,sans-serif`; x.textBaseline='alphabetic'; x.fillText('Lumbung',tx,H-pad-30*k);
   x.font=`600 ${17*k}px "Plus Jakarta Sans",system-ui,sans-serif`; x.fillStyle='rgba(255,255,255,.85)';
-  x.fillText(`${s.name} · ${hhmm(Store.clock.hour)} · ${Store.weather.label}`,pad,H-pad);
+  x.fillText(`${s.name} · ${hhmm(Store.clock.hour)} · ${Store.weather.label}`,tx,H-pad);
   x.textAlign='right'; x.fillStyle='rgba(255,255,255,.7)'; x.fillText('lumbung.fusionify.id',W-pad,H-pad);
   const a=document.createElement('a'); a.download=`lumbung-${s.id}-${hhmm(Store.clock.hour).replace(':','')}.png`; a.href=cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
   const f=$('#photoFlash'); f.classList.add('on'); requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.remove('on'))); showToast('Foto disimpan ke folder unduhan','#16A34A'); }
@@ -1020,14 +1021,14 @@ const tourVis=sel=>{ const e=document.querySelector(sel); if(!e) return null; co
 function startTour(){ if(TOUR.on||RP.on||PHOTO.on) return; stopCine(); closeMenus(); $('#envMenu').hidden=true;
   TOUR.steps=TOUR_STEPS.filter(st=>!st.t||st.t.some(tourVis)); TOUR.on=true; TOUR.i=0; document.body.classList.add('touring');
   const el=document.createElement('div'); el.id='tour'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-labelledby','tourT');
-  el.innerHTML='<div class="tspot none"></div><div class="tcard"><small id="tourN"></small><h3 id="tourT"></h3><p id="tourB"></p><div class="tmap" aria-hidden="true"><span>Seret</span><span>Gulir / cubit</span><span>Klik objek</span></div><div class="tnav"><button class="tskip">Lewati</button><span></span><button class="tprev">Kembali</button><button class="tnext pri">Lanjut</button></div></div>';
+  el.innerHTML='<div class="tspot none"></div><div class="tcard"><img class="tlogo" alt="" src="'+LOGO_SRC+'"><small id="tourN"></small><h3 id="tourT"></h3><p id="tourB"></p><div class="tmap" aria-hidden="true"><span>Seret</span><span>Gulir / cubit</span><span>Klik objek</span></div><div class="tnav"><button class="tskip">Lewati</button><span></span><button class="tprev">Kembali</button><button class="tnext pri">Lanjut</button></div></div>';
   document.body.appendChild(el); TOUR.el=el;
   el.querySelector('.tskip').onclick=()=>endTour(); el.querySelector('.tprev').onclick=()=>tourGo(TOUR.i-1); el.querySelector('.tnext').onclick=()=>tourGo(TOUR.i+1);
   tourGo(0); const loop=()=>{ if(!TOUR.on) return; tourPlace(); TOUR.raf=requestAnimationFrame(loop); }; loop(); }
 function tourGo(i){ if(i>=TOUR.steps.length) return endTour(); TOUR.i=Math.max(0,i); const st=TOUR.steps[TOUR.i], el=TOUR.el, n=TOUR.steps.length;
   if(st.t&&st.t[0]==='#detail'&&!sel) refreshUI(true);
   el.querySelector('#tourN').textContent=`${TOUR.i+1} dari ${n}`; el.querySelector('#tourT').textContent=st.title; el.querySelector('#tourB').textContent=(phoneUI()&&st.bodyM)||st.body;
-  el.querySelector('.tmap').hidden=st.hint!=='map'; el.querySelector('.tprev').hidden=TOUR.i===0;
+  el.querySelector('.tmap').hidden=st.hint!=='map'; el.querySelector('.tlogo').hidden=!(TOUR.i===0||TOUR.i===n-1); el.querySelector('.tprev').hidden=TOUR.i===0;
   const nx=el.querySelector('.tnext'); nx.textContent=TOUR.i===n-1?'Selesai':TOUR.i===0?'Mulai tur':'Lanjut'; el.querySelector('.tskip').hidden=TOUR.i===n-1;
   TOUR.target=st.t?st.t.map(tourVis).find(Boolean):null; el.classList.toggle('center',!TOUR.target); tourPlace(true); nx.focus({preventScroll:true}); }
 function tourPlace(){ const el=TOUR.el; if(!el) return; const sp=el.querySelector('.tspot'), cd=el.querySelector('.tcard'), vw=innerWidth, vh=innerHeight, G=16, cw=cd.offsetWidth, ch=cd.offsetHeight;

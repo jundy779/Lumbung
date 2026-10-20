@@ -1,5 +1,11 @@
 # Changelog
 
+## v42.2 · 20 Okt 2026
+- **Logo resmi Lumbung** (lencana biru bergelombang dengan lumbung putih) kini dipakai di seluruh aplikasi: ikon tab browser, ikon layar utama iPhone/iPad, gambar pratinjau saat tautan dibagikan, logo di bilah atas, layar pemuatan, kartu sambutan dan penutup tur, keterangan di mode foto, atap setiap gudang, papan nama di muka gedung, dan sisi trailer armada Lumbung sendiri. Armada mitra (Nusa Logistik dan lainnya) tetap memakai ikon generik supaya logo Lumbung tidak menempel di truk perusahaan lain.
+- Alamat di trailer diganti dari `lumbung.id/lacak` ke domain resmi `lumbung.fusionify.id`.
+- File logo ada di `assets/` (`lumbung-logo.png` 512 px, `apple-touch-icon.png` 180 px) dan ikut disalin ke `public/assets/` saat build. Ikon di dalam aplikasi ditanam sebagai data URI berukuran kecil (64, 128, 256 px, total sekitar 11 KB) supaya tetap satu file dan langsung tampil tanpa unduhan tambahan.
+- Hanya tampilan, simulasi dan sidik jarinya tidak berubah.
+
 ## v42.1 · 20 Okt 2026
 - Perbaikan: warga yang berjalan di trotoar sisi utara Stasiun Cibinong (blok barat laut) menembus kaki tangga dan kolom stasiun. Rute mereka kini memutar sekitar 2,3 m ke dalam blok saat melewati tangga, lalu kembali ke trotoar. Aturannya berlaku otomatis untuk setiap ruas rute warga yang melewati tangga stasiun. Teruji 10 menit simulasi: jarak terdekat pejalan kaki ke tangga 0,55 m, tidak ada yang menembus, dan 6 skenario regresi lulus.
 
