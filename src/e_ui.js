@@ -388,7 +388,8 @@ function renderEnvMenu(){
   const w=Store.weather, c=Store.clock, pct=v=>Math.round(v*100)+'%', neg=v=>v<1?' class="neg"':'';
   $('#envMenu').innerHTML=`<button class="cleanrow" role="switch" aria-checked="${CLEAN}" data-clean="1"><span><b>Tampilan bersih</b><small>Sembunyikan lalu lintas, gedung & rambu kota</small></span><i></i></button>
     <h4>Ukuran tampilan</h4><div class="seg seg3">${[['s','Ringkas'],['auto','Otomatis'],['l','Besar']].map(([k,l])=>`<button data-uiscale="${k}" aria-pressed="${UISCALE===k}">${l}</button>`).join('')}</div>
-    <h4>Tema</h4><div class="seg seg3">${[['auto','Ikuti sistem'],['light','Terang'],['dark','Gelap']].map(([k,l])=>`<button data-themepick="${k}" aria-pressed="${THEME.pref===k}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
+    <h4>Tema</h4><div class="seg seg3">${[['auto','Ikuti sistem'],['light','Terang'],['dark','Gelap']].map(([k,l])=>`<button data-themepick="${k}" aria-pressed="${THEME.pref===k}">${l}</button>`).join('')}</div>
+    <h4>Gaya peta</h4><div class="seg seg2">${[['real','Realistis'],['classic','Klasik']].map(([k,l])=>`<button data-look="${k}" aria-pressed="${(LOOK.real?'real':'classic')===k}" title="${k==='real'?'Tanah, aspal, pepohonan, sawah & kampung di pinggir kota, cahaya filmis':'Gaya isometrik bersih yang lama'}">${l}</button>`).join('')}</div><div class="clk"><span>${phaseOf(c.hour)} · ${c.mode==='live'?'mengikuti jam WIB':'simulasi'}</span><b>${hhmm(c.hour)}</b></div>
     <button class="cleanrow seedrow" data-photo="1"><span><b>Mode foto</b><small>Sembunyikan panel, atur kamera, lalu simpan gambar PNG (P)</small></span></button>
     <button class="cleanrow seedrow" data-tour="1"><span><b>Tur perkenalan</b><small>Kenali bagian-bagian layar dalam 1 menit (?)</small></span></button>
     <button class="cleanrow seedrow" data-copyseed="1"><span><b>Seed simulasi ${SEED}</b><small>${SEEDED?'Dipakai dari tautan':'Acak'} · salin tautan untuk mengulang kondisi awal</small></span></button>
@@ -421,6 +422,7 @@ $('#envMenu').addEventListener('click',e=>{ e.stopPropagation(); const b=e.targe
   if(b.dataset.uiscale){ setUiScale(b.dataset.uiscale); renderEnvMenu(); return; }
   if(b.dataset.photo){ $('#envMenu').hidden=true; startPhoto(); return; }
   if(b.dataset.themepick){ applyTheme(b.dataset.themepick); renderEnvMenu(); return; }
+  if(b.dataset.look){ const want=b.dataset.look==='real'; if(want===LOOK.real) return; try{ localStorage.setItem('lumbung.look',b.dataset.look); }catch(_){} showToast('Memuat ulang peta dengan gaya '+(want?'realistis':'klasik')+'…','#2E5BFF'); const u=new URL(location.href); u.searchParams.delete('look'); setTimeout(()=>location.replace(u.toString()),450); return; }
   if(b.dataset.tour){ $('#envMenu').hidden=true; startTour(); return; }
   if(b.dataset.copyseed){ const u=new URL(location.href); u.searchParams.set('seed',String(SEED)); const done=()=>showToast(`Tautan seed ${SEED} disalin`,'#16A34A');
     try{ navigator.clipboard.writeText(u.toString()).then(done,()=>showToast(u.toString(),'#2E5BFF')); }catch(_){ showToast(u.toString(),'#2E5BFF'); } return; }
@@ -775,7 +777,7 @@ for(let k=0;k<300;k++) simCity(1/15);
 Store.events.length=0;
 SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.name} menipis (${fmt(i.qty)} unit)`,'#B76E00'); }));
 Store.unread=2;
-document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); buildPedSignals(); initClouds(); bindEntities(); initWeatherFX();
+document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); buildOutskirts(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); buildPedSignals(); initClouds(); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
 cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());
@@ -1031,14 +1033,14 @@ requestAnimationFrame(frame);
 /* ---------- v40: tema terang / gelap / ikuti sistem ---------- */
 function applyTheme(pref,save=true){ THEME.pref=pref; const r=document.documentElement; if(pref==='auto') delete r.dataset.theme; else r.dataset.theme=pref;
   if(save) try{ localStorage.setItem('lumbung.theme',pref); }catch(_){}
-  const dk=isDark(); THEME_U.want=dk?1:0; for(const t of THEMED) t.m.color.copy(C(cssVar(t.v)));
-  const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg);
+  const dk=isDark(); THEME_U.want=dk&&!LOOK.real?1:0; for(const t of THEMED) t.m.color.copy(C(tokColor(t.v)));   /* v44: gaya realistis tidak menggelapkan peta, langit & kabut tetap dari palet waktu */
+  if(!LOOK.real){ const bg=cssVar('--bg'); renderer.setClearColor(new THREE.Color(bg)); scene.fog.color=C(bg); }
   const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.content=dk?'#10162E':'#2E5BFF';
   const tb=$('#themeBtn'); if(tb){ tb.setAttribute('aria-pressed',dk); tb.title=dk?'Tema gelap aktif · klik untuk terang':'Tema terang aktif · klik untuk gelap'; }
   refreshUI(true); }
 MQ_DARK.addEventListener('change',()=>{ if(THEME.pref==='auto') applyTheme('auto',false); });
 $('#themeBtn').onclick=()=>{ applyTheme(isDark()?'light':'dark'); if(!$('#envMenu').hidden) renderEnvMenu(); showToast(isDark()?'Tema gelap aktif':'Tema terang aktif','#2E5BFF'); };
-THEME_U.uDark.value=THEME_U.want=isDark()?1:0; applyTheme(THEME.pref,false);
+THEME_U.uDark.value=THEME_U.want=isDark()&&!LOOK.real?1:0; applyTheme(THEME.pref,false);
 
 /* ---------- v40: tur perkenalan ---------- */
 const TOUR_STEPS=[

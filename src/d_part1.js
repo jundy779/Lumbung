@@ -4,7 +4,10 @@
    ========================================================================== */
 /* v40: material yang warnanya dari token CSS (tanah, jalan) diperbarui saat tema berganti; noTheme = tidak ikut digelapkan shader tema (marka jalan) */
 const THEMED=[];
-function themedMat(v,o={}){ const m=new THREE.MeshStandardMaterial({color:C(cssVar(v)),...o}); m.userData.noTheme=true; THEMED.push({m,v}); return m; }
+/* v44: di gaya realistis, warna tanah & jalan tidak ikut token tema UI: aspal, rumput, dan beton tetap sama di tema terang maupun gelap */
+const REAL_TOK={'--ground':'#7E9A57','--road':'#7C8089','--road-art':'#666B75','--road-toll':'#585D68','--apron':'#CFCBC2'};
+const tokColor=v=>LOOK.real&&REAL_TOK[v]?REAL_TOK[v]:cssVar(v);
+function themedMat(v,o={}){ const m=new THREE.MeshStandardMaterial({color:C(tokColor(v)),...o}); m.userData.noTheme=true; THEMED.push({m,v}); return m; }
 const noTheme=mesh=>{ mesh.material.userData.noTheme=true; return mesh; };
 const View={spinners:[],vapor:[],clutter:[],lampPts:[],nightMats:[],barriers:[],trucks:new Map(),forks:new Map(),people:new Map(),docks:new Map(),slots:new Map(),pallets:new Map(),cars:new Map(),signals:new Map(),sites:new Map(),pickables:[],holds:[]};
 /* ---------- renderer ---------- */
@@ -15,6 +18,8 @@ const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 const LOWP=matchMedia('(pointer: coarse)').matches||innerWidth<820||(navigator.hardwareConcurrency||8)<=4;
 renderer.setPixelRatio(Math.min(devicePixelRatio,LOWP?1.5:2));
 renderer.outputEncoding = THREE.sRGBEncoding;
+/* v44: tone mapping filmis di gaya realistis: sorotan matahari tidak "terbakar" putih dan bayangan punya kedalaman */
+if(LOOK.real){ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.9; }
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
@@ -70,6 +75,23 @@ const memo=(k,f)=>gCache[k]||(gCache[k]=f());
 const gCyl=(r,h,s=14)=>memo('c'+r+'|'+h+'|'+s,()=>new THREE.CylinderGeometry(r,r,h,s));
 const gCone=(r,h,s=20)=>memo('k'+r+'|'+h+'|'+s,()=>new THREE.ConeGeometry(r,h,s));
 const gSph=(r,s=14)=>memo('s'+r+'|'+s,()=>new THREE.SphereGeometry(r,s,Math.round(s*0.75)));
+const gIco=(d=1)=>memo('ico'+d,()=>new THREE.IcosahedronGeometry(1,d));
+const gCylT=(r0,r1,h,s=7)=>memo('ct'+r0+'|'+r1+'|'+h+'|'+s,()=>new THREE.CylinderGeometry(r0,r1,h,s));
+/* v44: pohon realistis. Kanopi = beberapa gumpal daun dengan warna sedikit beda (bagian atas lebih terang kena matahari),
+   palem untuk deretan tepi jalan. Variasi dari hash posisi, bukan RNG, supaya tidak menggeser urutan acak tata letak */
+const TREE_G=[0x4E7E34,0x5A8A3B,0x46702F,0x628E40,0x55813A];
+const hsh=(x,z,k=0)=>{ const v=Math.sin(x*12.9898+z*78.233+k*37.719)*43758.5453; return v-Math.floor(v); };
+function realTree(P,x,z,s,kind,ox=0,oz=0){ const hsh0=hsh, hs=(a,b,k)=>hsh0(a+ox,b+oz,k), h=hs(x,z), g=TREE_G[Math.floor(h*TREE_G.length)], hi=(c,f)=>{ const k=new THREE.Color(c); k.offsetHSL(0.01,0.02,f); return k.getHex(); };
+  if(kind===1){ const th=3.6+s*2.2, lean=(hs(x,z,2)-0.5)*0.16;
+    P.add(gCylT(0.09,0.14,th,7),0x8A7258,x,th/2,z,0,1,1,1,lean,0);
+    const tx=x+Math.sin(lean)*th*0.5*0, ty=th+0.05; P.add(gIco(0),0x6B5A3A,tx,ty,z,0,0.28,0.22,0.28);
+    for(let i=0;i<8;i++){ const a=i/8*Math.PI*2+h*3, L=1.5+s*0.6; P.addR(gR(0.34,0.04,L,0),i%2?0x557F33:0x4A732C,tx+Math.sin(a)*L*0.42,ty-0.22,z+Math.cos(a)*L*0.42,a,0.42+hs(x,z,i)*0.2); }
+    return; }
+  const tr=0.1+s*0.05, th=0.9+s*0.6; P.add(gCylT(tr*0.75,tr,th,7),0x6B4F37,x,th/2,z);
+  const n=3+Math.floor(hs(x,z,1)*2), cy=th+s*0.75;
+  P.add(gIco(1),g,x,cy,z,h*6,s*1.05,s*0.82,s*1.05);
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2+h*5, r=s*0.55, k=0.62+hs(x,z,i+3)*0.2; P.add(gIco(0),hi(g,(i%2?-0.02:0.025)),x+Math.sin(a)*r,cy-s*0.12+hs(x,z,i+9)*s*0.25,z+Math.cos(a)*r,a,s*k,s*k*0.85,s*k); }
+  P.add(gIco(0),hi(g,0.05),x+s*0.12,cy+s*0.42,z-s*0.1,h*4,s*0.66,s*0.5,s*0.66); }
 const gHemi=(r,s=14)=>memo('h'+r+'|'+s,()=>new THREE.SphereGeometry(r,s,Math.round(s/2),0,Math.PI*2,0,Math.PI/2));
 function gCap(r,len,seg=8){ return memo('cap'+r+'|'+len,()=>{const pts=[];
   for(let i=0;i<=seg;i++){const a=-Math.PI/2+i/seg*Math.PI/2; pts.push(new THREE.Vector2(Math.max(1e-4,Math.cos(a)*r),-len/2+Math.sin(a)*r));}
@@ -93,12 +115,19 @@ function RB(p,w,h,d,r,mat,x,y,z,o){o=o||{};const m=new THREE.Mesh(gR(w,h,d,r),ty
   if(o.rx)m.rotation.x=o.rx; if(o.ry)m.rotation.y=o.ry; if(o.rz)m.rotation.z=o.rz; m.castShadow=o.cast!==false; m.receiveShadow=true; p.add(m); return m;}
 const vcC={}; const vcMat=(r,map)=>{const k=r+'|'+(map?map.uuid:'');return vcC[k]||(vcC[k]=new THREE.MeshStandardMaterial({vertexColors:true,roughness:r,metalness:0,map:map||null}));};
 const _e=new THREE.Euler(), _q=new THREE.Quaternion(), _v=new THREE.Vector3(), _s=new THREE.Vector3();
+/* v44: palet realistis untuk warna "alam & permukaan" yang dipakai di banyak tempat (hanya warna khas tanah/tanaman, bukan putih umum) */
+const REAL_PAL=new Map([[0xE9EDF8,0xD4D0C7],[0xE3E8F6,0xC9C5BC],[0xDCF2E5,0x86A85C],[0xF4F6FB,0xE4E1DA],[0xE6EBF6,0xCFCBC3],[0xEEF1F8,0xE2DFD8],
+  [0x6BC48C,0x5E8F3E],[0x5AB47C,0x4F8236],[0x4FA872,0x3F7434],[0x5DB57E,0x4A7E37],[0x5FB880,0x557F37],[0x7CCB97,0x6C9447],[0xB58B63,0x7A5B40],[0xA97E58,0x6E5139],
+  [0xCDD4E8,0xBDB9B0],[0xC9D1EA,0xB9B5AC],[0xA9C8F5,0x6E9BB0]]);
 class Parts{
   constructor(){this.l=[];}
   add(geo,color,x,y,z,ry=0,sx=1,sy=1,sz=1,rx=0,rz=0,su=1,sv=1,uvc=null){
     _e.set(rx,ry,rz); _q.setFromEuler(_e);
     const m=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),_q.clone(),new THREE.Vector3(sx,sy,sz));
-    this.l.push({geo,c:C(color),m,su,sv,uvc}); return this;}
+    this.l.push({geo,c:C(LOOK.real?(REAL_PAL.get(color)??color):color),m,su,sv,uvc}); return this;}
+  /* rotasi urutan YXZ: putar ke arah ry lalu miring rx (daun palem yang terkulai ke luar) */
+  addR(geo,color,x,y,z,ry,rx,sx=1,sy=1,sz=1){ _e.set(rx,ry,0,'YXZ'); _q.setFromEuler(_e); _e.order='XYZ';
+    const m=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),_q.clone(),new THREE.Vector3(sx,sy,sz)); this.l.push({geo,c:C(color),m,su:1,sv:1,uvc:null}); return this; }
   boxc(w,h,d,r,color,x,y,z,uvc,ry=0){return this.add(gR(w,h,d,r),color,x,y,z,ry,1,1,1,0,0,1,1,uvc);}
   geometry(){ return this.build().geometry; }
   box(w,h,d,r,color,x,y,z,ry=0){return this.add(gR(w,h,d,r),color,x,y,z,ry);}
@@ -434,13 +463,16 @@ function makeBracket(w,h,l){
   const g=new THREE.Group(); g.add(m); g.add(gl); g.add(bx); g.add(ed); return g;
 }
 /* ---------- city ---------- */
-const paveTex=(()=>{const t=canvasTex(64,64,(x,w,h)=>{x.fillStyle='#EEF1FA';x.fillRect(0,0,w,h);x.fillStyle='#E1E6F3';x.fillRect(0,0,w,2);x.fillRect(0,0,2,h);x.fillRect(0,31,w,1);x.fillRect(31,0,1,h);});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})();
+const paveTex=(()=>{const t=canvasTex(64,64,(x,w,h)=>{x.fillStyle=LK('#EEF1FA','#FFFFFF');x.fillRect(0,0,w,h);x.fillStyle=LK('#E1E6F3','#D2CEC6');x.fillRect(0,0,w,2);x.fillRect(0,0,2,h);x.fillRect(0,31,w,1);x.fillRect(31,0,1,h);});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})();
 const glassTex=(()=>{const t=canvasTex(64,64,(x,w,h)=>{const g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,'#9FB8F2');g.addColorStop(1,'#6E8FE6');x.fillStyle=g;x.fillRect(0,0,w,h);x.fillStyle='rgba(255,255,255,.55)';x.fillRect(0,0,w,3);x.fillRect(0,0,2,h);x.fillStyle='rgba(255,255,255,.18)';x.fillRect(6,6,18,52);});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})();
 function gantryTex(lines){return canvasTex(512,200,(x,w,h)=>{x.fillStyle='#1E7A4E';rr(x,4,4,w-8,h-8,16);x.fill();x.strokeStyle='#FFFFFF';x.lineWidth=5;rr(x,14,14,w-28,h-28,10);x.stroke();
   x.fillStyle='#fff';x.font='800 40px "Plus Jakarta Sans", system-ui, sans-serif';x.textBaseline='middle';
   lines.forEach((l,i)=>x.fillText(l,36,58+i*54));});}
 const ROAD_NAMES_H={'-114':'Jl. Raya Jakarta–Bogor','-38':'Jl. Mayor Oking','38':'Jl. Industri Cibinong','114':'Jl. Tegar Beriman','190':'Jl. Pajajaran'};
 const ROAD_NAMES_V={'-250':'Jl. Sukahati','-150':'Jl. Cikaret','-50':'Jl. Pemda','50':'Jl. Karadenan','150':'Jl. Pakansari','250':'Jl. Raya Citeureup'};
+/* v44: warna fasad gedung kota di gaya realistis, dipilih dari posisi (bukan RAND/R) supaya tata letak kota sama di kedua gaya */
+const FACADES=[0xE8E3D9,0xD9CEBC,0xCBC8C2,0xE3D7C7,0xC4CACF,0xEDE9E1,0xD3C2AE];
+const FACADE=(x,z)=>FACADES[Math.abs(Math.floor(x*7.13+z*3.71))%FACADES.length];
 function buildCityView(){
   const g=new THREE.Group(); scene.add(g);
   const R=rng(4242);
@@ -463,6 +495,7 @@ function buildCityView(){
   for(const x of vx) for(const z of hz) for(const s of [-1,1]) for(let k=-3.6;k<=3.6;k+=0.9){ L.box(0.5,0.01,2.4,0,W,x+k,0.046,z+s*(ROAD/2+1.6)); L.box(2.4,0.01,0.5,0,W,x+s*(ROAD/2+1.6),0.046,z+k); }
   const plates=new Parts(), city=new Parts(), bldg=new Parts(), glass=new Parts(), trees=new Parts(), BB=new BlobBatch();
   const tree=(x,z,s,kind)=>{ kind=kind??(R()<0.7?0:1);
+    if(LOOK.real){ if(kind===0) R(); realTree(trees,x,z,s,kind); BB.add(s*2.4,s*2.4,x,z,0.1); return; }
     if(kind===0){ trees.add(gCyl(0.11,1.0,6),0xB58B63,x,0.58,z); trees.add(gSph(1,10),R()<.5?0x6BC48C:0x5AB47C,x,1.03+s*1.05,z,0,s,s*1.25,s); }
     else { trees.add(gCyl(0.1,0.8,6),0xA97E58,x,0.5,z); for(let k=0;k<3;k++) trees.add(gCone(s*(1.0-k*0.24),s*1.1,9),k%2?0x4FA872:0x5DB57E,x,0.9+s*(0.5+k*0.62),z); }
     BB.add(s*2.4,s*2.4,x,z,0.1); };
@@ -475,7 +508,7 @@ function buildCityView(){
   const sites=new Map(); SITE_CONFIG.forEach((S,i)=>sites.set(S.gx+','+S.gz,S)); STORE_CONFIG.forEach(S=>sites.set(S.gx+','+S.gz,S));
   for(let gx=GRID.x0;gx<=GRID.x1;gx++) for(let gz=GRID.z0;gz<=GRID.z1;gz++){
     const cx=gx*PX, cz=gz*PZ, bw=PX-ROAD, bd=PZ-ROAD;
-    plates.add(gR(bw,0.08,bd,0.35),0xFFFFFF,cx,0.04,cz,0,1,1,1,0,0,bw/2,bd/2);
+    plates.add(gR(bw,0.08,bd,0.35),LK(0xFFFFFF,0xD9D5CC),cx,0.04,cz,0,1,1,1,0,0,bw/2,bd/2);
     const S=sites.get(gx+','+gz);
     for(let t=-bw/2+6;t<=bw/2-6;t+=16){ lamp(cx+t,cz-bd/2+0.5,0); if(!S) lamp(cx+t,cz+bd/2-0.5,Math.PI); }
     for(let t=-bd/2+8;t<=bd/2-8;t+=16){ lamp(cx-bw/2+0.5,cz+t,Math.PI/2); lamp(cx+bw/2-0.5,cz+t,-Math.PI/2); }
@@ -486,15 +519,15 @@ function buildCityView(){
     if(kind===0){
       const n=2+Math.floor(R()*2);
       for(let i=0;i<n;i++){ const w=14+R()*8, d=12+R()*6, h=8+Math.floor(R()*4)*3.2, x=cx-ix+8+w/2+i*(w+8), z=cz-6+R()*6; if(x+w/2>cx+ix-2) break;
-        const P=R()<0.5?glass:bldg; P.add(gR(w,h,d,0.15),P===glass?0xFFFFFF:(R()<.5?0xFFFFFF:0xE6ECFB),x,h/2+0.08,z,0,1,1,1,0,0,w/3.2,h/3.2);
-        city.box(w+0.3,0.3,d+0.3,0.08,0xF2F4FA,x,h+0.23,z); city.box(w*0.5,0.5,0.6,0.1,0x3463F2,x,1.8,z+d/2+0.3); roofStuff(x,z,h+0.38,w,d);
+        const P=R()<0.5?glass:bldg; P.add(gR(w,h,d,0.15),P===glass?LK(0xFFFFFF,0xDCE3E6):LK(R()<.5?0xFFFFFF:0xE6ECFB,FACADE(x,z)),x,h/2+0.08,z,0,1,1,1,0,0,w/3.2,h/3.2);
+        city.box(w+0.3,0.3,d+0.3,0.08,LK(0xF2F4FA,0x8D9097),x,h+0.23,z); city.box(w*0.5,0.5,0.6,0.1,LK(0x3463F2,0x41546E),x,1.8,z+d/2+0.3); roofStuff(x,z,h+0.38,w,d);
         BB.add(w+5,d+5,x,z,0.1,true); }
       for(let i=0;i<8;i++) addCar(city,pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0x3B4A7A,0xE0573B],R),cx-ix+6+i*3.1,cz+iz-5,0);
       for(let i=0;i<=8;i++) city.box(0.08,0.01,4.8,0,0xFFFFFF,cx-ix+4.45+i*3.1,0.1,cz+iz-5);
     } else if(kind===1){
       for(let i=0;i<3;i++){ const w=10, d=26+R()*6, h=12+Math.floor(R()*4)*3.2, x=cx-ix+8+i*16, z=cz;
-        bldg.add(gR(w,h,d,0.2),R()<.6?0xFFFFFF:0xDCE6FF,x,h/2+0.08,z,0,1,1,1,0,0,d/3.2,h/3.2);
-        city.box(w+0.4,0.35,d+0.4,0.1,0x3463F2,x,h+0.25,z); roofStuff(x,z,h+0.42,w,d); BB.add(w+6,d+6,x,z,0.1,true); }
+        bldg.add(gR(w,h,d,0.2),LK(R()<.6?0xFFFFFF:0xDCE6FF,FACADE(x,z)),x,h/2+0.08,z,0,1,1,1,0,0,d/3.2,h/3.2);
+        city.box(w+0.4,0.35,d+0.4,0.1,LK(0x3463F2,0x7E8189),x,h+0.25,z); roofStuff(x,z,h+0.42,w,d); BB.add(w+6,d+6,x,z,0.1,true); }
       for(let i=0;i<6;i++) tree(cx+ix-8-R()*12,cz-iz+6+R()*(iz*2-12),0.8+R()*0.4);
     } else if(kind===2){
       city.box(ix*2,0.06,iz*2,1.5,0xDCF2E5,cx,0.1,cz);
@@ -505,7 +538,7 @@ function buildCityView(){
     } else {
       for(let i=0;i<4;i++){ const x=cx-ix+8+i*5.5, z=cz-8; city.add(gCyl(2.4,10,16),0xF1F4FA,x,5.1,z); city.add(gHemi(2.4,12),0xE6EBF6,x,10.1,z); city.box(0.3,10,0.3,0.05,0x9AA3BA,x+2.5,5,z); BB.add(7,7,x,z,0.1); }
       const w=30,d=16,x=cx+ix-w/2-4,z=cz+4;
-      city.box(w,5,d,0.12,0xEFF2F9,x,2.58,z); city.box(w+0.6,0.4,d+0.6,0.1,0x3463F2,x,5.2,z); BB.add(w+5,d+5,x,z,0.1,true);
+      city.box(w,5,d,0.12,LK(0xEFF2F9,0xD6D2C9),x,2.58,z); city.box(w+0.6,0.4,d+0.6,0.1,LK(0x3463F2,0x8A8D93),x,5.2,z); BB.add(w+5,d+5,x,z,0.1,true);
       for(let i=0;i<5;i++) addCar(city,pick([0xF3F5FB,0x9AA4C2,0x3B4A7A],R),x-w/2+3+i*3,z+d/2+4,0);
     }
   }
@@ -544,7 +577,7 @@ function buildCityView(){
     const SH=new Parts();
     for(let x=(GRID.x0-0.5)*PX+8;x<XT0-6;x+=13){ let skip=false; for(let k=GRID.x0;k<=GRID.x1+1;k++) if(Math.abs(x-(k-0.5)*PX)<9) skip=true; if(Math.abs(x-HWY.xToll)<20) skip=true; if(skip) continue;
       for(const s of [-1,1]){ SH.add(gCyl(0.06,0.7,6),0x9AA3BA,x,0.35,ZHW+s*(RW/2+0.7)); } SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW-(RW/2+0.7)); SH.add(gR(13,0.18,0.08,0),0xC7CFE6,x+6.5,0.55,ZHW+(RW/2+0.7)); }
-    for(let x=-240;x<640;x+=18+((x*7)%5)){ for(const s of [-1,1]){ const z=ZHW+s*(RW/2+4+((x*13)%3)+(x>XT1?4:0)); SH.add(gCyl(0.11,1.0,6),0xB58B63,x,0.55,z); SH.add(gSph(1,10),0x5FB880,x,1.9,z,0,0.95,1.2,0.95); } }
+    for(let x=-240;x<640;x+=18+((x*7)%5)){ for(const s of [-1,1]){ const z=ZHW+s*(RW/2+4+((x*13)%3)+(x>XT1?4:0)); if(LOOK.real){ realTree(SH,x,z,0.85,hsh(x,z,5)<0.35?1:0); continue; } SH.add(gCyl(0.11,1.0,6),0xB58B63,x,0.55,z); SH.add(gSph(1,10),0x5FB880,x,1.9,z,0,0.95,1.2,0.95); } }
     /* Jalan tol: lebih lebar, 4 lajur + bahu, median beton, guardrail, lampu median, papan hijau */
     { const TW=8.4, x0=XT1, x1=660, len=x1-x0, cx=(x0+x1)/2, RMT=themedMat('--road-toll',{roughness:.85});
       const tm=new THREE.Mesh(gR(len,0.04,TW*2,0),RMT); tm.position.set(cx,0.021,ZHW); tm.receiveShadow=true; g.add(tm);
@@ -634,3 +667,67 @@ function buildCityView(){
   return g;
 }
 
+/* ---------- v44: pinggiran kota (hanya gaya realistis) ----------
+   Petak 48 × 40 m di luar kota diisi sawah (petak padi dengan pematang, sebagian tergenang air), kampung (rumah genteng),
+   atau kebun/hutan kecil. Jalan, rel layang, Jalan Lingkar, dan gerbang tol dihindari. Rumah & pohon = InstancedMesh
+   (beberapa draw call saja), sawah = satu mesh gabungan. Rumah, pohon, dan lampu jendela ikut Tampilan Bersih (View.clutter) */
+const RICE_TEX=(()=>{ const t=canvasTex(64,64,(x,w,h)=>{ x.fillStyle='#FFFFFF'; x.fillRect(0,0,w,h); for(let i=0;i<w;i+=8){ x.fillStyle='rgba(40,60,10,.16)'; x.fillRect(i,0,3,h); x.fillStyle='rgba(255,255,220,.10)'; x.fillRect(i+4,0,2,h); } }); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; })();
+const HOUSE_TEX=(()=>canvasTex(128,64,(x,w,h)=>{ x.fillStyle='#FFFFFF'; x.fillRect(0,0,w,h); x.fillStyle='#3A3F4A'; x.fillRect(18,20,22,18); x.fillRect(88,20,22,18); x.fillStyle='#6B4A30'; x.fillRect(56,26,16,38); x.fillStyle='#E7E2D8'; x.fillRect(0,58,w,6); }))();
+const HOUSE_GLOW=(()=>canvasTex(128,64,(x,w,h)=>{ x.fillStyle='#000'; x.fillRect(0,0,w,h); x.fillStyle='#FFC872'; x.fillRect(19,21,20,16); x.fillRect(89,21,20,16); }))();
+function outskirtsBlocked(x,z,m=0){
+  if(x>-266-m&&x<266+m&&z>-126-m&&z<202+m) return true;                        /* kota */
+  if(Math.abs(z-ZHW)<15+m&&x>-300) return true;                                 /* Jalan Lingkar Utara & tol */
+  if(x>296-m&&x<370+m&&Math.abs(z-ZHW)<30+m) return true;                       /* gerbang tol */
+  if(x>-266&&x<266&&z>ZHW&&z<-120) return Math.abs(((x+50)%100+100)%100-50)>38-m?true:false; /* penghubung ke Jalan Lingkar */
+  for(const zr of CAR_H) if(Math.abs(z-zr)<11+m) return true;
+  for(const xr of CAR_V) if(Math.abs(x-xr)<11+m) return true;
+  if(Math.abs(z-RAIL.z)<12+m) return true;                                      /* rel KRL layang */
+  return false; }
+function buildOutskirts(){ if(!LOOK.real) return;
+  const R=rng(9137), TW=48, TD=40, X0=-708, X1=708, Z0=-540, Z1=560, dens=LOWP?0.45:1;
+  const F=new Parts(), W=new Parts(), houses=[], trees=[];
+  const free=(x,z,w,d,m=1.5)=>!outskirtsBlocked(x,z,m)&&!outskirtsBlocked(x-w/2,z-d/2,m)&&!outskirtsBlocked(x+w/2,z-d/2,m)&&!outskirtsBlocked(x-w/2,z+d/2,m)&&!outskirtsBlocked(x+w/2,z+d/2,m);
+  const tree=(x,z,s,k=0)=>{ if(!outskirtsBlocked(x,z,1)) trees.push([x,z,s*1.3,k]); };
+  const RICE=[0x7DA43C,0x8FB047,0x6E9A35,0x9CB54E,0xA8B45A], DRY=[0xB49B66,0xA48D5C], WATER=[0x5F7F78,0x6C8A80];
+  for(let tx=X0;tx<X1;tx+=TW) for(let tz=Z0;tz<Z1;tz+=TD){ const cx=tx+TW/2, cz=tz+TD/2;
+    if(!free(cx,cz,TW-2,TD-2,0.5)){ /* petak terpotong jalan/kota: cukup beberapa pohon di bagian yang bebas */
+      for(let i=0;i<4;i++) if(R()<0.5*dens) tree(tx+R()*TW,tz+R()*TD,0.7+R()*0.5);
+      continue; }
+    const n=hsh(cx*0.013,cz*0.017,3), dCity=Math.max(Math.abs(cx)-266,Math.abs(cz-38)-170,0), kind=n<0.2+Math.max(0,0.25-dCity/600)?'kampung':n<0.34?'kebun':'sawah';
+    if(kind==='sawah'){ const nx=2+Math.floor(R()*2), nz=2+Math.floor(R()*2), pw=(TW-1.2)/nx, pd=(TD-1.2)/nz, rot=R()<0.5;
+      F.add(gR(TW,0.06,TD,0),0x8B7552,cx,0.03,cz);                                  /* pematang */
+      for(let i=0;i<nx;i++) for(let j=0;j<nz;j++){ const x=tx+0.6+pw*(i+0.5), z=tz+0.6+pd*(j+0.5), r=R(), w=pw-0.7, d=pd-0.7;
+        if(r<0.18) W.add(gR(w,0.04,d,0),WATER[Math.floor(R()*2)],x,0.07,z);
+        else F.add(gR(w,0.08,d,0),r<0.28?DRY[Math.floor(R()*2)]:RICE[Math.floor(R()*RICE.length)],x,0.07,z,0,1,1,1,0,0,rot?d/4:w/4,rot?w/4:d/4,null); }
+      if(R()<0.75){ const e=R()<0.5; for(let k=0;k<9;k++) if(R()<0.7*dens) tree(e?tx+0.6+R()*0.8:tx+R()*TW,e?tz+R()*TD:tz+0.6+R()*0.8,0.75+R()*0.45,R()<0.35?1:0); }
+      if(R()<0.3){ const qx=tx+R()*TW, qz=tz+R()*TD; for(let k=0;k<6*dens;k++) tree(qx+(R()-0.5)*7,qz+(R()-0.5)*7,0.8+R()*0.5); }   /* rumpun pohon di tengah sawah */
+      if(R()<0.12) houses.push([cx+(R()-0.5)*TW*0.6,tz+2.5,6,5,R()*0.1,0]); }                                    /* gubuk/rumah tani */
+    else if(kind==='kampung'){ const rows=3, cols=4;
+      for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){ if(R()<0.22) continue; const w=6+R()*4, d=6+R()*3.5, x=tx+5+i*(TW-10)/(cols-1)+(R()-0.5)*2, z=tz+5+j*(TD-10)/(rows-1)+(R()-0.5)*2;
+        houses.push([x,z,w,d,(R()<0.5?0:Math.PI/2)+(R()-0.5)*0.08,R()<0.12?1:0]); }
+      for(let i=0;i<15*dens;i++) tree(tx+R()*TW,tz+R()*TD,0.7+R()*0.6,R()<0.3?1:0); }
+    else { for(let i=0;i<34*dens;i++) tree(tx+R()*TW,tz+R()*TD,0.85+R()*0.75,R()<0.12?1:0); } }
+  const g=new THREE.Group(); scene.add(g);
+  { const m=F.build(.95,false,RICE_TEX); m.receiveShadow=true; g.add(m); }
+  if(!W.empty){ const m=W.build(.12,false); m.receiveShadow=true; m.material.metalness=0.1; g.add(m); }
+  /* rumah: badan + atap pelana, warna dinding & genteng per instance */
+  const WALL=[0xEDE6D8,0xE4D9C2,0xF2EEE6,0xD9D2C4,0xE8D3B9,0xCFE0D6,0xE9D5D0], ROOF=[0xB0532E,0xA4472A,0x9C5A3A,0x8E3F27,0x6F6A66,0xB86A3C];
+  const roofGeo=(()=>{ const s=new THREE.Shape(); s.moveTo(-0.5,0); s.lineTo(0.5,0); s.lineTo(0,0.42); s.lineTo(-0.5,0); const ge=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:false}); ge.translate(0,0,-0.5); return ge; })();
+  const N=houses.length, body=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1).translate(0,0.5,0),new THREE.MeshStandardMaterial({roughness:.9,map:HOUSE_TEX,emissive:C(0xFFC872),emissiveMap:HOUSE_GLOW,emissiveIntensity:0}),N);
+  const roof=new THREE.InstancedMesh(roofGeo,new THREE.MeshStandardMaterial({roughness:.8}),N), M4=new THREE.Matrix4(), Q=new THREE.Quaternion(), E=new THREE.Euler(), V=new THREE.Vector3(), S=new THREE.Vector3();
+  houses.forEach(([x,z,w,d,ry,two],i)=>{ const h=two?5.6:2.9; E.set(0,ry,0); Q.setFromEuler(E);
+    body.setMatrixAt(i,M4.compose(V.set(x,0,z),Q,S.set(w,h,d))); body.setColorAt(i,_cA.set(WALL[Math.floor(hsh(x,z,1)*WALL.length)]).convertSRGBToLinear());
+    roof.setMatrixAt(i,M4.compose(V.set(x,h,z),Q,S.set(w+0.9,Math.min(w,d)*0.9+0.6,d+0.9))); roof.setColorAt(i,_cA.set(ROOF[Math.floor(hsh(x,z,2)*ROOF.length)]).convertSRGBToLinear()); });
+  for(const m of [body,roof]){ m.castShadow=!LOWP; m.receiveShadow=true; g.add(m); View.clutter.push(m); }
+  View.nightMats.push({m:body.material,max:1.1});
+  /* pohon: batang + 2 gumpal kanopi (ikosahedron kasar) per pohon; palem/pisang (k=1) = batang tinggi + kanopi pipih */
+  const T=trees.length, trunk=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12,0.18,1,5,1,true).translate(0,0.5,0),new THREE.MeshStandardMaterial({color:C(0x6E5139),roughness:.9}),T);
+  const crown=new THREE.InstancedMesh(gIco(0),new THREE.MeshStandardMaterial({roughness:.85,flatShading:false}),T*2);
+  trees.forEach(([x,z,s,k],i)=>{ const th=k?4.2+s*2:1.1+s*0.9; trunk.setMatrixAt(i,M4.compose(V.set(x,0,z),Q.identity(),S.set(s,th,s)));
+    const c=TREE_G[Math.floor(hsh(x,z)*TREE_G.length)];
+    if(k){ crown.setMatrixAt(i*2,M4.compose(V.set(x,th,z),Q.setFromEuler(E.set(0,hsh(x,z,4)*6,0)),S.set(1.9*s,0.45*s,1.9*s))); crown.setMatrixAt(i*2+1,_hide); }
+    else { crown.setMatrixAt(i*2,M4.compose(V.set(x,th+s*0.8,z),Q.setFromEuler(E.set(0,hsh(x,z,4)*6,0)),S.set(1.5*s,1.15*s,1.5*s)));
+      crown.setMatrixAt(i*2+1,M4.compose(V.set(x+(hsh(x,z,5)-0.5)*s*1.2,th+s*1.45,z+(hsh(x,z,6)-0.5)*s*1.2),Q,S.set(1.0*s,0.85*s,1.0*s))); }
+    crown.setColorAt(i*2,_cA.set(c).convertSRGBToLinear()); crown.setColorAt(i*2+1,_cA.set(c).offsetHSL(0,0.02,0.04).convertSRGBToLinear()); });
+  for(const m of [trunk,crown]){ m.castShadow=!LOWP; m.receiveShadow=true; g.add(m); View.clutter.push(m); }
+  return {houses:N,trees:T}; }

@@ -12,6 +12,19 @@ const LOTS=new Map();
 function staffLot(s){ let L=LOTS.get(s.id); if(L) return L; const X=s.W/2, fz=s.fz, zi0=s.bounds.zi0, CZ=-fz-9.5, GX=X+17.8, rows=[CZ-4.8,CZ-7.0], slots=[];
   for(const rz of rows) for(let i=0;i<4;i++) slots.push({x:X+12.2+i*1.2,z:rz,h:-Math.PI/2});
   L={X,fz,CZ,GX,zg:zi0+0.3,rows,slots,out:{x:GX,z:zi0-2.6},door:{x:X-2.0,z:-fz-0.35},walkX:X+9.6,walkZ:-fz-1.4,ojol:{x:X+20.6,z:CZ+0.4}}; LOTS.set(s.id,L); return L; }
+/* v44: bekas ban & noda oli di halaman gudang (gaya realistis). Jejak mundur di depan tiap bay, jejak lalu-lalang di lajur halaman,
+   noda oli tempat truk biasa berhenti. Satu mesh per jenis per gudang, tekstur gelap transparan di atas apron (polygonOffset, tanpa z-fight) */
+const TIRE_TEX=(()=>{ const t=canvasTex(32,256,(x,w,h)=>{ x.clearRect(0,0,w,h); const r=rng(77); for(let i=0;i<900;i++){ const px=4+r()*24, py=r()*h, a=0.03+r()*0.08; x.fillStyle=`rgba(20,18,16,${a})`; x.fillRect(px,py,1+r()*2,2+r()*7); } }); t.wrapT=THREE.RepeatWrapping; return t; })();
+const OIL_TEX=canvasTex(128,128,(x,w,h)=>{ x.clearRect(0,0,w,h); const r=rng(31); for(let i=0;i<7;i++){ const cx=40+r()*48, cy=40+r()*48, rad=14+r()*26, g=x.createRadialGradient(cx,cy,0,cx,cy,rad); g.addColorStop(0,'rgba(24,20,16,.1)'); g.addColorStop(0.7,'rgba(24,20,16,.04)'); g.addColorStop(1,'rgba(18,16,14,0)'); x.fillStyle=g; x.fillRect(0,0,w,h); } });
+function groundDecals(g,s){ const tire=[], oil=[], y=0.099;
+  const strip=(x0,z0,x1,z1,w)=>{ const dx=x1-x0, dz=z1-z0, L=Math.hypot(dx,dz), nx=-dz/L*w/2, nz=dx/L*w/2; tire.push([x0+nx,z0+nz,x1+nx,z1+nz,x1-nx,z1-nz,x0-nx,z0-nz,L/6]); };
+  const yard=s.zDock+6.4, xs=s.bays.map(b=>b.x), xa=xs[0]-28, xb=xs[xs.length-1]+14;
+  for(const b of s.bays){ for(const k of [-0.86,0.86]) strip(b.x+k,s.zDock-2.4,b.x+k*1.05,yard+1.5,0.36); oil.push([b.x+(hsh(b.x,s.idx)-0.5)*0.6,s.zDock+0.6,1.7]); oil.push([b.x,yard,1.2]); }
+  for(const k of [-0.86,0.86]) strip(xa,yard+k,xb,yard+k,0.4);
+  const mk=(quads,tex)=>{ const pos=[],uv=[],ind=[]; quads.forEach((q,i)=>{ for(let j=0;j<4;j++) pos.push(q[j*2],y,q[j*2+1]); const v=q[8]||1; uv.push(0,0,1,0,1,v,0,v); const o=i*4; ind.push(o,o+2,o+1,o,o+3,o+2); });
+    const ge=new THREE.BufferGeometry(); ge.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); ge.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); ge.setIndex(ind); ge.computeBoundingSphere();
+    const m=new THREE.Mesh(ge,new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2,side:THREE.DoubleSide})); m.renderOrder=1; g.add(m); };
+  mk(tire,TIRE_TEX); mk(oil.map(([x,z,r])=>[x-r,z-r,x+r,z-r,x+r,z+r,x-r,z+r,1]),OIL_TEX); }
 function buildSiteView(s){
   const R=rng(s.idx*977+513), W=s.W, D=s.D, H=s.H, fz=s.fz;
   const g=new THREE.Group(); g.position.set(s.ox,0,s.oz); scene.add(g);
@@ -248,8 +261,8 @@ function buildSiteView(s){
     TP.add(gR(0.22,0.22,len,0.06),0xE9EDF8,(x0+x1)/2,0.2,(z0+z1)/2,ry); GL.add(gR(0.04,1.0,len,0),0xFFFFFF,(x0+x1)/2,0.82,(z0+z1)/2,ry);};
   { const GX=staffLot(s).GX; fence(xi0+0.3,zi0+0.3,GX-1.7,zi0+0.3); fence(GX+1.7,zi0+0.3,xi1-0.3,zi0+0.3); } fence(xi0+0.3,zi0+0.3,xi0+0.3,zi1-0.3); fence(xi1-0.3,zi0+0.3,xi1-0.3,zi1-0.3);
   ST.box(xi1-xi0-1,0.05,2.2,0.6,0xE4E9F8,(xi0+xi1)/2,0.11,zi0+1.6); ST.box(2.2,0.05,zi1-zi0-4,0.6,0xE4E9F8,xi0+1.6,0.11,(zi0+zi1)/2); ST.box(2.2,0.05,zi1-zi0-4,0.6,0xE4E9F8,xi1-1.6,0.11,(zi0+zi1)/2);
-  const tree=(x,z,k)=>{TR.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,z);TR.add(gSph(1,10),R()<.5?0x6BC48C:0x5AB47C,x,1.05+k*1.05,z,0,k,k*1.25,k);BB.add(k*2.4,k*2.4,x,z,0.1);};
-  const bush=(x,z,k)=>{TR.add(gSph(1,8),0x7CCB97,x,0.1+k*0.5,z,0,k,k*0.7,k);};
+  const tree=(x,z,k)=>{ if(LOOK.real){ R(); realTree(TR,x,z,k,0,s.ox,s.oz); BB.add(k*2.4,k*2.4,x,z,0.1); return; } TR.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,z);TR.add(gSph(1,10),R()<.5?0x6BC48C:0x5AB47C,x,1.05+k*1.05,z,0,k,k*1.25,k);BB.add(k*2.4,k*2.4,x,z,0.1);};
+  const bush=(x,z,k)=>{ if(LOOK.real){ const g=TREE_G[Math.floor(hsh(x+s.ox,z+s.oz)*TREE_G.length)]; TR.add(gIco(1),g,x,0.1+k*0.45,z,0,k,k*0.62,k); TR.add(gIco(1),g,x+k*0.45,0.1+k*0.32,z+k*0.2,1,k*0.65,k*0.5,k*0.65); return; } TR.add(gSph(1,8),0x7CCB97,x,0.1+k*0.5,z,0,k,k*0.7,k);};
   for(let x=xi0+3;x<xi1-2;x+=6.5+R()*1.5){ const k=0.7+R()*0.3; if(Math.abs(x-staffLot(s).GX)>3.2) tree(x,zi0+1.6,k); } /* v41: celah untuk pintu belakang */
   for(let z=zi0+6;z<zi1-4;z+=7+R()*2){ tree(xi0+1.6,z,0.7+R()*0.3); tree(xi1-1.6,z,0.7+R()*0.3); }
   for(let x=xi0+6;x<xi1-4;x+=3.3){ const bx=x+R(), bz=zi0+1.6+(R()-.5), bk=0.45+R()*0.2; if(Math.abs(bx-staffLot(s).GX)>3) bush(bx,bz,bk); }
@@ -271,7 +284,7 @@ function buildSiteView(s){
   if(prof==='cold') View.vapor.push({s,spr:new Sprites(s.bays.length*6,1.0,0xFFFFFF,{additive:false,map:dustTex,order:6})});
   g.add(WP.build(.62,true,RIB)); g.add(TP.build(.6)); g.add(PL.build(.85)); g.add(ST.build(.85)); g.add(noTheme(LN.build(.9,false))); g.add(TR.build(.8));
   const gm=GL.build(.2,false); gm.material=new THREE.MeshStandardMaterial({color:C(0xFFFFFF),roughness:.2,transparent:true,opacity:.42}); g.add(gm);
-  BB.build(g);
+  BB.build(g); if(LOOK.real) groundDecals(g,s);
 }
 
 /* ---------- binding: record → objek 3D ---------- */
@@ -490,7 +503,7 @@ const _m4=new THREE.Matrix4();
 function drawRoute(pts,site){ let n=0; for(const p of pts){ if(n>=dotsMax) break; _m4.makeTranslation(p.x+site.ox,0.16,p.z+site.oz); dots.setMatrixAt(n++,_m4); } dots.count=n; dots.instanceMatrix.needsUpdate=true; }
 
 /* ---------- lingkungan: waktu (pagi–malam) + cuaca, dibaca dari Store.clock & Store.weather ---------- */
-const ENV={mix:0,cur:null,flash:0,nextFlash:4}; let DUST=null, HAZE=null, RAIN=null, LAMPG=null, POOLS_L=null, VLIGHT=null, BEAMS=null;
+const ENV={mix:0,cur:null,flash:0,nextFlash:4}; let RIPPLE=null, DUST=null, HAZE=null, RAIN=null, LAMPG=null, POOLS_L=null, VLIGHT=null, BEAMS=null;
 const LOWPOWER = matchMedia('(pointer: coarse)').matches || innerWidth<820 || (navigator.hardwareConcurrency||8)<=4;
 const dustTex=canvasTex(64,64,(x)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);});
 const lightTex=canvasTex(64,64,(x)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.2,'rgba(255,255,255,.8)');g.addColorStop(.5,'rgba(255,255,255,.18)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);});
@@ -520,6 +533,12 @@ function makeGlowPointsOld(pts,size,color,additive=true){ const pos=new Float32A
 function initWeatherFX(){
   DUST=makeDust(LOWPOWER?700:1600,0.6,22,0xE8AE68); DUST.base=0.9; HAZE=makeDust(LOWPOWER?40:80,16,9,0xD9944E); HAZE.base=0.2;
   RAIN=makeRain(LOWPOWER?1600:3800);
+  { /* v44: riak tetes hujan di tanah sekitar kamera (cincin melebar lalu pudar, warna instance = kecerahan karena blending aditif) */
+    const n=LOWPOWER?70:170, pg=new THREE.PlaneGeometry(1,1); pg.rotateX(-Math.PI/2);
+    const tex=canvasTex(64,64,(x,w,h)=>{ x.clearRect(0,0,w,h); x.strokeStyle='rgba(255,255,255,.9)'; x.lineWidth=3; x.beginPath(); x.arc(32,32,26,0,7); x.stroke(); x.strokeStyle='rgba(255,255,255,.35)'; x.lineWidth=2; x.beginPath(); x.arc(32,32,17,0,7); x.stroke(); });
+    const m=new THREE.InstancedMesh(pg,new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:0xffffff}),n);
+    m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(n*3),3); m.frustumCulled=false; m.visible=false; m.renderOrder=2; scene.add(m);
+    RIPPLE={m,n,p:Array.from({length:n},()=>({x:0,z:0,t:Math.random(),life:0.5+Math.random()*0.35}))}; }
   LAMPG=makeGlowPoints(View.lampPts,2.4,0xFFD08A);
   const dockPts=[]; for(const s of [...Store.all('sites'),...Store.all('stores')]) for(const b of s.bays) dockPts.push([b.x+s.ox,PH+3.2,s.fz+0.4+s.oz]);
   View.dockGlow=makeGlowPoints(dockPts,3.2,0xFFE2B0);
@@ -536,18 +555,24 @@ function initWeatherFX(){
 const DAYKEYS=[[0,'#0C1226',0x8FA8FF,0.11,0x3A4782,0x141A33,0.17,1],[5.2,'#0F1530',0x8FA8FF,0.11,0x3A4782,0x141A33,0.17,1],[6.2,'#E7D2CF',0xFFAE74,0.42,0xFFD8BC,0x9AA2CC,0.62,0.3],
   [8,'BG',0xFFF2E2,0.48,0xF4F5FF,0xCDD2F2,1.0,0],[12,'BG',0xFFFFFF,0.52,0xF6F7FF,0xCDD2F2,1.04,0],[16,'BG',0xFFE8CA,0.48,0xFFF8F0,0xCDD2F2,1.0,0],
   [18,'#E6C1B6',0xFF9050,0.38,0xFFC2A2,0x949AC6,0.62,0.3],[19.2,'#323A68',0x6F7FD0,0.14,0x5763A6,0x252A4C,0.26,0.9],[24,'#0C1226',0x8FA8FF,0.11,0x3A4782,0x141A33,0.17,1]];
+/* v44: palet waktu gaya realistis. Matahari lebih kuat dan cahaya langit lebih lemah (bayangan lebih dalam), cahaya pantul tanah
+   kecokelatan, langit/kabut biru keabuan, dan senja jingga yang lebih panjang. Format sama dengan DAYKEYS */
+const DAYKEYS_R=[[0,'#080C1C',0x8FA4F0,0.1,0x1F2A55,0x0E1018,0.15,1],[5.2,'#0A1024',0x8FA4F0,0.1,0x1F2A55,0x0E1018,0.15,1],[6.1,'#E6C3A6',0xFFA35E,0.6,0xFFCDA6,0x6E6252,0.46,0.3],
+  [7.5,'#D2DCE8',0xFFE2B8,1.12,0xD4DCEC,0x7A7262,0.48,0],[12,'#C9D7E9',0xFFF5E6,1.32,0xD0DBEC,0x7E7766,0.5,0],[16,'#D2D9E5',0xFFE2BC,1.2,0xD6DDEE,0x7E7462,0.48,0],
+  [17.6,'#E3BC9C',0xFFA055,0.95,0xE8C8AE,0x6A5846,0.42,0.12],[18.4,'#A97C86',0xF0745C,0.36,0x8E7BA8,0x3A3245,0.36,0.55],[19.3,'#20264A',0x7A88D6,0.14,0x313C74,0x15171F,0.2,0.9],[24,'#080C1C',0x8FA4F0,0.1,0x1F2A55,0x0E1018,0.15,1]];
 const WXLOOK={clear:{tint:null,amt:0,sun:1,hemi:1,near:230,far:560,dark:0},cloudy:{tint:'#C3C9D6',amt:0.45,sun:0.5,hemi:0.97,near:200,far:480,dark:0.1},
   rain:{tint:'#9DA6B8',amt:0.62,sun:0.3,hemi:0.85,near:80,far:290,dark:0.5},storm:{tint:'#6E778E',amt:0.78,sun:0.18,hemi:0.72,near:55,far:210,dark:0.8},
   fog:{tint:'#DADEE6',amt:0.85,sun:0.42,hemi:1,near:12,far:100,dark:0.5},sandstorm:{tint:'#D7A266',amt:0.86,sun:0.36,hemi:1.05,near:16,far:105,dark:0.4,sky:0xFFD19A,ground:0xC98E55,sunC:0xFFAE63}};
-const _ca=new THREE.Color(), _cb=new THREE.Color();
-function dayAt(h){ let i=0; while(i<DAYKEYS.length-2&&DAYKEYS[i+1][0]<=h) i++; const A=DAYKEYS[i], B=DAYKEYS[i+1], t=clamp((h-A[0])/(B[0]-A[0]),0,1), bg=cssVar('--bg');
+const _ca=new THREE.Color(), _cb=new THREE.Color(), _rm2=new THREE.Matrix4();
+function dayAt(h){ const DK=LOOK.real?DAYKEYS_R:DAYKEYS; let i=0; while(i<DK.length-2&&DK[i+1][0]<=h) i++; const A=DK[i], B=DK[i+1], t=clamp((h-A[0])/(B[0]-A[0]),0,1), bg=cssVar('--bg');
   const col=(a,b)=>new THREE.Color(a==='BG'?bg:a).lerp(new THREE.Color(b==='BG'?bg:b),t);
   return {bg:col(A[1],B[1]),sun:new THREE.Color(A[2]).lerp(new THREE.Color(B[2]),t),si:lerp(A[3],B[3],t),hs:new THREE.Color(A[4]).lerp(new THREE.Color(B[4]),t),hg:new THREE.Color(A[5]).lerp(new THREE.Color(B[5]),t),hi:lerp(A[6],B[6],t),n:lerp(A[7],B[7],t)}; }
 function envTarget(){ const h=Store.clock.hour, D=dayAt(h), W=WXLOOK[Store.weather.condition]||WXLOOK.clear;
   const bg=D.bg.clone(); if(W.tint){ const tc=new THREE.Color(W.tint).lerp(D.bg,D.n*0.75); bg.lerp(tc,W.amt); }
   const hs=D.hs.clone(), hg=D.hg.clone(), sun=D.sun.clone(); if(W.sky){ hs.lerp(new THREE.Color(W.sky),W.amt*(1-D.n)); hg.lerp(new THREE.Color(W.ground),W.amt*(1-D.n)); sun.lerp(new THREE.Color(W.sunC),W.amt); }
   else if(W.tint){ hs.lerp(new THREE.Color(0xC9CFDA),W.amt*0.5*(1-D.n)); }
-  return {bg,hs,hg,sun,si:D.si*W.sun,hi:D.hi*W.hemi,fi:0.12*(1-D.n)*W.sun,near:W.near,far:W.far,n:D.n,lights:Math.max(D.n,W.dark),hour:h}; }
+  const fr=LOOK.real&&W.near>=200?1.35:1;   /* gaya realistis: kabut cerah lebih jauh supaya sawah & kampung di pinggir kota terlihat */
+  return {bg,hs,hg,sun,si:D.si*W.sun,hi:D.hi*W.hemi,fi:(LOOK.real?0.06:0.12)*(1-D.n)*W.sun,near:W.near*fr,far:W.far*fr,n:D.n,lights:Math.max(D.n,W.dark),hour:h}; }
 function sunOffset(h){ if(h<5.4||h>19.2) return [-20,52,14]; const t=(h-6)/12, az=lerp(-0.9,0.9,clamp(t,0,1)), el=Math.sin(clamp(t,0,1)*Math.PI); return [Math.sin(az)*-40-6,18+el*36,20+Math.cos(az)*8]; }
 function updateWeather(dt,now){
   const T=envTarget(); if(!ENV.cur) ENV.cur={bg:T.bg.clone(),hs:T.hs.clone(),hg:T.hg.clone(),sun:T.sun.clone(),si:T.si,hi:T.hi,fi:T.fi,near:T.near,far:T.far,n:T.n,lights:T.lights};
@@ -567,6 +592,8 @@ function updateWeather(dt,now){
   if(lon){ LAMPG.update(LAMPG.n); View.dockGlow.update(View.dockGlow.n); }
   updateSignalLamps(dt,now); updateVehicleLights(L); updateClouds(dt,E);
   { const U=THEME_U.uDark; if(Math.abs(U.value-THEME_U.want)>0.001) U.value+=(THEME_U.want-U.value)*Math.min(1,dt*(reduceMotion?60:3.2)); else U.value=THEME_U.want; }
+  /* v44: tanah basah naik ±15 dtk setelah hujan mulai, kering ±2 menit setelah reda; warna langit untuk pantulan genangan */
+  { const wt=Store.weather.condition==='rain'||storm?1:0; ENV.wet=ENV.wet||0; ENV.wet+=(wt-ENV.wet)*Math.min(1,dt/(wt>ENV.wet?15:110)); GFX_U.uWet.value=LOOK.real?ENV.wet:0; GFX_U.uSky.value.copy(E.hs).multiplyScalar(0.35+E.hi*0.9); }
   /* hujan */
   const rainAmt=Store.weather.condition==='rain'?1:storm?1.6:0; ENV.rain=(ENV.rain||0)+(rainAmt-(ENV.rain||0))*k;
   const R=RAIN; R.m.visible=ENV.rain>0.02;
@@ -576,6 +603,12 @@ function updateWeather(dt,now){
       if(p[o+4]<0||p[o+1]<-40){ const x=(Math.random()-.5)*110, y=24+Math.random()*8, z=(Math.random()-.5)*110, len=storm?1.3:0.9; p[o]=x; p[o+1]=y; p[o+2]=z; p[o+3]=x-(storm?0.3:0.08); p[o+4]=y-len; p[o+5]=z; }
       if(p[o]>55){ p[o]-=110; p[o+3]-=110; } }
     R.m.geometry.attributes.position.needsUpdate=true; }
+  if(RIPPLE){ const P=RIPPLE, on=ENV.rain>0.05&&cam.zoom>0.8&&!reduceMotion; P.m.visible=on;
+    if(on){ const span=Math.min(70,120/cam.zoom), act=Math.floor(P.n*Math.min(1,ENV.rain)), br=(ENV.cur.n>0.5?0.35:0.55)*Math.min(1,ENV.rain);
+      for(let i=0;i<P.n;i++){ const q=P.p[i]; if(i>=act){ P.m.setMatrixAt(i,_hide); continue; } q.t+=dt/q.life;
+        if(q.t>=1){ q.t=0; q.x=cam.target.x+(Math.random()-0.5)*span; q.z=cam.target.z+(Math.random()-0.5)*span; }
+        const sc=0.12+q.t*0.75, a=(1-q.t)*(1-q.t)*br; _rm2.makeScale(sc,1,sc); _rm2.setPosition(q.x,0.115,q.z); P.m.setMatrixAt(i,_rm2); P.m.setColorAt(i,_cA.setRGB(a,a,a)); }
+      P.m.instanceMatrix.needsUpdate=true; P.m.instanceColor.needsUpdate=true; } }
   /* debu (badai pasir) + kabut tanah */
   const sand=Store.weather.condition==='sandstorm', fog=Store.weather.condition==='fog';
   ENV.mix+=((sand||fog?1:0)-ENV.mix)*k; HAZE.pts.material.color.set(fog?0xE4E8EE:0xD9944E); DUST.pts.material.color.set(0xE8AE68);
@@ -910,7 +943,7 @@ function buildStoreView(s){
   /* parkir pelanggan & pepohonan */
   for(let x=xi0+3;x<xi1-3;x+=2.9){ const z=-fz-7; LN.box(0.08,0.01,4.8,0,0xFFFFFF,x-1.45,0.1,z); if(R()<0.75) addCar(B,pick([0xF3F5FB,0x2E5BFF,0x9AA4C2,0xE0573B,0x17A090,0x3B4A7A],R),x,z,Math.PI); }
   B.box(xi1-xi0-2,0.03,7,0.3,0xD9DEEC,(xi0+xi1)/2,0.09,-fz-7);
-  for(let x=xi0+3;x<xi1-2;x+=7){ B.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,zi0+1.6); B.add(gSph(1,10),0x5FB880,x,1.8,zi0+1.6,0,0.9,1.15,0.9); }
+  for(let x=xi0+3;x<xi1-2;x+=7){ if(LOOK.real){ realTree(B,x,zi0+1.6,0.85,1,s.ox,s.oz); continue; } B.add(gCyl(0.11,1.0,6),0xB58B63,x,0.6,zi0+1.6); B.add(gSph(1,10),0x5FB880,x,1.8,zi0+1.6,0,0.9,1.15,0.9); }
   g.add(B.build(.62)); g.add(PL.build(.85)); g.add(noTheme(LN.build(.9,false)));
   const gm=GLs.build(.15,false); gm.material=new THREE.MeshStandardMaterial({color:C(mall?0x8FA7E8:0x9CC9B4),roughness:.15,metalness:.1,emissive:C(0xFFE3B0),emissiveIntensity:0}); g.add(gm); View.nightMats.push({m:gm.material,max:0.7});
   const pk=pickBox(W,H,D); pk.position.set(0,H/2,0); g.add(pk); tagRef(pk,'stores',s.id);
@@ -1011,10 +1044,17 @@ const CLOUD_U={cloudMap:{value:null},cloudOff:{value:new THREE.Vector2()},cloudA
 /* v40: tema gelap di scene 3D. Warna netral terang (tanah halaman, apron, dinding putih, trailer) dipetakan ke biru tua sesuai terangnya,
    warna jenuh (atap biru, rompi, palet, lampu) dan marka jalan (userData.noTheme) tidak berubah. uDark dianimasikan, jadi tidak perlu kompilasi ulang */
 const THEME_U={uDark:{value:0},want:0};
-function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt;
+/* v44: efek permukaan gaya realistis untuk semua bidang datar di permukaan tanah (normal dunia menghadap atas, y < 0,9 m):
+   butiran halus + bercak sedang + noda besar dari derau posisi dunia (tanpa UV, jadi jalan, apron, trotoar, dan sawah ikut),
+   memudar saat kamera jauh supaya tidak berkedip. uWet (hujan): permukaan menggelap & mengilap, genangan dari derau besar
+   memantulkan warna langit. Bukan pantulan sungguhan, tapi murah untuk ponsel */
+const GFX_U={uReal:{value:LOOK.real?1:0},uWet:{value:0},uSky:{value:new THREE.Color(0x9fb4d8)}};
+const GFX_NOISE='float gHash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat gNoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(gHash(i),gHash(i+vec2(1.0,0.0)),f.x),mix(gHash(i+vec2(0.0,1.0)),gHash(i+vec2(1.0,1.0)),f.x),f.y); }\nfloat gFbm(vec2 p){ return gNoise(p)*0.5+gNoise(p*2.03+17.1)*0.3+gNoise(p*4.11+3.7)*0.2; }\n';
+const GFX_COLOR='\nfloat gUp=0.0, gPud=0.0;\nif(uReal>0.5){ gUp=smoothstep(0.82,0.96,vNW.y)*(1.0-smoothstep(0.35,0.9,vCloudW.y));\n if(gUp>0.001){ vec2 q=vCloudW.xz; float dist=length(vViewPosition), near=1.0-smoothstep(70.0,190.0,dist);\n  float fine=gNoise(q*3.1)*0.6+gNoise(q*9.7)*0.4, mid=gFbm(q*0.35), big=gFbm(q*0.045+5.3);\n  diffuseColor.rgb*=1.0+gUp*((fine-0.5)*0.11*near+(mid-0.5)*0.15+(big-0.5)*0.12);\n  if(uWet>0.001){ gPud=smoothstep(0.54,0.6,gFbm(q*0.09+11.0))*uWet*gUp; diffuseColor.rgb*=mix(1.0,0.64,uWet*gUp)*mix(1.0,0.72,gPud); } } }\n';
+function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt; sh.uniforms.uReal=GFX_U.uReal; sh.uniforms.uWet=GFX_U.uWet; sh.uniforms.uSky=GFX_U.uSky;
     sh.uniforms.uDark=THEME_U.uDark; sh.uniforms.uThemeK={value:this&&this.userData&&this.userData.noTheme?0:1};
-    sh.vertexShader='varying vec3 vCloudW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;');
-    sh.fragmentShader='varying vec3 vCloudW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\nuniform float uDark;\nuniform float uThemeK;\n'+sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nif(uDark*uThemeK>0.001){ vec3 c0=diffuseColor.rgb; float mx=max(c0.r,max(c0.g,c0.b)), mn=min(c0.r,min(c0.g,c0.b)), lu=dot(c0,vec3(0.2126,0.7152,0.0722)), sa=(mx-mn)/max(mx,1e-3); float w=smoothstep(0.30,0.62,lu)*(1.0-smoothstep(0.12,0.30,sa)); vec3 dk=mix(vec3(0.010,0.015,0.058),vec3(0.046,0.062,0.185),smoothstep(0.62,1.0,lu)); diffuseColor.rgb=mix(c0,dk,w*uDark*uThemeK); }').replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
+    sh.vertexShader='varying vec3 vCloudW;\nvarying vec3 vNW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;\nvNW=normalize((vec4(transformedNormal,0.0)*viewMatrix).xyz);');
+    sh.fragmentShader='varying vec3 vCloudW;\nvarying vec3 vNW;\nuniform sampler2D cloudMap;\nuniform vec2 cloudOff;\nuniform float cloudAmt;\nuniform float uDark;\nuniform float uThemeK;\nuniform float uReal;\nuniform float uWet;\nuniform vec3 uSky;\n'+GFX_NOISE+sh.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,0.22,uWet*gUp); roughnessFactor=mix(roughnessFactor,0.05,gPud);').replace('#include <color_fragment>','#include <color_fragment>'+GFX_COLOR+'\nif(uDark*uThemeK>0.001){ vec3 c0=diffuseColor.rgb; float mx=max(c0.r,max(c0.g,c0.b)), mn=min(c0.r,min(c0.g,c0.b)), lu=dot(c0,vec3(0.2126,0.7152,0.0722)), sa=(mx-mn)/max(mx,1e-3); float w=smoothstep(0.30,0.62,lu)*(1.0-smoothstep(0.12,0.30,sa)); vec3 dk=mix(vec3(0.010,0.015,0.058),vec3(0.046,0.062,0.185),smoothstep(0.62,1.0,lu)); diffuseColor.rgb=mix(c0,dk,w*uDark*uThemeK); }').replace('#include <lights_fragment_end>','#include <lights_fragment_end>\nif(gUp*uWet>0.001){ float fr=pow(1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0),4.0); reflectedLight.indirectSpecular+=uSky*(0.08*uWet*gUp+0.6*gPud)*(0.35+fr); }\nif(cloudAmt>0.001){ float cl=texture2D(cloudMap,vCloudW.xz/520.0+cloudOff).a; float ck=1.0-cloudAmt*cl; reflectedLight.directDiffuse*=ck; reflectedLight.directSpecular*=ck; reflectedLight.indirectDiffuse*=1.0-cloudAmt*cl*0.35; }'); }
 /* dipasang di prototipe: semua MeshStandardMaterial (tanah, gedung, truk, kereta) ikut teduh tanpa menyentuh tiap pembuat material */
 THREE.MeshStandardMaterial.prototype.onBeforeCompile=cloudShader;
 let CLOUDS=null;

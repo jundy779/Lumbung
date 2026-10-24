@@ -6,7 +6,7 @@
 
 <img src="assets/lumbung-logo.png" width="96" alt="Logo Lumbung">
 
-**Lumbung v43** · oleh PT Fusionify Digital
+**Lumbung v44** · oleh PT Fusionify Digital
 
 <img src="https://readme-typing-svg.demolab.com?font=Plus+Jakarta+Sans&weight=700&size=22&duration=2600&pause=900&color=2E5BFF&center=true&vCenter=true&width=760&lines=Lima+gudang+dalam+satu+tampilan+3D;Truk%2C+forklift%2C+dan+pekerja+bergerak+real-time;Arahkan+pengiriman+langsung+dari+peta;Siang%2C+malam%2C+hujan%2C+badai+%E2%80%94+semua+tersimulasi" alt="Animasi manfaat Lumbung">
 
@@ -54,6 +54,9 @@ Shift Pagi (06.00–18.00) dan Shift Malam (18.00–06.00) dengan seragam dan na
 
 ### 🌦️ Waktu & Cuaca
 Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, berawan, hujan, badai petir, kabut, dan badai pasir. Cuaca memengaruhi kecepatan truk, forklift, dan jarak pandang.
+
+### 🌾 Gaya Peta Realistis
+Aspal, beton, dan rumput bertekstur, bekas ban dan noda oli di halaman gudang, cahaya filmis dengan senja keemasan dan malam gelap, pohon rindang dan palem, serta sawah dan kampung di pinggir kota. Saat hujan, tanah basah mengilap, ada genangan yang memantulkan langit, dan riak tetesan air. Gaya isometrik bersih yang lama tetap bisa dipilih (Gaya peta → Klasik).
 
 ### 🌙 Tema & Tur
 Tema terang, gelap, atau ikuti sistem (menu Waktu & cuaca atau tombol bulan di kontrol peta); peta 3D ikut gelap tanpa dimuat ulang. Pengunjung pertama mendapat tur singkat yang bisa diulang dengan tombol **?**.
@@ -309,6 +312,7 @@ Ponsel dan perangkat hemat daya otomatis memakai bayangan lebih ringan dan simul
 - [x] Gerak manusia alami & burung merpati · v42
 - [x] Logo resmi di aplikasi, ikon, atap gudang & armada · v42.2
 - [x] Analitik dock: okupansi bay per jam, waktu tunggu, bay tersibuk · v43
+- [x] Gaya peta realistis: tekstur permukaan, cahaya filmis, sawah & kampung, efek hujan · v44
 - [ ] Integrasi data nyata — termasuk sebagai tampilan "Toko Live" FUSIONIFY BOT
 - [ ] Migrasi ke TypeScript + Three.js terbaru
 

@@ -33,6 +33,10 @@ const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(
 /* v40: tema tampilan. pref = 'auto' (ikut sistem) | 'light' | 'dark', disimpan di localStorage['lumbung.theme']; atribut data-theme dipasang skrip kecil di <head> sebelum CSS dibaca */
 const THEME={pref:'auto'}; try{ const t=localStorage.getItem('lumbung.theme'); if(t==='light'||t==='dark') THEME.pref=t; }catch(e){}
 const MQ_DARK=matchMedia('(prefers-color-scheme: dark)');
+/* v44: gaya peta. 'real' = tanah, jalan, pohon, cahaya, dan pinggiran kota realistis (bawaan); 'classic' = gaya isometrik bersih lama.
+   Dibaca sekali saat startup (geometri kota dibangun dengan palet ini), jadi mengganti gaya memuat ulang halaman. */
+const LOOK={real:true}; try{ if(localStorage.getItem('lumbung.look')==='classic'||QS.get('look')==='classic') LOOK.real=false; if(QS.get('look')==='real') LOOK.real=true; }catch(e){}
+const LK=(classic,real)=>LOOK.real?real:classic;
 const isDark=()=>THEME.pref==='dark'||(THEME.pref==='auto'&&MQ_DARK.matches);
 const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
 const angDiff = (a,b) => ((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;

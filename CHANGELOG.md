@@ -1,5 +1,18 @@
 # Changelog
 
+## v44 · 24 Okt 2026
+- **Gaya peta realistis** (bawaan baru). Gaya lama tetap tersedia di Waktu & Cuaca → Gaya peta → Klasik. Mengganti gaya memuat ulang peta karena palet kota dibangun saat startup.
+  - **Permukaan:** jalan aspal abu tua, apron dan trotoar beton, rumput di luar kota. Semua bidang datar di permukaan tanah mendapat butiran halus, bercak, dan noda besar dari derau posisi dunia (tanpa tekstur tambahan). Butiran halus memudar saat kamera jauh supaya tidak berkedip.
+  - **Bekas ban dan noda oli** di halaman setiap gudang: jejak mundur di depan bay, jejak lalu-lalang di lajur halaman, noda tempat truk biasa berhenti.
+  - **Cahaya:** tone mapping filmis (ACES), matahari lebih kuat dan cahaya langit lebih lemah sehingga bayangan lebih dalam, pantulan tanah kecokelatan, langit dan kabut biru keabuan, senja jingga keemasan, dan malam yang benar-benar gelap dengan genangan cahaya lampu jalan.
+  - **Pohon:** kanopi bergumpal dengan sisi atas lebih terang kena matahari, plus pohon palem di tepi Jalan Lingkar dan di sebagian kota.
+  - **Gedung kota:** fasad krem, abu, dan bata dengan atap beton gelap, menggantikan putih-biru.
+  - **Pinggiran kota:** sawah berpetak dengan pematang dan baris padi (sebagian tergenang air, sebagian sudah panen), kampung rumah genteng yang jendelanya menyala di malam hari, kebun dan rumpun pohon. Jalan, rel KRL layang, Jalan Lingkar, dan gerbang tol tidak tertimpa. Rumah dan pohonnya ikut tersembunyi di Tampilan Bersih.
+  - **Hujan:** tanah menggelap dan mengilap, genangan memantulkan warna langit, dan riak tetesan air muncul di sekitar kamera (riak juga tampil di gaya klasik). Tanah basah sekitar 15 detik setelah hujan mulai dan kering perlahan dalam sekitar 2 menit setelah reda.
+- Di gaya realistis, tema gelap hanya menggelapkan panel. Peta tetap mengikuti jam dan cuaca, tidak dicat biru tua.
+- Performa: rumah dan pohon pinggiran memakai InstancedMesh (beberapa draw call). Di ponsel kepadatan pohon dikurangi dan bayangannya dimatikan. Tambahan beban di ponsel sekitar 12% segitiga.
+- Hanya tampilan: simulasi dan sidik jarinya tidak berubah.
+
 ## v43 · 20 Okt 2026
 - **Analitik dock** di panel setiap gudang, dihitung langsung dari simulasi:
   - Tiga angka ringkas: okupansi bay 60 menit terakhir, waktu tunggu truk dari palang gerbang sampai menempel di dock (median dan batas 90%), dan bay tersibuk.
