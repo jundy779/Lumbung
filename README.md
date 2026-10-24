@@ -59,7 +59,7 @@ Real-time (WIB), pagi, siang, sore, malam, atau siklus cepat — plus cerah, ber
 Aspal, beton, dan rumput bertekstur, bekas ban dan noda oli di halaman gudang, cahaya filmis dengan senja keemasan dan malam gelap, pohon rindang dan palem, serta sawah dan kampung di pinggir kota. Saat hujan, tanah basah mengilap, ada genangan yang memantulkan langit, dan riak tetesan air. Gaya isometrik bersih yang lama tetap bisa dipilih (Gaya peta → Klasik).
 
 ### 🌙 Tema & Tur
-Tema terang, gelap, atau ikuti sistem (menu Waktu & cuaca atau tombol bulan di kontrol peta); peta 3D ikut gelap tanpa dimuat ulang. Pengunjung pertama mendapat tur singkat yang bisa diulang dengan tombol **?**.
+Tema terang, gelap, atau ikuti sistem (menu Waktu & cuaca atau tombol bulan di kontrol peta). Di gaya Klasik peta 3D ikut gelap tanpa dimuat ulang; di gaya Realistis hanya panel yang gelap, sedangkan peta tetap mengikuti jam dan cuaca. Pengunjung pertama mendapat tur singkat yang bisa diulang dengan tombol **?**.
 
 ### 🛣️ Kota, Jalan Raya & Tol
 Grid jalan kota dengan lampu lalu lintas, zebra cross, dan garis stop di lajur kiri; Jalan Lingkar; serta **Tol Jagorawi** 4 lajur dengan median beton, guardrail, dan gantry hijau.
