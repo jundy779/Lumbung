@@ -1,5 +1,16 @@
 # Changelog
 
+## v44.1 · 25 Okt 2026
+Optimasi performa ponsel (mode biasa dan "Situs desktop"), tanpa mengubah fitur dan tampilan di desktop. Diukur di Chromium dengan emulasi ponsel dan CPU diperlambat 4×; angka FPS di bawah adalah sisi CPU (render GPU dimatikan saat mengukur), karena GPU di lingkungan uji hanya emulasi software.
+- **Matriks 3D dihitung sekali per frame, bukan dua kali.** `syncView` dulu memanggil `scene.updateMatrixWorld()` lalu render mengulanginya untuk ±4.000 objek; rangka orang malah dihitung tiga kali. Objek statis (gedung, jalan, pohon, rambu, pinggiran kota) kini dibekukan setelah dibangun, rangka orang dihitung hanya saat terlihat.
+- **Label truk tidak lagi memicu layout ulang tiap frame**: posisi lewat properti CSS `translate` dan teks/kelas hanya ditulis saat berubah. Layout ulang turun dari ±98 menjadi ±2 per detik.
+- **Panel tidak ditulis ulang bila isinya sama**, dan panel yang baru di-scroll (sentuh) tidak dirender ulang selama 1,2 detik, jadi isi panel tidak berganti di bawah jari.
+- **Geometri ringan di ponsel**: kotak palet bersudut tajam (12 segitiga, sebelumnya 108) dan badan orang dengan segmen lebih sedikit. Segitiga per frame turun ±31% (2,49 juta → 1,72 juta).
+- **Batas resolusi kanvas ±1 juta piksel di ponsel.** Mode "Situs desktop" dulu merender 2,6 juta piksel (3,5× mode ponsel biasa); kini ±1 juta.
+- **Efek tekstur tanah versi ringan di ponsel** (2 derau, bukan 8 per piksel).
+- **Layar pemuatan tidak beku**: pemanasan simulasi saat startup dipecah per 150 langkah. Urutan langkah sama persis, sidik jari simulasi tetap `26dd78b3`.
+- Hasil uji (CPU 4×, ponsel 390×844): FPS sisi CPU 24 → 57, frame p95 83 → 17 ms, tugas panjang (>50 ms) saat diam 39 → 2 per 8 dtk, waktu sampai siap 40 → 22 dtk. Mode Situs desktop: FPS sisi CPU 32 → 58, waktu siap 70 → 35 dtk.
+
 ## v44 · 24 Okt 2026
 - **Gaya peta realistis** (bawaan baru). Gaya lama tetap tersedia di Waktu & Cuaca → Gaya peta → Klasik. Mengganti gaya memuat ulang peta karena palet kota dibangun saat startup.
   - **Permukaan:** jalan aspal abu tua, apron dan trotoar beton, rumput di luar kota. Semua bidang datar di permukaan tanah mendapat butiran halus, bercak, dan noda besar dari derau posisi dunia (tanpa tekstur tambahan). Butiran halus memudar saat kamera jauh supaya tidak berkedip.

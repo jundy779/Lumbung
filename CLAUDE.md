@@ -1,10 +1,15 @@
-# CLAUDE.md · Peta Teknis Lumbung v44
+# CLAUDE.md · Peta Teknis Lumbung v44.1
 
 Dokumen ini adalah "otak cadangan" proyek Lumbung. Ditulis dari pembacaan penuh seluruh `src/` (3.434 baris), uji jalan di Chromium headless (desktop 1440×900 dan ponsel 390×844), dan simulasi headless 30 serta 150 menit. Taruh file ini di root repo supaya sesi AI berikutnya langsung paham tanpa membaca ulang 320 KB kode.
 
 Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Kalau kode berubah, perbarui bagian yang terdampak, terutama nomor baris.
 
 **Hubungan dengan `KONTEKS-PROYEK.md`:** dokumen itu ringkasan resmi proyek (aturan kerja, invariant keselamatan §11, pelajaran dari bug §14, backlog §15). `CLAUDE.md` ini pelengkapnya: peta kode yang lebih rinci dengan nomor baris, temuan audit, dan resep pengembangan. Kalau keduanya bertentangan soal aturan kerja, `KONTEKS-PROYEK.md` yang berlaku.
+
+**Perubahan v44.1 (25 Okt 2026), performa ponsel (sidik jari `26dd78b3` tetap)**:
+- d_part1: `PX_BUDGET` (1,05 juta piksel) + `pixelRatioFor(w,h)` dipakai saat init dan `resize` (LOWP saja, minimum 0,7). `PAL_R` (radius sudut palet 0 di LOWP). `LQ`, `capL`, `sphL`, `cylL` (segmen badan orang lebih sedikit di LOWP); `gCap(r,len,seg,rad)` kini punya argumen segmen radial dan kunci memo memuatnya. `makePerson`: semua objek rangka `matrixAutoUpdate=false` + `g.userData.rig`; `updatePerson` menyusun matriks rangka sendiri (`_updM`) hanya saat terlihat dan melewati rangka yang sudah tersembunyi (`rig.hid`). **Kode baru yang menggerakkan sendi rangka harus lewat `updatePerson`.**
+- d_part2: `scene.updateMatrixWorld()` di `syncView` dihapus (render sudah melakukannya; `updatePallet` memakai `updateWorldMatrix`). `freezeStatic()` dipanggil di startup sebelum `bindEntities`: semua objek scene saat itu dibekukan kecuali daun pintu dock, palang gerbang/tol, pin & disc palet QC, cahaya & target matahari. **Objek bangunan baru yang dianimasikan harus ditambahkan ke daftar `keep`.** `GFX_COLOR` memakai 2 derau di `LOWPOWER`.
+- e_ui: `TAG_TR`, `setTag`, `place` (properti CSS `translate`, tulis hanya bila berubah; `.tag` kini `left:0;top:0`). `setHTML(el,h)` untuk detail, pelacakan, dan daftar operasi; `busy[id+'s']` dari event `scroll` (pasif) menahan render ulang 1,2 dtk. Pemanasan startup `await` tiap 150 langkah.
 
 **Perubahan v44 (24 Okt 2026), gaya peta realistis (hanya tampilan, sidik jari `26dd78b3` untuk `3 7 siang` tetap)**:
 - a_core: `LOOK.real` (bawaan true; `localStorage['lumbung.look']='classic'` atau `?look=classic|real`), `LK(classic,real)`. Dibaca sekali saat startup; tombol `[data-look]` di menu Waktu & Cuaca menyimpan pilihan lalu memuat ulang halaman.
