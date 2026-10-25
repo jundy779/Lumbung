@@ -27,10 +27,10 @@ function groundDecals(g,s){ const tire=[], oil=[], y=0.099;
   mk(tire,TIRE_TEX); mk(oil.map(([x,z,r])=>[x-r,z-r,x+r,z-r,x+r,z+r,x-r,z+r,1]),OIL_TEX); }
 /* v44.1: bekukan matriks objek statis (gedung, jalan, pohon, rambu, pinggiran kota) setelah semua dibangun.
    Dari ±4.000 objek di scene, sebagian besar tidak pernah bergerak, tetapi three.js menyusun ulang matriksnya tiap frame.
-   Yang tetap bergerak dikecualikan: daun pintu dock, lengan palang gerbang & tol, pin palet QC. Objek yang dibuat sesudahnya
+   Yang tetap bergerak dikecualikan: daun pintu dock, lengan palang gerbang & tol, pin palet QC, cincin tujuan rute. Objek yang dibuat sesudahnya
    (truk, forklift, palet, efek cuaca, sorotan) tidak tersentuh karena fungsi ini dipanggil sebelum bindEntities */
 function freezeStatic(){ const keep=new Set(), add=o=>o&&o.traverse(x=>keep.add(x));
-  for(const v of View.docks.values()) add(v.door); for(const G of View.gates||[]) add(G.piv); for(const b of View.barriers) add(b.piv); for(const h of View.holds){ add(h.pin); add(h.disc); }
+  for(const v of View.docks.values()) add(v.door); for(const G of View.gates||[]) add(G.piv); for(const b of View.barriers) add(b.piv); for(const h of View.holds){ add(h.pin); add(h.disc); } add(destRing);   /* cincin tujuan rute truk terpilih dipindah tiap frame */
   scene.traverse(o=>{ if(o.isLight){ keep.add(o); if(o.target) keep.add(o.target); } });   /* matahari & targetnya ikut kamera */
   let n=0; scene.updateMatrixWorld(true);
   scene.traverse(o=>{ if(o===scene||keep.has(o)||!o.matrixAutoUpdate) return; o.matrixAutoUpdate=false; n++; });
