@@ -25,6 +25,16 @@ function groundDecals(g,s){ const tire=[], oil=[], y=0.099;
     const ge=new THREE.BufferGeometry(); ge.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); ge.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); ge.setIndex(ind); ge.computeBoundingSphere();
     const m=new THREE.Mesh(ge,new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2,side:THREE.DoubleSide})); m.renderOrder=1; g.add(m); };
   mk(tire,TIRE_TEX); mk(oil.map(([x,z,r])=>[x-r,z-r,x+r,z-r,x+r,z+r,x-r,z+r,1]),OIL_TEX); }
+/* v44.1: bekukan matriks objek statis (gedung, jalan, pohon, rambu, pinggiran kota) setelah semua dibangun.
+   Dari ±4.000 objek di scene, sebagian besar tidak pernah bergerak, tetapi three.js menyusun ulang matriksnya tiap frame.
+   Yang tetap bergerak dikecualikan: daun pintu dock, lengan palang gerbang & tol, pin palet QC, cincin tujuan rute. Objek yang dibuat sesudahnya
+   (truk, forklift, palet, efek cuaca, sorotan) tidak tersentuh karena fungsi ini dipanggil sebelum bindEntities */
+function freezeStatic(){ const keep=new Set(), add=o=>o&&o.traverse(x=>keep.add(x));
+  for(const v of View.docks.values()) add(v.door); for(const G of View.gates||[]) add(G.piv); for(const b of View.barriers) add(b.piv); for(const h of View.holds){ add(h.pin); add(h.disc); } add(destRing);   /* cincin tujuan rute truk terpilih dipindah tiap frame */
+  scene.traverse(o=>{ if(o.isLight){ keep.add(o); if(o.target) keep.add(o.target); } });   /* matahari & targetnya ikut kamera */
+  let n=0; scene.updateMatrixWorld(true);
+  scene.traverse(o=>{ if(o===scene||keep.has(o)||!o.matrixAutoUpdate) return; o.matrixAutoUpdate=false; n++; });
+  return n; }
 function buildSiteView(s){
   const R=rng(s.idx*977+513), W=s.W, D=s.D, H=s.H, fz=s.fz;
   const g=new THREE.Group(); g.position.set(s.ox,0,s.oz); scene.add(g);
@@ -439,7 +449,8 @@ function syncView(dt,now){
     const blink=Math.floor(now/550)%2;
     for(const [ax,st] of [['H',s.stateH],['V',s.stateV]]){ const k=st+ax+(st==='F'?blink:''); if(v.last[ax]===k) continue; v.last[ax]=k;
       v.idx[ax].forEach(([i,c])=>SIGPOOL.color(i,(c===0&&st==='R')||(c===1&&(st==='A'||(st==='F'&&blink)))||(c===2&&st==='G')?['#FF4040','#FFB21A','#2BE070'][c]:['#3A1C20','#3A2E18','#16301F'][c])); } }
-  scene.updateMatrixWorld();
+  /* v44.1: tidak ada scene.updateMatrixWorld() di sini lagi; renderer.render sudah melakukannya sekali per frame.
+     updatePallet memperbarui rantai induknya sendiri (updateWorldMatrix), rangka orang lewat updatePerson */
   /* palet: posisinya ditentukan sepenuhnya oleh field location di data */
   const seen=new Set();
   for(const p of Store.tables.pallets.values()){ seen.add(p.id);
@@ -1050,7 +1061,7 @@ const THEME_U={uDark:{value:0},want:0};
    memantulkan warna langit. Bukan pantulan sungguhan, tapi murah untuk ponsel */
 const GFX_U={uReal:{value:LOOK.real?1:0},uWet:{value:0},uSky:{value:new THREE.Color(0x9fb4d8)}};
 const GFX_NOISE='float gHash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat gNoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(gHash(i),gHash(i+vec2(1.0,0.0)),f.x),mix(gHash(i+vec2(0.0,1.0)),gHash(i+vec2(1.0,1.0)),f.x),f.y); }\nfloat gFbm(vec2 p){ return gNoise(p)*0.5+gNoise(p*2.03+17.1)*0.3+gNoise(p*4.11+3.7)*0.2; }\n';
-const GFX_COLOR='\nfloat gUp=0.0, gPud=0.0;\nif(uReal>0.5){ gUp=smoothstep(0.82,0.96,vNW.y)*(1.0-smoothstep(0.35,0.9,vCloudW.y));\n if(gUp>0.001){ vec2 q=vCloudW.xz; float dist=length(vViewPosition), near=1.0-smoothstep(70.0,190.0,dist);\n  float fine=gNoise(q*3.1)*0.6+gNoise(q*9.7)*0.4, mid=gFbm(q*0.35), big=gFbm(q*0.045+5.3);\n  diffuseColor.rgb*=1.0+gUp*((fine-0.5)*0.11*near+(mid-0.5)*0.15+(big-0.5)*0.12);\n  if(uWet>0.001){ gPud=smoothstep(0.54,0.6,gFbm(q*0.09+11.0))*uWet*gUp; diffuseColor.rgb*=mix(1.0,0.64,uWet*gUp)*mix(1.0,0.72,gPud); } } }\n';
+const GFX_COLOR='\nfloat gUp=0.0, gPud=0.0;\nif(uReal>0.5){ gUp=smoothstep(0.82,0.96,vNW.y)*(1.0-smoothstep(0.35,0.9,vCloudW.y));\n if(gUp>0.001){ vec2 q=vCloudW.xz; float dist=length(vViewPosition), near=1.0-smoothstep(70.0,190.0,dist);\n'+(LOWPOWER?'  float fine=0.5, mid=gNoise(q*0.35), big=gNoise(q*0.045+5.3);\n':'  float fine=gNoise(q*3.1)*0.6+gNoise(q*9.7)*0.4, mid=gFbm(q*0.35), big=gFbm(q*0.045+5.3);\n')+'  diffuseColor.rgb*=1.0+gUp*((fine-0.5)*0.11*near+(mid-0.5)*0.15+(big-0.5)*0.12);\n  if(uWet>0.001){ gPud=smoothstep(0.54,0.6,gFbm(q*0.09+11.0))*uWet*gUp; diffuseColor.rgb*=mix(1.0,0.64,uWet*gUp)*mix(1.0,0.72,gPud); } } }\n';
 function cloudShader(sh){ sh.uniforms.cloudMap=CLOUD_U.cloudMap; sh.uniforms.cloudOff=CLOUD_U.cloudOff; sh.uniforms.cloudAmt=CLOUD_U.cloudAmt; sh.uniforms.uReal=GFX_U.uReal; sh.uniforms.uWet=GFX_U.uWet; sh.uniforms.uSky=GFX_U.uSky;
     sh.uniforms.uDark=THEME_U.uDark; sh.uniforms.uThemeK={value:this&&this.userData&&this.userData.noTheme?0:1};
     sh.vertexShader='varying vec3 vCloudW;\nvarying vec3 vNW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 cwp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\ncwp=instanceMatrix*cwp;\n#endif\nvCloudW=(modelMatrix*cwp).xyz;\nvNW=normalize((vec4(transformedNormal,0.0)*viewMatrix).xyz);');

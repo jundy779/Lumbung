@@ -121,6 +121,9 @@ function header(icon,cls,small,title,sub,extra=''){
   <div class="acts">${extra}<button data-act="data" aria-pressed="${showData}" aria-label="Lihat data mentah" title="Data mentah (JSON)" class="${showData?'on':''}">${IC.code}</button><button data-act="focus" aria-label="Fokus" title="Fokus">${IC.focus}</button>${sel||document.body.classList.contains('site-sheet')?`<button data-act="close" aria-label="Tutup" title="Tutup">${IC.close}</button>`:''}</div></div>`;
 }
 const dataBlock=rec=>showData?`<div class="rawdata"><div class="rawh"><b>Store.${Store.tableOf(rec)}</b><small>record yang dibaca tampilan 3D &amp; panel ini</small></div><pre>${JSON.stringify(publicRecord(rec),null,2).replace(/</g,'&lt;')}</pre></div>`:'';
+/* v44.1: tulis innerHTML hanya bila HTML-nya berubah. Panel dirender ulang tiap 0,5 dtk; menulis ulang HTML yang sama
+   tetap memicu parsing, style, dan layout, serta mengganti elemen di bawah jari saat panel sedang di-scroll di HP */
+function setHTML(el,h){ if(!el||el._h===h) return false; el._h=h; el.innerHTML=h; return true; }
 function renderDetail(){
   const e=sel, el=$('#detail'); let h='';
   const s=(e&&e.siteId&&Store.get('stores',e.siteId))||S_();
@@ -194,7 +197,7 @@ function renderDetail(){
       `<div class="chips">${chip([{scheduled:'Dijadwalkan',loading:'Dimuat',unloading:'Dibongkar',in_transit:'Dalam perjalanan',delivered:'Terkirim',completed:'Selesai'}[e.status]||e.status,'info'])}<span>${e.customer}</span></div>
       <dl class="kv"><dt>Truk</dt><dd>${t?link(t.id,t.id):'—'}</dd><dt>Asal</dt><dd>${e.origin}</dd><dt>Tujuan</dt><dd>${e.destination}</dd><dt>Palet</dt><dd>${e.total}</dd><dt>Dibuat</dt><dd>${e.createdAt}</dd></dl>`;
   }
-  el.innerHTML=h; if(!e) drawHeat(s);
+  setHTML(el,h); if(!e) drawHeat(s);   /* peta panas AGV tetap digambar ulang walau HTML sama, datanya terus berubah */
 }
 /* tooltip grafik KPI: elemen ber-data-tip di panel detail memakai #hoverTip yang sama dengan kanvas 3D */
 { const tip=$('#hoverTip'), show=ev=>{ const t=ev.target.closest&&ev.target.closest('[data-tip]'); if(!t||!t.dataset.tip){ tip.classList.remove('show'); return; }
@@ -219,9 +222,9 @@ function renderTrack(){
   const cur = load ? (pre?1: t.state==='docked'?2:3) : (pre?3: t.state==='docked'?4:5);
   const lbl=i=>(i===cur&&((load&&i===2)||(!load&&i===4)))?`${names[i]} ${t.done}/${t.total}`:names[i];
   const meta=t.bay?`${s.id} · ${t.bay.label} · ${t.state==='docked'?Math.max(1,(t.total-t.done)*3)+' mnt lagi':'tiba ±'+Math.max(1,truckEta(t))+' mnt'}`:t.state==='away'?`Tiba ±${truckEta(t)} mnt`:t.state==='gate'||t.state==='yard_wait'?`${s.id} · ${qText(t)}`:s.id;
-  $('#track').innerHTML=`<div class="main"><div class="h"><b>${IC.road} Pelacakan pengiriman</b><small>${t.id} · ${t.carrier.name}</small></div>
+  setHTML($('#track'),`<div class="main"><div class="h"><b>${IC.road} Pelacakan pengiriman</b><small>${t.id} · ${t.carrier.name}</small></div>
     <div class="steps">${names.map((n,i)=>`<div class="step ${i<cur?'done':i===cur?'now':''}"><span class="c">${i<cur?IC.check:icons[i]}</span><b>${lbl(i)}</b><small>${i<cur?minsFrom(-((cur-i)*26)):i===cur?'Sekarang':'ETA '+minsFrom((i-cur)*24)}</small></div>`).join('')}</div></div>
-    <button class="ship" data-id="${t.id}">${img3(ICON3D.truck(),'tkimg')}<span style="flex:1;min-width:0"><b>${t.ship}</b><small>${load?'Ke':'Dari'}: ${t.place}</small>${chip(truckStatus(t))}<span class="meta" style="display:block">${meta}</span></span>${IC.chev}</button>`;
+    <button class="ship" data-id="${t.id}">${img3(ICON3D.truck(),'tkimg')}<span style="flex:1;min-width:0"><b>${t.ship}</b><small>${load?'Ke':'Dari'}: ${t.place}</small>${chip(truckStatus(t))}<span class="meta" style="display:block">${meta}</span></span>${IC.chev}</button>`);
 }
 $('#track').addEventListener('click',ev=>{const b=ev.target.closest('[data-id]'); if(b) select(Store.find(b.dataset.id),true);});
 let tab='dock';
@@ -237,7 +240,7 @@ function renderOps(){
   else rows=s.trucks.slice().sort((a,b)=>(a.state==='away')-(b.state==='away')||(a.state==='parked')-(b.state==='parked')).map(t=>{
       const where=t.bay?`${s.id} · ${t.bay.label}`:t.state==='parked'?'Parkir':`Ke ${s.id}`;
       return `<button class="oprow" data-id="${t.id}"><b>${t.id.replace('TRK-','')}</b><span class="t">${dot(t.carrier.cs)}${where}</span><span class="r">${chip(truckStatus(t))}${t.state==='docked'?bar(t.done/t.total*100,'g')+`<em>${t.done}/${t.total}</em>`:t.state==='away'?`<em>${truckEta(t)} mnt</em>`:''}</span>${IC.chev}</button>`;}).join('');
-  $('#opsList').innerHTML=rows;
+  setHTML($('#opsList'),rows);
 }
 $('#opsList').addEventListener('click',ev=>{const b=ev.target.closest('[data-id]'); if(!b) return; document.body.classList.remove('ops-open'); select(Store.find(b.dataset.id),true);});
 $('#opsToggle').onclick=()=>document.body.classList.add('ops-open');
@@ -562,7 +565,8 @@ const busy={};
 ['detail','track','ops'].forEach(id=>{const el=document.getElementById(id);
   el.addEventListener('pointerenter',()=>busy[id]=true); el.addEventListener('pointerleave',()=>busy[id]=false);
   el.addEventListener('focusin',()=>busy[id+'f']=true); el.addEventListener('focusout',()=>busy[id+'f']=false);});
-const paused=id=>busy[id]||busy[id+'f'];
+['detail','track','ops','opsList'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('scroll',()=>busy[id+'s']=performance.now(),{passive:true}); });
+const paused=id=>busy[id]||busy[id+'f']||performance.now()-(busy[id+'s']||-1e9)<1200||(id==='ops'&&performance.now()-(busy.opsLists||-1e9)<1200);
 function refreshUI(force){ renderKPIs(); if(force||!paused('detail')) renderDetail(); if(force||!paused('track')) renderTrack(); if(force||!paused('ops')) renderOps(); if(tableOpen&&!busy.tv) renderTable(); }
 $('#tableView').addEventListener('pointerenter',()=>busy.tv=true); $('#tableView').addEventListener('pointerleave',()=>busy.tv=false);
 
@@ -751,19 +755,25 @@ function updateRoute(){
 const labelLayer=$('#labels'); const tagPool=[];
 function tag(i){ if(!tagPool[i]){ const el=document.createElement('div'); el.className='tag'; labelLayer.appendChild(el); tagPool[i]=el; } return tagPool[i]; }
 const tmp=new THREE.Vector3();
-function place(el,wx,wy,wz){ tmp.set(wx,wy,wz).project(camera); if(tmp.z>1||tmp.x<-1.1||tmp.x>1.1||tmp.y<-1.1||tmp.y>1.1){ el.style.display='none'; return; } el.style.display=''; el.style.left=((tmp.x+1)/2*innerWidth)+'px'; el.style.top=((1-tmp.y)/2*innerHeight)+'px'; }
+/* v44.1: label dipindah dengan properti CSS translate (hanya komposit, tanpa layout ulang) dan hanya ditulis bila berubah.
+   Dulu left/top + className + innerHTML ditulis tiap frame untuk tiap label: ±100 layout ulang per detik di HP */
+const TAG_TR=typeof CSS!=='undefined'&&CSS.supports&&CSS.supports('translate','1px 1px');
+function setTag(el,cls,html){ if(el._c!==cls){ el._c=cls; el.className=cls; } if(el._h!==html){ el._h=html; el.innerHTML=html; } }
+function place(el,wx,wy,wz){ tmp.set(wx,wy,wz).project(camera); if(tmp.z>1||tmp.x<-1.1||tmp.x>1.1||tmp.y<-1.1||tmp.y>1.1){ if(el._d!=='none'){ el._d='none'; el.style.display='none'; } return; } if(el._d!==''){ el._d=''; el.style.display=''; }
+  const x=Math.round((tmp.x+1)/2*innerWidth*2)/2, y=Math.round((1-tmp.y)/2*innerHeight*2)/2; if(el._x===x&&el._y===y) return; el._x=x; el._y=y;
+  if(TAG_TR) el.style.translate=x+'px '+y+'px'; else { el.style.left=x+'px'; el.style.top=y+'px'; } }
 function drawLabels(){
   let n=0; const s=S_();
   if(!tableOpen&&!cine.on){
     for(const t of s.trucks){ if(t.state==='away'||(t.state!=='parked'&&t.presence<0.5)) continue; const el=tag(n++);
-      const isSel=sel===t; el.className='tag'+(isSel?' sel':'')+(t.state==='parked'&&!isSel?' dim':''); el.innerHTML=isSel?`${t.id}<span class="st">${truckStatus(t)[0]}</span>`:t.id;
+      const isSel=sel===t; setTag(el,'tag'+(isSel?' sel':'')+(t.state==='parked'&&!isSel?' dim':''),isSel?`${t.id}<span class="st">${truckStatus(t)[0]}</span>`:t.id);
       place(el,t.pos.x+s.ox,3.95,t.pos.z+s.oz); }
     if(sel&&sel.kind!=='truck'&&sel.kind!=='shipment'){ const el=tag(n++); const ss=Store.get('sites',sel.siteId);
-      if(sel.kind==='dock'){ el.className='tag bay'; el.innerHTML=`${sel.label}<span class="st">${dockStatus(sel)[0]}</span>`; place(el,sel.x+ss.ox,PH+3.6,ss.fz+0.5+ss.oz); }
-      else { const p=worldPos(sel), hgt={forklift:PH+2.6,person:(sel.y||0)+2.3,pallet:2.6}[sel.kind]||2; el.className='tag'; el.innerHTML=sel.kind==='forklift'?`${sel.short}<span class="st">${forkStatus(sel)[0]}</span>`:sel.kind==='person'?sel.name:sel.id; place(el,p.x,hgt,p.z); } }
-    if(routeEnd){ const el=tag(n++); el.className='tag'; el.innerHTML=`🛣 ${routeEnd.text}<span class="st">${routeEnd.sub}</span>`; place(el,routeEnd.x,7.5,routeEnd.z); }
+      if(sel.kind==='dock'){ setTag(el,'tag bay',`${sel.label}<span class="st">${dockStatus(sel)[0]}</span>`); place(el,sel.x+ss.ox,PH+3.6,ss.fz+0.5+ss.oz); }
+      else { const p=worldPos(sel), hgt={forklift:PH+2.6,person:(sel.y||0)+2.3,pallet:2.6}[sel.kind]||2; setTag(el,'tag',sel.kind==='forklift'?`${sel.short}<span class="st">${forkStatus(sel)[0]}</span>`:sel.kind==='person'?sel.name:sel.id); place(el,p.x,hgt,p.z); } }
+    if(routeEnd){ const el=tag(n++); setTag(el,'tag',`🛣 ${routeEnd.text}<span class="st">${routeEnd.sub}</span>`); place(el,routeEnd.x,7.5,routeEnd.z); }
   }
-  for(let i=n;i<tagPool.length;i++) tagPool[i].style.display='none';
+  for(let i=n;i<tagPool.length;i++){ const el=tagPool[i]; if(el._d!=='none'){ el._d='none'; el.style.display='none'; } }
 }
 
 /* ==========================================================================
@@ -772,12 +782,12 @@ function drawLabels(){
 SITE_CONFIG.forEach((C,i)=>createSite(C,i)); STORE_CONFIG.forEach((C,i)=>createStore(C,i));
 SITES().forEach(populateSite); SITES().forEach(seedDocks);
 initTraffic(); initCityWalkers();
-{ const keep=SITES().map(s=>[s.stockDelta,s.arrivals]); LUNCH_HOLD=true; for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); } SITES().forEach((s,i)=>{ s.stockDelta=keep[i][0]; s.arrivals=keep[i][1]; }); LUNCH_HOLD=false; }
+{ const keep=SITES().map(s=>[s.stockDelta,s.arrivals]); LUNCH_HOLD=true; for(let k=0;k<1500;k++){ for(const s of SITES()) simSite(s,1/12); for(const st of stores()) simStore(st,1/12); if(k%3===0) stepTraffic(1/4); if(k%150===149) await new Promise(r=>setTimeout(r,0)); }   /* v44.1: jeda tiap 150 langkah supaya layar pemuatan tidak beku; urutan langkah sama, sidik jari simulasi tetap */ SITES().forEach((s,i)=>{ s.stockDelta=keep[i][0]; s.arrivals=keep[i][1]; }); LUNCH_HOLD=false; }
 for(let k=0;k<300;k++) simCity(1/15);
 Store.events.length=0;
 SITES().forEach(s=>s.inv.forEach(i=>{ if(i.qty<STOCK_LOW) logEvent(s,`Stok ${i.name} menipis (${fmt(i.qty)} unit)`,'#B76E00'); }));
 Store.unread=2;
-document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); buildOutskirts(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); buildPedSignals(); initClouds(); bindEntities(); initWeatherFX();
+document.body.classList.toggle('lowp',LOWPOWER); { const av=document.querySelector('.user .avatar'); if(av){ av.textContent=''; av.style.backgroundImage=`url(${AVATAR})`; av.classList.add('img'); } } buildCityView(); buildOutskirts(); SITES().forEach(buildSiteView); stores().forEach(buildStoreView); buildRailView(); buildPedSignals(); initClouds(); freezeStatic(); bindEntities(); initWeatherFX();
 { let pref='1'; try{ pref=localStorage.getItem('lumbung.clean')??'1'; }catch(_){} if(pref==='1') setClean(true,true); }
 cam.target.copy(siteHome(0)); cam.zoom=cam.zoomGoal=HOME_ZOOM(); applyCam();
 syncView(0,performance.now());

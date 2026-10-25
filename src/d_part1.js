@@ -16,7 +16,11 @@ if(!window.THREE){ $('#loading').textContent='Gagal memuat mesin 3D. Muat ulang 
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 const LOWP=matchMedia('(pointer: coarse)').matches||innerWidth<820||(navigator.hardwareConcurrency||8)<=4;
-renderer.setPixelRatio(Math.min(devicePixelRatio,LOWP?1.5:2));
+/* v44.1: di HP, resolusi kanvas dibatasi total ±1 juta piksel. Mode "Situs desktop" di HP membuat viewport ±980×2100 CSS px,
+   sehingga batas rasio 1,5 saja tetap merender 2,6 juta piksel (3,5× mode HP biasa) */
+const PX_BUDGET=1.05e6;
+const pixelRatioFor=(w,h)=>{ const pr=Math.min(devicePixelRatio||1,LOWP?1.5:2); return LOWP?Math.max(0.7,Math.min(pr,Math.sqrt(PX_BUDGET/Math.max(1,w*h)))):pr; };
+renderer.setPixelRatio(pixelRatioFor(innerWidth,innerHeight));
 renderer.outputEncoding = THREE.sRGBEncoding;
 /* v44: tone mapping filmis di gaya realistis: sorotan matahari tidak "terbakar" putih dan bayangan punya kedalaman */
 if(LOOK.real){ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.9; }
@@ -25,7 +29,7 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(26,1,1,1200);
 const isMobile = () => innerWidth <= 820;
-function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); canvas.style.width=w+'px'; canvas.style.height=h+'px'; camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setPixelRatio(pixelRatioFor(w,h)); renderer.setSize(w,h,false); canvas.style.width=w+'px'; canvas.style.height=h+'px'; camera.aspect=w/h; camera.updateProjectionMatrix(); }
 resize(); addEventListener('resize',resize);
 const C = h => new THREE.Color(h).convertSRGBToLinear();
 const hemi = new THREE.HemisphereLight(0xffffff,0xffffff,0.56); hemi.groundColor=C(0xBFC8EA); scene.add(hemi);
@@ -93,10 +97,10 @@ function realTree(P,x,z,s,kind,ox=0,oz=0){ const hsh0=hsh, hs=(a,b,k)=>hsh0(a+ox
   for(let i=0;i<n;i++){ const a=i/n*Math.PI*2+h*5, r=s*0.55, k=0.62+hs(x,z,i+3)*0.2; P.add(gIco(0),hi(g,(i%2?-0.02:0.025)),x+Math.sin(a)*r,cy-s*0.12+hs(x,z,i+9)*s*0.25,z+Math.cos(a)*r,a,s*k,s*k*0.85,s*k); }
   P.add(gIco(0),hi(g,0.05),x+s*0.12,cy+s*0.42,z-s*0.1,h*4,s*0.66,s*0.5,s*0.66); }
 const gHemi=(r,s=14)=>memo('h'+r+'|'+s,()=>new THREE.SphereGeometry(r,s,Math.round(s/2),0,Math.PI*2,0,Math.PI/2));
-function gCap(r,len,seg=8){ return memo('cap'+r+'|'+len,()=>{const pts=[];
+function gCap(r,len,seg=8,rad=12){ return memo('cap'+r+'|'+len+'|'+seg+'|'+rad,()=>{const pts=[];
   for(let i=0;i<=seg;i++){const a=-Math.PI/2+i/seg*Math.PI/2; pts.push(new THREE.Vector2(Math.max(1e-4,Math.cos(a)*r),-len/2+Math.sin(a)*r));}
   for(let i=0;i<=seg;i++){const a=i/seg*Math.PI/2; pts.push(new THREE.Vector2(Math.max(1e-4,Math.cos(a)*r),len/2+Math.sin(a)*r));}
-  return new THREE.LatheGeometry(pts,12);}); }
+  return new THREE.LatheGeometry(pts,rad);}); }
 function gTire(R,ri,w,c=0.09){ return memo('tire'+R+'|'+w,()=>{const pts=[], h=w/2;
   pts.push(new THREE.Vector2(ri,-h));
   for(let i=0;i<=6;i++){const a=-Math.PI/2+i/6*Math.PI/2; pts.push(new THREE.Vector2(R-c+Math.cos(a)*c,-h+c+Math.sin(a)*c));}
@@ -330,13 +334,16 @@ function makeForklift(profile='general'){
 }
 /* ---------- palet ber-instancing: semua palet di kota = 5 draw call ---------- */
 let PAL=null;
+/* v44.1: di HP (LOWP) palet memakai kotak bersudut tajam: 12 segitiga per kotak, bukan 108. Ribuan kotak palet selalu digambar
+   (InstancedMesh tanpa frustum culling), jadi ini penghematan terbesar; pada zoom HP sudut membulat 5 cm tidak terlihat */
+const PAL_R=LOWP?0:1;
 function palletPools(){ if(PAL) return PAL; const base=new Parts();
-  base.box(1.16,0.06,1.16,0.02,0xCB975F,0,0.13,0); for(const z of [-0.48,0,0.48]) base.box(1.16,0.1,0.17,0.02,0xA9794A,0,0.05,z);
+  base.box(1.16,0.06,1.16,0.02*PAL_R,0xCB975F,0,0.13,0); for(const z of [-0.48,0,0.48]) base.box(1.16,0.1,0.17,0.02*PAL_R,0xA9794A,0,0.05,z);
   PAL={ base:new InstPool(base.geometry(),stdMat(.85,true),420,{cast:!LOWP}),
-    box:new InstPool(gR(0.54,0.5,0.54,0.05),stdMat(.85),4200,{color:true,cast:!LOWP}),
+    box:new InstPool(gR(0.54,0.5,0.54,0.05*PAL_R),stdMat(.85),4200,{color:true,cast:!LOWP}),
     tape:new InstPool(new THREE.BoxGeometry(0.11,0.012,0.548),stdMat(.9),3600,{color:true,cast:false}),
     blob:new InstPool(planeG,blobMat(0.85,false),900,{cast:false,receive:false,order:1}),
-    film:new InstPool(gR(1.15,1,1.15,0.05),new THREE.MeshStandardMaterial({color:0xEEF4FF,transparent:true,opacity:0.42,roughness:0.12,metalness:0.05,depthWrite:false}),400,{cast:false,order:3}) };
+    film:new InstPool(gR(1.15,1,1.15,0.05*PAL_R),new THREE.MeshStandardMaterial({color:0xEEF4FF,transparent:true,opacity:0.42,roughness:0.12,metalness:0.05,depthWrite:false}),400,{cast:false,order:3}) };
   return PAL; }
 const _pm=new THREE.Matrix4(), _pq=new THREE.Quaternion(), _pe=new THREE.Euler(), _pv=new THREE.Vector3(), _ps=new THREE.Vector3();
 const pmat=(x,y,z,ry=0,sx=1,sy=1,sz=1)=>{ _pe.set(0,ry,0); _pq.setFromEuler(_pe); return new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),_pq.clone(),new THREE.Vector3(sx,sy,sz)); };
@@ -366,22 +373,24 @@ function updatePallet(anchor,force){ const pd=anchor.userData.pallet; if(!pd) re
 function freePallet(anchor){ const pd=anchor.userData.pallet; if(!pd) return; for(const p of pd.parts) p.pool.release(p.i); pd.parts=[]; }
 /* ---------- pekerja ber-instancing: semua orang = ~14 draw call ---------- */
 let PPL=null;
+/* v44.1: di HP badan orang memakai segmen lebih sedikit (kapsul 3×8, kepala 8 sisi): ±⅓ segitiga, siluet sama pada zoom HP */
+const LQ=LOWP, capL=(r,l)=>gCap(r,l,LQ?3:8,LQ?8:12), sphL=(r,s)=>gSph(r,LQ?Math.min(s,8):s), cylL=(r,h,s)=>gCyl(r,h,LQ?Math.min(s,8):s);
 function peoplePools(n){ if(PPL) return PPL; const G=(f)=>{const P=new Parts(); f(P); return P.geometry();};
   const cap=n*2+16; /* anggota tubuh berpasangan (lengan, paha, betis, kaki) butuh 2 slot per orang */
   const mk=(geo,color=true,cast=true)=>new InstPool(geo,color?stdMat(.7):stdMat(.7,true),cap,{color,cast:cast&&!LOWP});
-  PPL={ vest:mk(G(P=>{P.add(gCap(0.17,0.24),0xFFFFFF,0,0.31,0);P.box(0.3,0.1,0.18,0.06,0xFFFFFF,0,0.53,0);})),
-    pelvis:mk(G(P=>P.add(gCap(0.14,0.12),0xFFFFFF,0,0.03,0))), neck:mk(G(P=>P.add(gCyl(0.06,0.09,10),0xFFFFFF,0,0.6,0)),true,false),
-    bands:mk(G(P=>{P.add(gCyl(0.173,0.04,14),0xEEF2FA,0,0.24,0);P.add(gCyl(0.173,0.04,14),0xEEF2FA,0,0.4,0);}),false,false),
-    head:mk(G(P=>{P.add(gSph(0.125,14),0xFFFFFF,0,0.13,0);P.add(gSph(0.028,6),0xFFFFFF,0,0.11,0.122);})),
-    eyes:mk(G(P=>{P.add(gSph(0.017,6),0x1B2340,-0.045,0.14,0.113);P.add(gSph(0.017,6),0x1B2340,0.045,0.14,0.113);}),false,false),
-    hat:mk(G(P=>P.add(gHemi(0.143),0xFFFFFF,0,0.16,0))), brim:mk(G(P=>P.add(gCyl(0.18,0.02,14),0xFFFFFF,0,0.165,0.025)),true,false),
-    upper:mk(G(P=>{P.add(gCap(0.058,0.18),0xFFFFFF,0,-0.13,0);P.add(gSph(0.07,10),0xFFFFFF,0,0,0);})),
-    fore:mk(G(P=>{P.add(gCap(0.048,0.17),0xFFFFFF,0,-0.12,0);P.add(gSph(0.055,8),0xFFFFFF,0,-0.26,0.01);})),
+  PPL={ vest:mk(G(P=>{P.add(capL(0.17,0.24),0xFFFFFF,0,0.31,0);P.box(0.3,0.1,0.18,0.06,0xFFFFFF,0,0.53,0);})),
+    pelvis:mk(G(P=>P.add(capL(0.14,0.12),0xFFFFFF,0,0.03,0))), neck:mk(G(P=>P.add(cylL(0.06,0.09,10),0xFFFFFF,0,0.6,0)),true,false),
+    bands:mk(G(P=>{P.add(cylL(0.173,0.04,14),0xEEF2FA,0,0.24,0);P.add(cylL(0.173,0.04,14),0xEEF2FA,0,0.4,0);}),false,false),
+    head:mk(G(P=>{P.add(sphL(0.125,14),0xFFFFFF,0,0.13,0);P.add(sphL(0.028,6),0xFFFFFF,0,0.11,0.122);})),
+    eyes:mk(G(P=>{P.add(sphL(0.017,6),0x1B2340,-0.045,0.14,0.113);P.add(sphL(0.017,6),0x1B2340,0.045,0.14,0.113);}),false,false),
+    hat:mk(G(P=>P.add(gHemi(0.143,LQ?8:14),0xFFFFFF,0,0.16,0))), brim:mk(G(P=>P.add(cylL(0.18,0.02,14),0xFFFFFF,0,0.165,0.025)),true,false),
+    upper:mk(G(P=>{P.add(capL(0.058,0.18),0xFFFFFF,0,-0.13,0);P.add(sphL(0.07,10),0xFFFFFF,0,0,0);})),
+    fore:mk(G(P=>{P.add(capL(0.048,0.17),0xFFFFFF,0,-0.12,0);P.add(sphL(0.055,8),0xFFFFFF,0,-0.26,0.01);})),
     clip:mk(G(P=>{P.box(0.2,0.012,0.27,0,0xF5F7FC,0.02,-0.27,0.1);P.box(0.21,0.008,0.28,0,0x8B5E34,0.02,-0.278,0.1);P.box(0.07,0.02,0.03,0,0x2E5BFF,0.02,-0.262,-0.02);}),false,false),
-    thigh:mk(G(P=>P.add(gCap(0.078,0.3),0xFFFFFF,0,-0.22,0))), shin:mk(G(P=>P.add(gCap(0.066,0.28),0xFFFFFF,0,-0.2,0))),
+    thigh:mk(G(P=>P.add(capL(0.078,0.3),0xFFFFFF,0,-0.22,0))), shin:mk(G(P=>P.add(capL(0.066,0.28),0xFFFFFF,0,-0.2,0))),
     foot:mk(G(P=>P.box(0.12,0.07,0.25,0.035,0xFFFFFF,0,-0.03,0.05))) };
   return PPL; }
-const _I=new THREE.Matrix4();
+const _I=new THREE.Matrix4(), _updM=o=>o.updateMatrix();
 function makePerson(look){
   const P=peoplePools(150), {vest,hat,clip,civ,skin,pants}=look, shoe=0x22252E;
   const g=new THREE.Group(), hips=new THREE.Group(); hips.position.y=0.95; g.add(hips);
@@ -401,11 +410,13 @@ function makePerson(look){
   }
   const pk=new THREE.Mesh(gR(0.7,1.9,0.7,0),pickMatL); pk.position.y=0.95; pk.layers.set(1); g.add(pk);
   const bi=palletPools().blob.alloc(), bi2=palletPools().blob.alloc();
+  g.userData.rig=true; g.traverse(o=>{ o.matrixAutoUpdate=false; o.updateMatrix(); });   /* v44.1: matriks rangka dihitung di updatePerson, bukan di scene.updateMatrixWorld */
   return {g,hips,torso,head,sh,el,th,kn,an,parts,blobI:bi,blobI2:bi2};
 }
 function recolorPerson(rig,look){ for(const p of rig.parts){ if(!p.key) continue; p.pool.color(p.i,'#'+new THREE.Color(look[p.key]).getHexString()); if(p.pool===PPL.clip) continue; } }
 function updatePerson(rig,visible){
-  rig.g.updateMatrixWorld(true);
+  if(!visible){ if(rig.hid) return; rig.hid=true; }   /* v44.1: rangka yang sudah tersembunyi tidak dihitung ulang tiap frame */
+  else { rig.hid=false; rig.g.traverse(_updM); rig.g.updateMatrixWorld(true); }
   for(const p of rig.parts){ if(!visible||!p.show) p.pool.set(p.i,_hide); else p.pool.set(p.i,p.joint.matrixWorld); }
   const b=palletPools().blob; if(!visible){ b.set(rig.blobI,_hide); b.set(rig.blobI2,_hide); } else { _pv.setFromMatrixPosition(rig.g.matrixWorld); _pm.makeScale(1.05,1,1.05).setPosition(_pv.x,_pv.y+0.02,_pv.z); b.set(rig.blobI,_pm); _pm.makeScale(0.5,1,0.5).setPosition(_pv.x,_pv.y+0.025,_pv.z); b.set(rig.blobI2,_pm); }
 }
