@@ -253,6 +253,7 @@ Panduan lengkap — termasuk Cloudflare Pages dan Nginx — ada di [`CARA-DEPLOY
 Simulator diuji otomatis dengan skenario 13 menit (siang, malam, dan siklus cepat) serta uji ketahanan 30 menit. Uji yang sama bisa dijalankan siapa saja:
 
 - **Di browser:** buka `lumbung.fusionify.id/?selftest` (opsional `&menit=13&jam=malam&seed=7`, atau jam bebas seperti `&jam=11.9`). Simulasi dipercepat lalu muncul laporan 27 pemeriksaan keselamatan (termasuk validitas angka KPI, gerbang check-in, dan perpindahan truk antar-gudang). Selama uji, "operator uji" otomatis ikut memindah bay, mengalihkan truk, dan mengirim antar-gudang.
+- **Uji XSS:** buka `lumbung.fusionify.id/?ujixss`. Semua teks data dikotori potongan HTML berbahaya lalu semua panel dirender; lulus bila tidak ada yang berubah jadi elemen hidup. Muat ulang tanpa `?ujixss` setelahnya.
 - **Di terminal:** `node tests/headless-sim.mjs 13 7 siang` (menit, seed, jam). Keluar dengan kode 1 bila ada pemeriksaan yang gagal, jadi bisa dipakai sebelum push.
 - **Seed:** `?seed=123` membuat keputusan acak simulator bisa diulang. Seed yang sedang dipakai tampil di menu Waktu & Cuaca, lengkap dengan tombol salin tautan. Browser dan terminal menghasilkan sidik jari keadaan yang sama untuk seed, durasi, dan jam yang sama.
 

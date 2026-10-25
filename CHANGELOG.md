@@ -1,5 +1,12 @@
 # Changelog
 
+## v44.1 · 26 Okt 2026
+- **Keamanan tampilan (temuan audit #2):** semua teks data yang masuk ke panel sekarang di-escape dulu: nama dan alamat gudang, barang, sopir, pelat, pelanggan, asal dan tujuan pengiriman, status forklift, peran pekerja, teks kejadian, isi peringatan, tabel data, menu gudang, pencarian, label di atas peta, dan toast. Sekarang datanya masih dari konfigurasi sendiri, tapi begitu data WMS atau API masuk, teks tanpa escape bisa dipakai menyisipkan skrip.
+- Warna dari data (warna carrier, warna kejadian) hanya diterima dalam bentuk hex, nama warna, rgb, atau hsl. Selain itu diganti abu supaya tidak bisa menyisipkan CSS.
+- Tooltip penanda garis waktu putar ulang memakai `textContent`, tidak lagi `innerHTML`.
+- **Uji baru `?ujixss`:** mengotori semua field teks dengan potongan HTML berbahaya, lalu merender semua panel, tabel, menu, notifikasi, pencarian, label, dan toast. Lulus bila tidak ada elemen sisipan yang hidup, tidak ada teks yang ter-escape dua kali, dan teks uji tampil apa adanya. Hasil juga di `window.__ujixss` untuk Playwright. Sudah dicoba dengan sengaja mencabut satu escape: uji langsung gagal.
+- Hanya tampilan: simulasi dan sidik jarinya tidak berubah.
+
 ## v44 · 24 Okt 2026
 - **Gaya peta realistis** (bawaan baru). Gaya lama tetap tersedia di Waktu & Cuaca → Gaya peta → Klasik. Mengganti gaya memuat ulang peta karena palet kota dibangun saat startup.
   - **Permukaan:** jalan aspal abu tua, apron dan trotoar beton, rumput di luar kota. Semua bidang datar di permukaan tanah mendapat butiran halus, bercak, dan noda besar dari derau posisi dunia (tanpa tekstur tambahan). Butiran halus memudar saat kamera jauh supaya tidak berkedip.
