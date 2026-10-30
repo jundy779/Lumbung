@@ -8,7 +8,7 @@
 
 ## 1. Ringkasan
 
-**Lumbung** adalah dashboard operasional gudang 3D isometrik milik **PT Fusionify Digital** (Bogor). Lima gudang dan dua toko disimulasikan dalam satu kota: truk datang lewat tol, masuk halaman gudang, mundur ke dock, dibongkar/dimuat forklift, lalu berangkat ke toko atau luar kota. Terinspirasi video konsep **WareTrack**, tetapi dibangun ulang dari nol — nama, logo, model, dan kode milik sendiri.
+**Lumbung** adalah dashboard operasional gudang 3D isometrik milik **PT Fusionify Digital Store** (Bogor). Lima gudang dan dua toko disimulasikan dalam satu kota: truk datang lewat tol, masuk halaman gudang, mundur ke dock, dibongkar/dimuat forklift, lalu berangkat ke toko atau luar kota. Terinspirasi video konsep **WareTrack**, tetapi dibangun ulang dari nol — nama, logo, model, dan kode milik sendiri.
 
 | | |
 |---|---|

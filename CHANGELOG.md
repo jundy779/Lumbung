@@ -1,5 +1,8 @@
 # Changelog
 
+## v44.2 · 30 Okt 2026
+- Nama badan hukum di README, package.json, KONTEKS-PROYEK.md, dan CLAUDE.md dibenahi menjadi PT Fusionify Digital Store (nama resmi). Tidak ada perubahan kode.
+
 ## v44.1 · 26 Okt 2026
 - **Keamanan tampilan (temuan audit #2):** semua teks data yang masuk ke panel sekarang di-escape dulu: nama dan alamat gudang, barang, sopir, pelat, pelanggan, asal dan tujuan pengiriman, status forklift, peran pekerja, teks kejadian, isi peringatan, tabel data, menu gudang, pencarian, label di atas peta, dan toast. Sekarang datanya masih dari konfigurasi sendiri, tapi begitu data WMS atau API masuk, teks tanpa escape bisa dipakai menyisipkan skrip.
 - Warna dari data (warna carrier, warna kejadian) hanya diterima dalam bentuk hex, nama warna, rgb, atau hsl. Selain itu diganti abu supaya tidak bisa menyisipkan CSS.

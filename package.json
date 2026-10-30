@@ -2,7 +2,7 @@
   "name": "lumbung",
   "version": "44.1.0",
   "private": true,
-  "description": "Dashboard operasional gudang 3D · PT Fusionify Digital",
+  "description": "Dashboard operasional gudang 3D · PT Fusionify Digital Store",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",

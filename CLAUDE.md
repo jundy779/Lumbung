@@ -148,7 +148,7 @@ Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Ka
 - Lalu lintas (`stepTraffic`): kunci persimpangan dilepas hanya bila lampu **persimpangan itu sendiri** merah (`redSigs`), sebelumnya lampu merah di persimpangan berikutnya dalam 45 m ikut melepas kunci; keputusan kuning (6 m/s²) / merah (8 m/s²) + `c.commit`; `exitRoom()` = aturan jangan menutup persimpangan (memprediksi lampu saat tiba dan antrean di seberang; saat kuning berkedip, persimpangan berikutnya yang terpakai dianggap titik berhenti); mobil yang badannya masih di persimpangan boleh merapat 4,4 m; `clearOfJunctions()` saat spawn; hijau masuk Jalan Lingkar 7 dtk.
 - `crewDetour`: sampel jalur tiap 0,5 m sampai 8 m (sebelumnya 6 sampel di seluruh ruas, sehingga truk di depan sopir lolos).
 - `PLANS.picker` dan `personStep`: tidak pernah meninggalkan antrean aksi kosong (sebelumnya crash di mode Siklus cepat).
-- Temuan #5 (simulasi tanpa seed) dan #16 (nama perusahaan, kini "PT Fusionify Digital") selesai. Backlog B selesai.
+- Temuan #5 (simulasi tanpa seed) dan #16 (nama perusahaan, kini "PT Fusionify Digital Store") selesai. Backlog B selesai.
 
 **Perubahan v29 (18 Okt 2026)** yang memengaruhi isi dokumen ini:
 - Data demo diganti angka Lumbung sendiri (sebelumnya identik dengan video konsep WareTrack). ID truk `TRK-{3104+i*59+idx*97}` (parkir `TRK-{4705+i*11+idx*23}`), ID kiriman `KRM-{24181..}` berurutan lewat `SHIP_SEQ` (b_layout.js).
@@ -176,7 +176,7 @@ Patokan versi: `package.json` 28.0.0, CHANGELOG terakhir v28.3 (17 Okt 2026). Ka
 
 ## 1. Ringkasan satu paragraf
 
-Lumbung adalah dashboard operasional gudang 3D isometrik milik FUSIONIFY (PT Fusionify Digital). Lima gudang dan dua toko tujuan hidup di satu peta kota fiktif area Bogor/Depok/Cikarang. Truk datang lewat Tol Jagorawi, mundur ke dock, dibongkar atau dimuat forklift, lalu mengantar ke toko atau keluar kota. Semua data masih **simulasi di browser**; tidak ada backend, tidak ada API, tidak ada database. Hasil build berupa satu file `index.html` yang memuat Three.js r128 dan font Plus Jakarta Sans dari CDN. Target deploy: `lumbung.fusionify.id`.
+Lumbung adalah dashboard operasional gudang 3D isometrik milik FUSIONIFY (PT Fusionify Digital Store). Lima gudang dan dua toko tujuan hidup di satu peta kota fiktif area Bogor/Depok/Cikarang. Truk datang lewat Tol Jagorawi, mundur ke dock, dibongkar atau dimuat forklift, lalu mengantar ke toko atau keluar kota. Semua data masih **simulasi di browser**; tidak ada backend, tidak ada API, tidak ada database. Hasil build berupa satu file `index.html` yang memuat Three.js r128 dan font Plus Jakarta Sans dari CDN. Target deploy: `lumbung.fusionify.id`.
 
 ---
 
